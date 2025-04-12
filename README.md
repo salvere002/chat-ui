@@ -1,4 +1,4 @@
-# Chat UI with Flask Backend
+# Chat UI
 
 A modern chat application featuring a React frontend with a Flask backend that supports AI text messaging, file uploads, and image generation.
 
