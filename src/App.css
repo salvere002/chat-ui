@@ -19,7 +19,7 @@
   align-items: center;
   justify-content: center;
   z-index: 10; /* Ensure it's above other content */
-  transition: background-color 0.2s, color 0.2s;
+  /* Removed transition for instant theme switching */
   box-shadow: var(--shadow-sm);
   width: 40px;
   height: 40px;
@@ -75,6 +75,17 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  width: 100%;
+  height: calc(100vh - 40px); /* Account for any header/footer */
+}
+
+/* Add this new style for the chat area */
+.chat-area {
+  flex: 1;
+  display: flex;
+  min-width: 0; /* Prevent flex item from overflowing */
+  width: 100%;
+  height: 100%;
 }
 
 .agent-selector {
@@ -139,4 +150,25 @@
   .app-container {
     flex-direction: column;
   }
+}
+
+/* Dark theme styles for the theme toggle button */
+.dark-theme .theme-toggle-button {
+  background: var(--bg-tertiary-dark, #252525);
+  border-color: var(--border-color-dark, #444);
+  color: var(--text-primary-dark, #e9ecef);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme .theme-toggle-button:hover {
+  background: var(--hover-bg-dark, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary-dark, #e9ecef);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Force immediate application of theme colors without transitions */
+html, body, .app, .app-container, .chat-area, .message-input-container,
+.message-list, .message-item, .message-input-area, .sidebar {
+  transition-property: none !important;
 } 

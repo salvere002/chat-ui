@@ -4,6 +4,8 @@ import ChatInterface from './components/ChatInterface'; // Import the main chat 
 import Sidebar from './components/Sidebar'; // Import the new Sidebar component
 import { ChatProvider } from './contexts/ChatContext'; // Import the ChatProvider
 import { ThemeProvider, useTheme } from './contexts/ThemeContext'; // Import ThemeProvider
+import { ToastProvider } from './contexts/ToastContext'; // Import ToastProvider
+import ErrorBoundary from './components/ErrorBoundary'; // Import ErrorBoundary
 import { FaSun, FaMoon } from 'react-icons/fa'; // Import icons
 import { useChat } from './contexts/ChatContext';
 import { Agent } from './types/chat';
@@ -39,17 +41,23 @@ const AppContent: React.FC = () => {
       
       {/* Main app container */}
       <div className="app-container">
-        <Sidebar
-          chats={chatSessions} // Pass chatSessions from context as chats prop
-          activeChatId={activeChatId}
-          onChatSelected={setActiveChat}
-          onNewChat={handleNewChat}
-          onDeleteChat={deleteChat}
-          selectedAgent={selectedAgent}
-          onAgentChange={(agent) => setSelectedAgent(agent)}
-        />
-        {/* Pass selectedAgent to ChatInterface if it needs it */}
-        <ChatInterface selectedAgent={selectedAgent} /> 
+        <ErrorBoundary>
+          <Sidebar
+            chats={chatSessions} // Pass chatSessions from context as chats prop
+            activeChatId={activeChatId}
+            onChatSelected={setActiveChat}
+            onNewChat={handleNewChat}
+            onDeleteChat={deleteChat}
+            selectedAgent={selectedAgent}
+            onAgentChange={(agent) => setSelectedAgent(agent)}
+          />
+        </ErrorBoundary>
+        
+        <div className="chat-area">
+          <ErrorBoundary>
+            <ChatInterface selectedAgent={selectedAgent} />
+          </ErrorBoundary>
+        </div>
       </div>
     </div>
   );
@@ -58,12 +66,16 @@ const AppContent: React.FC = () => {
 // Main App component now just sets up the provider
 const App: React.FC = () => {
   return (
-    // Wrap everything with ThemeProvider at the top level
-    <ThemeProvider>
-      <ChatProvider>
-        <AppContent />
-      </ChatProvider>
-    </ThemeProvider>
+    // Wrap everything with providers
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <ChatProvider>
+            <AppContent />
+          </ChatProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 };
 

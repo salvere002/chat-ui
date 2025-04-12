@@ -16,6 +16,8 @@
   max-width: 85%; /* Limit message width */
   align-self: flex-start; /* Default to left alignment */
   animation: fadeInSlideUp 0.3s ease forwards; /* Apply entry animation */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  animation: message-appear 0.3s ease;
 }
 
 .message-item.user {
@@ -34,7 +36,7 @@
 }
 
 .message-item.user .message-content {
-  background-color: var(--user-bubble-bg, #007bff); /* User bubble */
+  background-color: var(--user-bubble-bg, #6366f1); /* User bubble - now using theme variable */
   color: var(--user-bubble-text, #ffffff);
 }
 
@@ -56,9 +58,28 @@
 
 .message-item.user .message-content::before {
   right: -8px;
-  border-left-color: var(--user-bubble-bg, #007bff);
+  border-left-color: var(--user-bubble-bg, #6366f1);
 }
 
+/* Add dark theme support for user bubbles */
+.dark-theme .message-item.user .message-content {
+  background-color: var(--primary-color-dark, #818cf8);
+  color: var(--user-bubble-text, #ffffff);
+}
+
+.dark-theme .message-item.user .message-content::before {
+  border-left-color: var(--primary-color-dark, #818cf8);
+}
+
+.dark-theme .message-item.user .sender-icon {
+  background-color: var(--primary-color-dark, #818cf8);
+}
+
+/* Fix for file attachments in user messages */
+.dark-theme .message-item.user .file-attachment {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
 
 .sender-icon {
   width: 30px;
@@ -79,7 +100,7 @@
   margin-right: 0;
   margin-left: 10px; /* Space on the other side for user */
   /* Optionally use a different color/icon for user */
-  background-color: var(--user-bubble-bg, #007bff);
+  background-color: var(--user-bubble-bg, #6366f1);
   color: var(--user-bubble-text, #ffffff);
 }
 
@@ -120,6 +141,7 @@
   padding: 5px 10px;
   border-radius: 4px;
   font-size: 0.85em;
+  transition: background-color 0.2s ease;
 }
 
 .message-item.user .file-attachment {
@@ -429,7 +451,7 @@
   font-family: inherit;
   font-size: 1rem;
   line-height: 1.5;
-  resize: vertical;
+  resize: none; /* Disable resizing */
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -502,4 +524,117 @@
 .dark-theme .message-edit-textarea {
   background-color: var(--bg-secondary);
   border-color: var(--border-secondary);
+}
+
+/* Improved message item transitions */
+@keyframes message-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover effect for messages */
+.message-item:hover {
+  background-color: var(--hover-bg, rgba(0, 0, 0, 0.02));
+}
+
+.dark-theme .message-item:hover {
+  background-color: var(--hover-bg-dark, rgba(255, 255, 255, 0.05));
+}
+
+/* Improved image attachment styles */
+.image-attachment {
+  position: relative;
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 300px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.image-attachment:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.image-attachment img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: filter 0.2s ease;
+}
+
+/* File attachment improvements */
+.file-attachment:hover {
+  background-color: var(--file-hover-bg, rgba(0, 0, 0, 0.05));
+}
+
+.dark-theme .file-attachment:hover {
+  background-color: var(--file-hover-bg-dark, rgba(255, 255, 255, 0.1));
+}
+
+/* Loading indicator container in message */
+.message-item .loading-indicator {
+  margin-left: 8px;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.message-item .loading-indicator.small .dots span {
+  width: 4px;
+  height: 4px;
+}
+
+/* Generated image improvements */
+.generated-image {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.generated-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Add subtle pulse animation to the avatar when message is incomplete */
+@keyframes avatar-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.message-item.ai .message-avatar {
+  transition: all 0.2s ease;
+}
+
+.message-item.ai[data-is-complete="false"] .message-avatar {
+  animation: avatar-pulse 1.5s infinite;
+}
+
+/* Global rule to prevent resizing of all textareas in the chat UI */
+.message-item textarea,
+.message-content textarea,
+.message-input-container textarea {
+  resize: none !important;
+}
+
+/* Specific rule for message text content to prevent any dragging */
+.message-text {
+  resize: none !important;
+  user-select: text;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Dark theme styling for AI sender icon */
+.dark-theme .message-item:not(.user) .sender-icon {
+  background-color: var(--bg-tertiary-dark, #293548);
+  color: var(--text-secondary-dark, #cbd5e1);
 } 

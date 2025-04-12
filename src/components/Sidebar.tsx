@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Chat, Agent } from '../types/chat';
+import { useChat } from '../contexts/ChatContext';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -21,10 +22,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   selectedAgent,
   onAgentChange
 }) => {
+  const { renameChat } = useChat();
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [editingChatName, setEditingChatName] = useState('');
+  
   // Function to format the chat title or generate a default one
   const getChatTitle = (chat: Chat, index: number) => {
+    // Check title first
     if (chat.title && chat.title.trim() !== '') {
       return chat.title;
+    }
+    
+    // Then check name for backward compatibility
+    if (chat.name && chat.name.trim() !== '') {
+      return chat.name;
     }
     
     // Get the first user message, if any
@@ -37,6 +48,40 @@ const Sidebar: React.FC<SidebarProps> = ({
     
     // Fallback to a default name
     return `Chat ${chats.length - index}`;
+  };
+  
+  // Start editing a chat title
+  const startEditing = (chat: Chat, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingChatId(chat.id);
+    // Use the display title for editing
+    const displayTitle = getChatTitle(chat, chats.indexOf(chat));
+    setEditingChatName(displayTitle);
+  };
+  
+  // Save the edited chat title
+  const saveEditedName = () => {
+    if (editingChatId && editingChatName.trim() !== '') {
+      renameChat(editingChatId, editingChatName);
+      setEditingChatId(null);
+      setEditingChatName('');
+    }
+  };
+  
+  // Handle Enter key to save and Escape key to cancel
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveEditedName();
+    } else if (e.key === 'Escape') {
+      setEditingChatId(null);
+      setEditingChatName('');
+    }
+  };
+  
+  // Handle input blur to save changes
+  const handleBlur = () => {
+    saveEditedName();
   };
   
   // Format the date to a readable string
@@ -108,23 +153,54 @@ const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => onChatSelected(chat.id)}
             >
               <div className="chat-item-content">
-                <div className="chat-item-title">
-                  {getChatTitle(chat, index)}
-                </div>
-                <div className="chat-item-date">
-                  {formatDate(chat.updatedAt)}
-                </div>
+                {editingChatId === chat.id ? (
+                  <div className="chat-item-edit">
+                    <input
+                      type="text"
+                      value={editingChatName}
+                      onChange={(e) => setEditingChatName(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onBlur={handleBlur}
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                      className="chat-title-input"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div 
+                      className="chat-item-title"
+                      onDoubleClick={(e) => startEditing(chat, e)}
+                    >
+                      {getChatTitle(chat, index)}
+                    </div>
+                    <div className="chat-item-date">
+                      {formatDate(chat.updatedAt)}
+                    </div>
+                  </>
+                )}
               </div>
-              <button 
-                className="delete-chat-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteChat(chat.id);
-                }}
-                aria-label="Delete chat"
-              >
-                ×
-              </button>
+              <div className="chat-item-actions">
+                {editingChatId !== chat.id && (
+                  <button 
+                    className="edit-chat-button"
+                    onClick={(e) => startEditing(chat, e)}
+                    aria-label="Edit chat name"
+                  >
+                    ✎
+                  </button>
+                )}
+                <button 
+                  className="delete-chat-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteChat(chat.id);
+                  }}
+                  aria-label="Delete chat"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           ))
         )}

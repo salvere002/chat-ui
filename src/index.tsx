@@ -1,13 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App'; // We'll create this component next
-import { ThemeProvider } from './contexts/ThemeContext'; // Import ThemeProvider
-import './index.css'; // We'll create this CSS file next
+import './index.css';
+import App from './App';
+import ErrorBoundary from './components/ErrorBoundary';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
+
+root.render(
   <React.StrictMode>
-    <ThemeProvider> {/* Wrap App with ThemeProvider */}
+    <ErrorBoundary>
       <App />
-    </ThemeProvider>
-  </React.StrictMode>,
-); 
+    </ErrorBoundary>
+  </React.StrictMode>
+);

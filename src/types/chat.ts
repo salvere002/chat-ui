@@ -37,6 +37,7 @@ export interface Chat {
   id: string;
   messages: Message[];
   title?: string;
+  name?: string; // Include name for compatibility 
   createdAt: Date;
   updatedAt: Date;
 }

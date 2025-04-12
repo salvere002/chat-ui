@@ -6,6 +6,7 @@ import { sendStreamRequest, sendFetchRequest } from '../services/api'; // Import
 export interface ChatSession {
   id: string;
   name: string;
+  title?: string; // Make sure title is included
   messages: Message[];
   createdAt: Date;
   updatedAt: Date;
@@ -22,6 +23,7 @@ interface ChatContextType {
   updateMessageInChat: (chatId: string, messageId: string, updates: Partial<Message>, replaceText?: boolean) => void;
   deleteChat: (id: string) => void; // Add deleteChat function
   regenerateResponse: (chatId: string, aiMessageId: string, userMessage: Message) => Promise<void>; // Add regenerate function
+  renameChat: (chatId: string, newName: string) => void; // Add function to rename a chat
   // Add more functions as needed (renameChat, etc.)
 }
 
@@ -43,7 +45,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     const now = new Date(); // Get current timestamp
     const newChat: ChatSession = {
       id: newChatId,
-      name: name || `Chat ${chatSessions.length + 1}`, // Name might need adjustment if order changes often
+      name: name || `Chat ${chatSessions.length + 1}`, // Keep name for backward compatibility
+      title: name || `Chat ${chatSessions.length + 1}`, // Use title for display
       messages: [],
       createdAt: now,
       updatedAt: now, // Set initial updatedAt
@@ -185,6 +188,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   };
 
+  // Function to rename a chat session
+  const renameChat = (chatId: string, newName: string) => {
+    setChatSessions(prev => 
+      prev.map(chat => 
+        chat.id === chatId 
+          ? { ...chat, name: newName, title: newName, updatedAt: new Date() } 
+          : chat
+      )
+    );
+  };
+
   // Value provided by the context
   const value: ChatContextType = {
     chatSessions,
@@ -196,6 +210,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     updateMessageInChat,
     deleteChat, // Provide deleteChat through context
     regenerateResponse, // Provide regenerateResponse through context
+    renameChat, // Provide renameChat through context
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

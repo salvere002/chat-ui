@@ -1,5 +1,5 @@
 import React, { useState, useRef, KeyboardEvent, ChangeEvent, useEffect, DragEvent } from 'react';
-import { FaPaperclip, FaTimes, FaUpload } from 'react-icons/fa'; // Import icons
+import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane } from 'react-icons/fa'; // Added FaPaperPlane
 import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
 import './MessageInput.css';
@@ -29,6 +29,26 @@ const MessageInput: React.FC<MessageInputProps> = ({
   useEffect(() => {
     setSelectedFiles(initialFiles);
   }, [initialFiles]);
+
+  // Effect to auto-resize textarea on mount and when value changes
+  useEffect(() => {
+    if (textAreaRef.current) {
+      adjustTextareaHeight();
+    }
+  }, [value]);
+
+  // Function to adjust textarea height
+  const adjustTextareaHeight = () => {
+    const textarea = textAreaRef.current;
+    if (!textarea) return;
+    
+    // Reset height to auto so we can get the right scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Set height based on content
+    const newHeight = Math.min(textarea.scrollHeight, 150); // Cap at max-height
+    textarea.style.height = `${newHeight}px`;
+  };
 
   // Function to handle Send button click
   const handleSendClick = () => {
@@ -64,10 +84,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   // Function to auto-resize textarea
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(event.target.value);
-    if (textAreaRef.current) {
-      textAreaRef.current.style.height = 'auto';
-      textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
-    }
+    adjustTextareaHeight();
   };
 
   // Function to trigger file input click
@@ -231,8 +248,12 @@ const MessageInput: React.FC<MessageInputProps> = ({
           onClick={handleSendClick}
           disabled={isProcessing || (!value.trim() && selectedFiles.filter(f => f.status === 'pending').length === 0)}
           className={`send-button ${isProcessing ? 'is-processing' : ''}`}
+          aria-label="Send message"
         >
-          {isProcessing ? 'Processing...' : 'Send'}
+          {isProcessing ? 
+            <span className="loading-dots"></span> : 
+            <FaPaperPlane size={16} />
+          }
         </button>
       </div>
     </div>

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
+import LoadingIndicator from './LoadingIndicator';
 // Import useChat from the context
 import { useChat } from '../contexts/ChatContext'; 
+import { useToast } from '../contexts/ToastContext';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { Agent, Message, MessageFile } from '../types/chat';
 import './ChatInterface.css';
@@ -24,6 +26,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
     createChat, // Use context function
     setActiveChat // Use context function
   } = useChat();
+
+  // Get toast functions
+  const { showToast } = useToast();
 
   // Get the messages for the *currently active* chat from the context data
   const activeChatMessages = activeChatId ? getChatById(activeChatId)?.messages || [] : [];
@@ -81,6 +86,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
       if (!currentActiveChatId) {
           console.error("Failed to get active chat ID after attempting creation.");
           setError("Failed to initiate chat.");
+          showToast("Failed to initiate chat.", "error");
           return;
       }
       
@@ -93,8 +99,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
       // Upload files
       let uploadedFilesData: MessageFile[] = [];
       if (filesToUpload && filesToUpload.length > 0) {
-        const { filesForUserMessage } = await uploadFiles(filesToUpload);
-        uploadedFilesData = filesForUserMessage;
+        try {
+          const { filesForUserMessage } = await uploadFiles(filesToUpload);
+          uploadedFilesData = filesForUserMessage;
+          showToast("Files uploaded successfully", "success");
+        } catch (uploadError) {
+          console.error("File upload error:", uploadError);
+          showToast("Error uploading files", "error");
+        }
       }
       
       // Create the user message object
@@ -143,10 +155,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
               updateMessageInChat(validChatId, aiMessageId, {
                 isComplete: true
               });
+              showToast("Response received", "success");
             },
             onError: (error) => {
               console.error("Stream error:", error);
               setError(error.message);
+              showToast(error.message, "error");
               // Mark message as complete but indicate error
               updateMessageInChat(validChatId, aiMessageId, {
                 text: " [Error during streaming]",
@@ -174,10 +188,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
           imageUrl: response.imageUrl,
           isComplete: true
         }, true);
+        
+        showToast("Response received", "success");
       }
     } catch (err) {
       console.error('Error sending message:', err);
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+      setError(errorMessage);
+      showToast(errorMessage, "error");
+      
       // Add an error message to the chat
       if(chatId) {
         addMessageToChat(chatId, {
@@ -198,18 +217,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
       {/* Use activeChatId from context to check for empty state */}
       {!activeChatId && activeChatMessages.length === 0 ? (
         <div className="empty-chat-state">
-          <div className="empty-chat-icon">💬</div>
-          <h3>No Active Conversation</h3>
-          <p>Start a new chat by typing a message below or choose an existing conversation from the sidebar.</p>
-          {/* Button now uses the handleSendMessage logic implicitly when text is typed */}
+          <div className="empty-chat-content">
+            <div className="empty-chat-icon">💬</div>
+            <h3>No Active Conversation</h3>
+            <p>Start a new chat by typing a message below or choose an existing conversation from the sidebar.</p>
+            {/* Button now uses the handleSendMessage logic implicitly when text is typed */}
+          </div>
         </div>
       ) : (
         /* Pass messages for the active chat */
         <MessageList messages={activeChatMessages} /> 
       )}
       
+      {/* Display loading state */}
+      {combinedIsProcessing && (
+        <div className="loading-container">
+          <LoadingIndicator 
+            type="dots"
+            text={isFileProcessing ? "Uploading files..." : "Processing message..."}
+          />
+        </div>
+      )}
+      
       {/* Display local error state */}
-      {error && <div className="error-message">Error: {error}</div>}
+      {error && (
+        <div className="error-message" onClick={() => clearError()}>
+          <span className="error-icon">⚠️</span>
+          <span>{error}</span>
+          <button className="error-close">×</button>
+        </div>
+      )}
       
       {/* Message input area */}
       <MessageInput

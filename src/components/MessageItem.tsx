@@ -9,6 +9,7 @@ import type { Components } from 'react-markdown'; // Import CodeProps directly f
 import './MessageItem.css';
 import { fileService } from '../services/fileService';
 import { useChat } from '../contexts/ChatContext';
+import LoadingIndicator from './LoadingIndicator';
 
 interface MessageItemProps {
   message: Message;
@@ -76,6 +77,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     );
   };
 
+  // Check if this is an incomplete AI message (for streaming)
+  const isIncomplete = sender === 'ai' && isComplete === false;
+
   return (
     <div className={`message-item ${sender}`}>
       <div className="message-content">
@@ -124,9 +128,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
             />
             {/* Add typing indicator if AI message is incomplete */}
             {sender === 'ai' && isComplete === false && (
-              <span className="typing-indicator">
-                <span></span><span></span><span></span>
-              </span>
+              <LoadingIndicator type="dots" size="small" />
             )}
           </div>
         )}
@@ -151,11 +153,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         )}
         {/* If no text but still incomplete (e.g., only image incoming), show indicator */}
         {!text && sender === 'ai' && isComplete === false && (
-            <div className="message-text">
-              <span className="typing-indicator">
-                <span></span><span></span><span></span>
-              </span>
-            </div>
+            <LoadingIndicator type="dots" size="small" />
         )}
         {/* Timestamp and actions row */}
         <div className="message-footer">
