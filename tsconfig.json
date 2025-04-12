@@ -1,0 +1,117 @@
+{
+  "compilerOptions": {
+    /* Visit https://aka.ms/tsconfig to read more about this file */
+
+    /* Projects */
+    // "incremental": true,                              /* Save .tsbuildinfo files to allow for incremental compilation of projects. */
+    // "composite": true,                                /* Enable constraints that allow a TypeScript project to be used with project references. */
+    // "tsBuildInfoFile": "./.tsbuildinfo",              /* Specify the path to .tsbuildinfo incremental compilation file. */
+    // "disableSourceOfProjectReferenceRedirect": true,  /* Disable preferring source files instead of declaration files when referencing composite projects. */
+    // "disableSolutionSearching": true,                 /* Opt a project out of multi-project reference checking when editing. */
+    // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
+
+    /* Language and Environment */
+    "target": "ESNext",                     // Use modern ECMAScript features supported by Vite/browsers
+    "lib": ["DOM", "DOM.Iterable", "ESNext"], // Include DOM types for browser APIs and modern ES features
+    "jsx": "react-jsx",                    // Use the modern JSX transform
+    // "jsx": "preserve",                                /* Specify what JSX code is generated. */
+    // "libReplacement": true,                           /* Enable lib replacement. */
+    // "experimentalDecorators": true,                   /* Enable experimental support for legacy experimental decorators. */
+    // "emitDecoratorMetadata": true,                    /* Emit design-type metadata for decorated declarations in source files. */
+    // "jsxFactory": "",                                 /* Specify the JSX factory function used when targeting React JSX emit, e.g. 'React.createElement' or 'h'. */
+    // "jsxFragmentFactory": "",                         /* Specify the JSX Fragment reference used for fragments when targeting React JSX emit e.g. 'React.Fragment' or 'Fragment'. */
+    // "jsxImportSource": "",                            /* Specify module specifier used to import the JSX factory functions when using 'jsx: react-jsx*'. */
+    // "reactNamespace": "",                             /* Specify the object invoked for 'createElement'. This only applies when targeting 'react' JSX emit. */
+    // "noLib": true,                                    /* Disable including any library files, including the default lib.d.ts. */
+    // "useDefineForClassFields": true,                  /* Emit ECMAScript-standard-compliant class fields. */
+    // "moduleDetection": "auto",                        /* Control what method is used to detect module-format JS files. */
+
+    /* Modules */
+    "module": "ESNext",                      // Use modern ES modules
+    // "rootDir": "src", // Removed - Vite handles this
+    "moduleResolution": "Bundler",           // Mimic bundler resolution (Vite) - If using TS >= 5.0
+    // "moduleResolution": "node",          // Use "node" if using TS < 5.0
+    // "baseUrl": ".", // Removed - Vite handles this
+    // "paths": {}, // Removed - Vite handles this
+    // "rootDirs": [], // Removed - Vite handles this
+    // "typeRoots": [], // Removed - Vite handles this
+    // "types": [], // Removed - Vite handles this
+    // "allowUmdGlobalAccess": true, // Removed - Vite handles this
+    // "moduleSuffixes": [], // Removed - Vite handles this
+    "allowImportingTsExtensions": true, // Enabled to allow .tsx imports
+    // "rewriteRelativeImportExtensions": true, // Removed - Vite handles this
+    // "resolvePackageJsonExports": true, // Removed - Vite handles this
+    // "resolvePackageJsonImports": true, // Removed - Vite handles this
+    // "customConditions": [], // Removed - Vite handles this
+    // "noUncheckedSideEffectImports": true, // Removed - Vite handles this
+    "resolveJsonModule": true,                           /* Enable importing .json files. */
+    // "allowArbitraryExtensions": true, // Removed - Vite handles this
+    // "noResolve": true, // Removed - Vite handles this
+
+    /* JavaScript Support */
+    // "allowJs": true, // Removed - Vite handles this
+    // "checkJs": true, // Removed - Vite handles this
+    // "maxNodeModuleJsDepth": 1, // Removed - Vite handles this
+
+    /* Emit */
+    "noEmit": true, // Added - Vite handles emitting files
+    // "outDir": "dist", // Removed - Vite handles this
+    // "declaration": true, // Removed - Vite handles this
+    // "declarationMap": true, // Removed - Vite handles this
+    // "emitDeclarationOnly": true, // Removed - Vite handles this
+    // "sourceMap": true, // Removed - Vite handles this
+    // "inlineSourceMap": true, // Removed - Vite handles this
+    // "outFile": "./", // Removed - Vite handles this
+    // "removeComments": true, // Removed - Vite handles this
+    // "importHelpers": true, // Removed - Vite handles this
+    // "downlevelIteration": true, // Removed - Vite handles this
+    // "sourceRoot": "", // Removed - Vite handles this
+    // "mapRoot": "", // Removed - Vite handles this
+    // "inlineSources": true, // Removed - Vite handles this
+    // "emitBOM": true, // Removed - Vite handles this
+    // "newLine": "crlf", // Removed - Vite handles this
+    // "stripInternal": true, // Removed - Vite handles this
+    // "noEmitHelpers": true, // Removed - Vite handles this
+    // "noEmitOnError": true, // Removed - Vite handles this
+    // "preserveConstEnums": true, // Removed - Vite handles this
+    // "declarationDir": "./", // Removed - Vite handles this
+
+    /* Interop Constraints */
+    "isolatedModules": true,               // Required by Vite
+    // "verbatimModuleSyntax": true, // Removed - Vite handles this
+    // "isolatedDeclarations": true, // Removed - Vite handles this
+    // "erasableSyntaxOnly": true, // Removed - Vite handles this
+    // "allowSyntheticDefaultImports": true, // Removed - Vite handles this
+    "esModuleInterop": true,
+    // "preserveSymlinks": true, // Removed - Vite handles this
+    "forceConsistentCasingInFileNames": true,
+
+    /* Type Checking */
+    "strict": true,
+    "noImplicitAny": true,                               /* Enable error reporting for expressions and declarations with an implied 'any' type. */
+    // "strictNullChecks": true, // Removed - Vite handles this
+    // "strictFunctionTypes": true, // Removed - Vite handles this
+    // "strictBindCallApply": true, // Removed - Vite handles this
+    // "strictPropertyInitialization": true, // Removed - Vite handles this
+    // "strictBuiltinIteratorReturn": true, // Removed - Vite handles this
+    // "noImplicitThis": true, // Removed - Vite handles this
+    // "useUnknownInCatchVariables": true, // Removed - Vite handles this
+    // "alwaysStrict": true, // Removed - Vite handles this
+    "noUnusedLocals": true,                // Recommended for cleaner code
+    "noUnusedParameters": true,            // Recommended for cleaner code
+    // "exactOptionalPropertyTypes": true, // Removed - Vite handles this
+    // "noImplicitReturns": true, // Removed - Vite handles this
+    "noFallthroughCasesInSwitch": true,      // Recommended for safety
+    // "noUncheckedIndexedAccess": true, // Removed - Vite handles this
+    // "noImplicitOverride": true, // Removed - Vite handles this
+    // "noPropertyAccessFromIndexSignature": true, // Removed - Vite handles this
+    // "allowUnusedLabels": true, // Removed - Vite handles this
+    // "allowUnreachableCode": true, // Removed - Vite handles this
+
+    /* Completeness */
+    // "skipDefaultLibCheck": true, // Removed - Vite handles this
+    "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
+  },
+  "include": ["src"], // Only include 'src' for the main config
+  "references": [{ "path": "./tsconfig.node.json" }] // Required for Vite config type checking
+}

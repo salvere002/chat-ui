@@ -1,0 +1,158 @@
+.chat-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Occupy full height within the app layout */
+  background-color: var(--bg-primary, #ffffff); /* Use theme variable */
+  flex-grow: 1;
+}
+
+.chat-interface-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: var(--text-secondary, #6c757d);
+}
+
+.chat-interface-placeholder h2 {
+  text-align: center;
+  max-width: 80%;
+}
+
+.loading-indicator {
+  padding: 10px 15px;
+  text-align: center;
+  font-style: italic;
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
+  border-top: 1px solid var(--border-secondary);
+}
+
+/* Loading Spinner Styles */
+@keyframes spinner {
+  to {transform: rotate(360deg);}
+}
+
+.loading-spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0;
+  /* Optional: background-color: var(--bg-secondary); */
+}
+
+.loading-spinner {
+  border: 4px solid var(--bg-tertiary, #f3f3f3); /* Light border */
+  border-top: 4px solid var(--text-link, #007bff); /* Spinner color using accent */
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  padding: 10px 15px;
+  margin: 10px 20px;
+  background-color: var(--error-bg, #f8d7da);
+  color: var(--error-text, #721c24);
+  border: 1px solid var(--error-border, #f5c6cb);
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* Basic Responsiveness */
+@media (max-width: 768px) {
+  .chat-interface {
+    max-width: 100%;      /* Use full width */
+    height: 100%;         /* Use full available height */
+    height: 100svh;       /* Use dynamic viewport height for better mobile */
+    border: none;         /* Remove border on small screens */
+    box-shadow: none;     /* Remove shadow on small screens */
+    background-color: var(--bg-primary); /* Use primary bg on mobile for full screen feel */
+  }
+
+  /* Optional: Slightly smaller padding/font for indicators */
+  .loading-indicator,
+  .loading-spinner-container, /* Apply adjustments to spinner container too */
+  .error-message {
+    padding: 10px 10px;
+    font-size: 0.85em;
+  }
+
+  .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border-width: 2px;
+  }
+}
+
+.empty-chat-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary, #6c757d);
+  height: 100%;
+  flex-grow: 1;
+  background-color: var(--bg-secondary, #f9f9f9);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-secondary, #e9ecef);
+}
+
+.empty-chat-state h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  color: var(--text-primary, #333);
+  font-weight: 500;
+}
+
+.empty-chat-state p {
+  font-size: 1rem;
+  opacity: 0.8;
+  color: var(--text-secondary, #6c757d);
+}
+
+/* Add styling for the chat icon and button */
+.empty-chat-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: var(--accent-light, #e6f7ff);
+  color: var(--accent, #0078d4);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.new-chat-button {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--accent, #0078d4);
+  color: var(--text-on-accent, #ffffff);
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.new-chat-button:hover {
+  background-color: var(--accent-hover, #106ebe);
+  transform: translateY(-1px);
+}
+
+.new-chat-button:active {
+  transform: translateY(1px);
+} 
