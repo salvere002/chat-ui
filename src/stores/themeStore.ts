@@ -41,6 +41,11 @@ const useThemeStore = create<ThemeStore>((set) => ({
       // Save to localStorage
       localStorage.setItem('chat-theme', newTheme);
       
+      // Force a repaint to ensure all components apply the theme
+      document.body.style.display = 'none';
+      document.body.offsetHeight; // Force a reflow
+      document.body.style.display = '';
+      
       return { theme: newTheme };
     });
   },
@@ -59,6 +64,11 @@ if (typeof window !== 'undefined') {
   const themeClass = theme === 'light' ? 'light-theme' : 'dark-theme';
   root.classList.add(themeClass);
   document.body.classList.add(themeClass);
+
+  // Force a repaint to ensure all components apply the theme
+  document.body.style.display = 'none';
+  document.body.offsetHeight; // Force a reflow
+  document.body.style.display = '';
 }
 
 export default useThemeStore; 

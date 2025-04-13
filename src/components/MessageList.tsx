@@ -43,19 +43,18 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
   }, [messages]); // Scroll whenever messages change
 
   // Handle regenerating response
-  const handleRegenerateResponse = (aiMessageId: string) => {
+  const handleRegenerateResponse = (userMessageId: string) => {
     if (!activeChatId) return;
     
-    // Find the AI message and the preceding user message
-    const aiMessageIndex = messages.findIndex(msg => msg.id === aiMessageId);
-    if (aiMessageIndex <= 0) return; // No valid index or no preceding message
+    // Find the user message and the following AI message (if any)
+    const userMessageIndex = messages.findIndex(msg => msg.id === userMessageId);
+    if (userMessageIndex < 0 || userMessageIndex >= messages.length - 1) return; // No valid index or no following message
     
-    const userMessage = messages[aiMessageIndex - 1];
-    if (userMessage.sender !== 'user') return; // Ensure it's really a user message
+    const aiMessage = messages[userMessageIndex + 1];
+    if (aiMessage.sender !== 'ai') return; // Ensure it's really an AI message
     
-    // Since regenerateResponse is not in our Zustand store yet, we'll need to implement it here
-    // For now, we'll mark the AI message as regenerating
-    updateMessageInChat(activeChatId, aiMessageId, { 
+    // Mark the AI message as regenerating
+    updateMessageInChat(activeChatId, aiMessage.id, { 
       text: "Regenerating response...",
       isComplete: false 
     });
@@ -63,8 +62,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
     // Normally we would call an API to regenerate the message here
     // For now, we'll just simulate a regeneration with a timeout
     setTimeout(() => {
-      updateMessageInChat(activeChatId, aiMessageId, { 
-        text: "This is a regenerated response.",
+      updateMessageInChat(activeChatId, aiMessage.id, { 
+        text: "This is a regenerated response for your message.",
         isComplete: true 
       });
     }, 1000);
@@ -104,11 +103,17 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
 
   return (
     <div className="message-list">
-      {messages.map((msg) => (
+      {messages.map((msg, index) => (
         <MessageItem 
           key={msg.id} 
           message={msg} 
-          onRegenerateResponse={msg.sender === 'ai' ? () => handleRegenerateResponse(msg.id) : undefined}
+          onRegenerateResponse={
+            msg.sender === 'user' && 
+            index < messages.length - 1 && 
+            messages[index + 1].sender === 'ai' 
+              ? () => handleRegenerateResponse(msg.id) 
+              : undefined
+          }
           onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
         />
       ))}

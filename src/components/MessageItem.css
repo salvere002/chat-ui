@@ -40,6 +40,49 @@
   color: var(--user-bubble-text, #ffffff);
 }
 
+/* Increase visibility of actions and timestamp in user bubbles */
+.message-item.user .message-footer {
+  color: rgba(255, 255, 255, 0.8); /* More visible white text */
+}
+
+.message-item.user .message-action-button {
+  color: rgba(255, 255, 255, 0.8); /* More visible white icons */
+}
+
+.message-item.user .message-action-button:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Modify the user bubble colors for light theme */
+.light-theme .message-item.user .message-content {
+  background-color: #5a5ee1; /* Slightly darker blue for better contrast */
+}
+
+.light-theme .message-item.user .message-content::before {
+  border-left-color: #5a5ee1;
+}
+
+/* Dark theme user bubble adjustments */
+.dark-theme .message-item.user .message-content {
+  background-color: #7353db; /* Use a slightly more visible purple in dark mode */
+  color: #ffffff;
+}
+
+.dark-theme .message-item.user .message-content::before {
+  border-left-color: #7353db;
+}
+
+/* Improve visibility of action buttons in dark theme */
+.dark-theme .message-item.user .message-action-button {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark-theme .message-item.user .message-action-button:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
 /* Basic Triangle Tail (Optional) */
 .message-content::before {
   content: '';
@@ -65,10 +108,6 @@
 .dark-theme .message-item.user .message-content {
   background-color: var(--primary-color-dark, #818cf8);
   color: var(--user-bubble-text, #ffffff);
-}
-
-.dark-theme .message-item.user .message-content::before {
-  border-left-color: var(--primary-color-dark, #818cf8);
 }
 
 .dark-theme .message-item.user .sender-icon {
@@ -361,146 +400,111 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
-  font-size: 0.8rem;
-}
-
-/* Message timestamp styles */
-.message-timestamp {
-  color: #999;
-  font-size: 0.8rem;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
 }
 
 /* Message actions container */
 .message-actions {
   display: flex;
   gap: 8px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
-/* Show actions on hover */
-.message-item:hover .message-actions {
-  opacity: 1;
-}
-
-/* Action buttons styling */
+/* Shared styles for action buttons */
 .message-action-button {
   background: none;
   border: none;
-  cursor: pointer;
-  color: #888;
+  padding: 4px;
   border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 4px;
-  transition: all 0.2s ease;
+  justify-content: center;
 }
 
 .message-action-button:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #666;
+  color: var(--text-primary);
+  background-color: var(--hover-bg);
 }
 
-/* Improve micro-interactions with button click effects */
-.message-action-button:active {
-  transform: scale(0.95);
+/* Copy button specific styles */
+.copy-button {
+  position: relative;
 }
 
-.message-edit-save:active,
-.message-edit-cancel:active {
-  transform: scale(0.98);
+.copy-button.copied {
+  color: var(--accent-success);
 }
 
-/* Improve focus states for accessibility */
-.message-action-button:focus,
-.message-edit-textarea:focus,
-.message-edit-save:focus,
-.message-edit-cancel:focus {
-  outline: 2px solid #4a8fe7;
-  outline-offset: 2px;
+.copy-button.copied::after {
+  content: 'Copied!';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--accent-success);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  animation: fadeOut 2s forwards;
 }
 
-/* Specific button styles */
-.edit-button:hover {
-  color: #4a8fe7;
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
-.regenerate-button:hover {
-  color: #4caf50;
+/* Timestamp style */
+.message-timestamp {
+  opacity: 0.8;
 }
 
-/* Edit mode styles - improved */
+/* Edit mode styles */
 .message-edit-container {
   width: 100%;
-  margin-bottom: 10px;
-  border-radius: var(--border-radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-  animation: fadeIn 0.3s ease;
 }
 
 .message-edit-textarea {
   width: 100%;
-  min-height: 100px;
-  padding: 15px;
+  min-height: 80px;
   border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-md);
+  border-radius: 6px;
+  padding: 8px;
   font-family: inherit;
-  font-size: 1rem;
-  line-height: 1.5;
-  resize: none; /* Disable resizing */
-  background-color: var(--bg-primary);
+  font-size: inherit;
+  background-color: var(--bg-secondary);
   color: var(--text-primary);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.message-edit-textarea:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px var(--accent-light);
+  resize: vertical;
 }
 
 .message-edit-actions {
   display: flex;
+  gap: 8px;
+  margin-top: 8px;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 10px;
-  padding: 0 2px;
 }
 
 .message-edit-save,
 .message-edit-cancel {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: var(--border-radius-sm);
-  border: none;
-  font-size: 0.9rem;
-  font-weight: 500;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  border: none;
 }
 
 .message-edit-save {
-  background-color: var(--accent-primary);
+  background-color: var(--accent-success);
   color: white;
-}
-
-.message-edit-save:hover {
-  background-color: var(--accent-primary);
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-}
-
-.message-edit-save:active {
-  transform: translateY(0);
-  filter: brightness(0.95);
-  box-shadow: none;
 }
 
 .message-edit-cancel {
@@ -508,22 +512,25 @@
   color: var(--text-secondary);
 }
 
-.message-edit-cancel:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+/* Adjust message actions for dark theme */
+.dark-theme .message-action-button {
+  color: var(--text-tertiary-dark);
 }
 
-.message-edit-cancel:active {
-  transform: translateY(0);
-  box-shadow: none;
+.dark-theme .message-action-button:hover {
+  color: var(--text-primary-dark);
+  background-color: var(--hover-bg-dark);
 }
 
-/* Dark mode specific adjustments */
 .dark-theme .message-edit-textarea {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-secondary);
+  background-color: var(--bg-secondary-dark);
+  border-color: var(--border-primary-dark);
+  color: var(--text-primary-dark);
+}
+
+.dark-theme .message-edit-cancel {
+  background-color: var(--bg-tertiary-dark);
+  color: var(--text-secondary-dark);
 }
 
 /* Improved message item transitions */
@@ -637,4 +644,25 @@
 .dark-theme .message-item:not(.user) .sender-icon {
   background-color: var(--bg-tertiary-dark, #293548);
   color: var(--text-secondary-dark, #cbd5e1);
+}
+
+/* Regenerate button specific styles */
+.message-item.user .regenerate-button {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-item.user .regenerate-button:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: rotate(45deg);
+  transition: transform 0.3s ease;
+}
+
+.dark-theme .message-item.user .regenerate-button {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark-theme .message-item.user .regenerate-button:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.3);
 } 
