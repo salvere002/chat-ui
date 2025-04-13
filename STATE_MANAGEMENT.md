@@ -78,17 +78,3 @@ function MyComponent() {
   );
 }
 ```
-
-## Future Improvements
-
-1. **State Persistence**
-   - Add persistence layer to save state to localStorage
-   - Implement state synchronization with backend
-
-2. **State Middleware**
-   - Add middleware for logging state changes
-   - Implement undo/redo functionality
-
-3. **Performance Optimization**
-   - Implement selective state subscription
-   - Add state normalization for complex data 
