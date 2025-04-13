@@ -8,7 +8,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; //
 import type { Components } from 'react-markdown'; // Import CodeProps directly from react-markdown
 import './MessageItem.css';
 import { fileService } from '../services/fileService';
-import { useChat } from '../contexts/ChatContext';
+import { useChatStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
 
 interface MessageItemProps {

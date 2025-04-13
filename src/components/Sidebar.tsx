@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Chat, Agent } from '../types/chat';
-import { useChat } from '../contexts/ChatContext';
+import { useChatStore } from '../stores';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   selectedAgent,
   onAgentChange
 }) => {
-  const { renameChat } = useChat();
+  const { renameChatSession } = useChatStore();
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingChatName, setEditingChatName] = useState('');
   
@@ -62,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Save the edited chat title
   const saveEditedName = () => {
     if (editingChatId && editingChatName.trim() !== '') {
-      renameChat(editingChatId, editingChatName);
+      renameChatSession(editingChatId, editingChatName);
       setEditingChatId(null);
       setEditingChatName('');
     }

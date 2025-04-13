@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file is deprecated. Please use the Zustand store from src/stores/toastStore.ts instead.
+ * The ToastContext was replaced with a Zustand store for better state management.
+ * See STATE_MANAGEMENT.md for more information on the migration.
+ */
+
 import React, { createContext, useState, useContext, useCallback, ReactNode } from 'react';
 import Toast, { ToastType } from '../components/Toast';
 

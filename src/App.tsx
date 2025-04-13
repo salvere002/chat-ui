@@ -1,55 +1,59 @@
-import React, { useState } from 'react'; // Import useState
-import ChatInterface from './components/ChatInterface'; // Import the main chat component
-// import ChatList from './components/ChatList'; // Import the new ChatList component - NO LONGER NEEDED HERE
-import Sidebar from './components/Sidebar'; // Import the new Sidebar component
-import { ChatProvider } from './contexts/ChatContext'; // Import the ChatProvider
-import { ThemeProvider, useTheme } from './contexts/ThemeContext'; // Import ThemeProvider
-import { ToastProvider } from './contexts/ToastContext'; // Import ToastProvider
-import ErrorBoundary from './components/ErrorBoundary'; // Import ErrorBoundary
-import { FaSun, FaMoon } from 'react-icons/fa'; // Import icons
-import { useChat } from './contexts/ChatContext';
-import { Agent } from './types/chat';
-import './App.css'; // Add App specific styles later if needed
+import React from 'react';
+import ChatInterface from './components/ChatInterface';
+import Sidebar from './components/Sidebar';
+import ErrorBoundary from './components/ErrorBoundary';
+import { FaSun, FaMoon } from 'react-icons/fa';
+import { ToastContainer } from './components/Toast';
+import { useThemeStore, useChatStore, useAgentStore } from './stores';
+import './App.css';
 
-const AppContent: React.FC = () => {
-  const { theme, toggleTheme } = useTheme(); // Use the theme hook
-  // State for the selected agent type - Keep this local to App/AppContent
-  const [selectedAgent, setSelectedAgent] = useState<Agent>('stream');
+const App: React.FC = () => {
+  // Use the theme store
+  const { theme, toggleTheme } = useThemeStore();
   
-  // Get chat state and handlers from the CONTEXT hook
+  // Use the chat store for chat state management
   const {
-    chatSessions, // Use chatSessions from context
+    chatSessions,
     activeChatId,
     setActiveChat,
     createChat,
     deleteChat
-  } = useChat(); // No need to pass agent here
+  } = useChatStore();
+  
+  // Use the agent store for agent selection
+  const { selectedAgent, setSelectedAgent } = useAgentStore();
   
   // Handler for creating a new chat
   const handleNewChat = () => {
-    // createChat from context updates context state and returns the new ID
-    const newChatId = createChat('New Conversation'); 
-    setActiveChat(newChatId); // Set the new chat active using context's setter
+    const newChatId = createChat('New Conversation');
+    setActiveChat(newChatId);
   };
   
   return (
     <div className={`app ${theme}-theme`}>
       {/* Theme toggle */}
-      <button onClick={toggleTheme} className="theme-toggle-button" aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
+      <button 
+        onClick={toggleTheme} 
+        className="theme-toggle-button" 
+        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      >
         {theme === 'light' ? <FaMoon /> : <FaSun />}
       </button>
+      
+      {/* Toast container for notifications */}
+      <ToastContainer />
       
       {/* Main app container */}
       <div className="app-container">
         <ErrorBoundary>
           <Sidebar
-            chats={chatSessions} // Pass chatSessions from context as chats prop
+            chats={chatSessions}
             activeChatId={activeChatId}
             onChatSelected={setActiveChat}
             onNewChat={handleNewChat}
             onDeleteChat={deleteChat}
             selectedAgent={selectedAgent}
-            onAgentChange={(agent) => setSelectedAgent(agent)}
+            onAgentChange={setSelectedAgent}
           />
         </ErrorBoundary>
         
@@ -60,22 +64,6 @@ const AppContent: React.FC = () => {
         </div>
       </div>
     </div>
-  );
-}
-
-// Main App component now just sets up the provider
-const App: React.FC = () => {
-  return (
-    // Wrap everything with providers
-    <ErrorBoundary>
-      <ThemeProvider>
-        <ToastProvider>
-          <ChatProvider>
-            <AppContent />
-          </ChatProvider>
-        </ToastProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
   );
 };
 

@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file is deprecated. Please use the Zustand store from src/stores/themeStore.ts instead.
+ * The ThemeContext was replaced with a Zustand store for better state management.
+ * See STATE_MANAGEMENT.md for more information on the migration.
+ */
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';

@@ -2,45 +2,43 @@ import React, { useState } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
-// Import useChat from the context
-import { useChat } from '../contexts/ChatContext'; 
-import { useToast } from '../contexts/ToastContext';
+import { useChatStore, useToastStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { Agent, Message, MessageFile } from '../types/chat';
 import './ChatInterface.css';
-import { sendStreamRequest, sendFetchRequest } from '../services/api'; // Import API functions
-// Import an icon component library if you're using one, or you can use unicode characters
+import { sendStreamRequest, sendFetchRequest } from '../services/api';
 
 interface ChatInterfaceProps {
   selectedAgent: Agent;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
-  // Get chat state and handlers from CONTEXT hook
+  // Get chat state and handlers from the Zustand store
   const {
     chatSessions,
     activeChatId,
-    getChatById, // Get this function from context
-    addMessageToChat, // Use context function
-    updateMessageInChat, // Use context function
-    createChat, // Use context function
-    setActiveChat // Use context function
-  } = useChat();
+    getChatById,
+    addMessageToChat,
+    updateMessageInChat,
+    isProcessing: storeIsProcessing,
+    setProcessing,
+    createChat,
+    setActiveChat
+  } = useChatStore();
 
-  // Get toast functions
-  const { showToast } = useToast();
+  // Get toast functions from Zustand store
+  const { showToast } = useToastStore();
 
-  // Get the messages for the *currently active* chat from the context data
+  // Get the messages for the currently active chat
   const activeChatMessages = activeChatId ? getChatById(activeChatId)?.messages || [] : [];
   
-  // Messaging state (local to this component or potentially moved to context if complex)
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  // Local state for error handling
   const [error, setError] = useState<string | null>(null);
   
   // Get file upload state and handlers from custom hook
   const { 
     fileUploads, 
-    handleFileSelect, // If using this directly
+    handleFileSelect,
     uploadFiles, 
     resetFileUploads,
     isProcessing: isFileProcessing
@@ -50,183 +48,162 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
   const [inputValue, setInputValue] = useState<string>('');
   
   // Combined processing state
-  const combinedIsProcessing = isProcessing || isFileProcessing;
+  const combinedIsProcessing = storeIsProcessing || isFileProcessing;
 
   // Clear error (local state for now)
   const clearError = () => setError(null);
-  
-  // Handle sending a message with files
-  const handleSendMessage = async (text: string, filesToUpload?: { id: string; file: File }[]) => {
-    clearError();
-    if (!text.trim() && (!filesToUpload || filesToUpload.length === 0)) return;
+
+  // Handle sending a new message
+  const handleSendMessage = async (messageText: string, filesToUpload?: { id: string; file: File }[]) => {
+    // Don't process empty messages
+    if ((!messageText || messageText.trim() === '') && (!filesToUpload || filesToUpload.length === 0)) {
+      return;
+    }
     
-    // Prevent multiple submissions while processing
-    if (isProcessing) return;
+    let currentChatId = activeChatId;
     
-    setIsProcessing(true);
-    
-    // Define outside try block so it's available in catch
-    let chatId: string | null = null;
+    // If there's no active chat, create one automatically
+    if (!currentChatId) {
+      // Create a title from the message (truncate if too long)
+      const chatTitle = messageText.trim() 
+        ? (messageText.length > 30 ? messageText.substring(0, 27) + '...' : messageText)
+        : 'New Conversation';
+      
+      currentChatId = createChat(chatTitle);
+      setActiveChat(currentChatId);
+    }
     
     try {
-      // Define currentActiveChatId and ensure it's not null when used
-      let currentActiveChatId = activeChatId;
-
-      // If there's no active chat, create one using the context function
-      if (!currentActiveChatId) {
-        const chatTitle = text.trim() 
-          ? (text.length > 30 ? text.substring(0, 27) + '...' : text)
-          : 'New Conversation';
-        const newChatId = createChat(chatTitle);
-        setActiveChat(newChatId); // Make it active
-        currentActiveChatId = newChatId; // Use the new ID for the rest of the function
-      }
-
-      // Ensure we have an ID before proceeding
-      if (!currentActiveChatId) {
-          console.error("Failed to get active chat ID after attempting creation.");
-          setError("Failed to initiate chat.");
-          showToast("Failed to initiate chat.", "error");
-          return;
-      }
+      // Set processing state
+      setProcessing(true);
       
-      // At this point, currentActiveChatId is guaranteed to be a string
-      chatId = currentActiveChatId; // Store for use in catch block
-      
-      // We've already verified chatId is not null above, so we can safely use it
-      const validChatId = chatId as string;
-      
-      // Upload files
-      let uploadedFilesData: MessageFile[] = [];
+      // Process file uploads if needed
+      let uploadedFiles: MessageFile[] = [];
       if (filesToUpload && filesToUpload.length > 0) {
         try {
           const { filesForUserMessage } = await uploadFiles(filesToUpload);
-          uploadedFilesData = filesForUserMessage;
-          showToast("Files uploaded successfully", "success");
+          uploadedFiles = filesForUserMessage;
         } catch (uploadError) {
           console.error("File upload error:", uploadError);
           showToast("Error uploading files", "error");
         }
       }
       
-      // Create the user message object
+      // Create a unique message ID
+      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Create and add user message to the chat
       const userMessage: Message = {
-        id: `user-${Date.now()}`,
-        text: text.trim(),
+        id: messageId,
+        text: messageText,
         sender: 'user',
         timestamp: new Date(),
-        files: uploadedFilesData.length > 0 ? uploadedFilesData : undefined,
+        files: uploadedFiles.length > 0 ? uploadedFiles : undefined
       };
-
-      // Add user message to the context
-      addMessageToChat(validChatId, userMessage);
       
-      // Clear the input and reset file uploads
+      // Add to chat state
+      addMessageToChat(currentChatId, userMessage);
+      
+      // Clear input
       setInputValue('');
-      setTimeout(resetFileUploads, 100); // Keep reset delay
-
-      // Create initial AI message (empty for streaming, will be populated incrementally)
-      const aiMessageId = `ai-${Date.now()}`;
       
+      // Reset file uploads
+      resetFileUploads();
+      
+      // Create a unique message ID for AI response
+      const aiMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Create initial AI message (will be updated with stream)
+      const aiMessage: Message = {
+        id: aiMessageId,
+        text: '',
+        sender: 'ai',
+        timestamp: new Date(),
+        isComplete: false
+      };
+      
+      // Add initial empty AI message to the chat
+      addMessageToChat(currentChatId, aiMessage);
+      
+      // Send the API request based on selected agent
       if (selectedAgent === 'stream') {
-        // Create an initial empty AI message for streaming
-        addMessageToChat(validChatId, {
-          id: aiMessageId,
-          text: '',
-          sender: 'ai',
-          timestamp: new Date(),
-          isComplete: false // Mark as incomplete for streaming
-        });
-        
-        // Call the streaming API
+        // Streaming API call with proper callback handling
         await sendStreamRequest(
-          text.trim(),
-          uploadedFilesData,
+          messageText,
+          uploadedFiles,
           {
             onChunk: (chunk) => {
-              // Update the message with each new chunk
-              updateMessageInChat(validChatId, aiMessageId, {
-                text: chunk.text || '',
-                imageUrl: chunk.imageUrl
-              });
+              // Update the AI message with each chunk
+              if (chunk.text) {
+                updateMessageInChat(currentChatId, aiMessageId, {
+                  text: `${getChatById(currentChatId)?.messages.find(m => m.id === aiMessageId)?.text || ''}${chunk.text}`,
+                  imageUrl: chunk.imageUrl
+                });
+              }
             },
             onComplete: () => {
-              // Mark the message as complete when done
-              updateMessageInChat(validChatId, aiMessageId, {
+              // Mark as complete when done
+              updateMessageInChat(currentChatId, aiMessageId, {
                 isComplete: true
               });
-              showToast("Response received", "success");
+              // Clear processing state
+              setProcessing(false);
             },
             onError: (error) => {
-              console.error("Stream error:", error);
+              // Show error and mark message as complete
               setError(error.message);
-              showToast(error.message, "error");
-              // Mark message as complete but indicate error
-              updateMessageInChat(validChatId, aiMessageId, {
-                text: " [Error during streaming]",
+              updateMessageInChat(currentChatId, aiMessageId, {
+                text: 'Sorry, there was an error processing your request.',
                 isComplete: true
               });
+              // Clear processing state
+              setProcessing(false);
             }
           }
         );
       } else {
-        // For fetch mode, show initial message with loading state
-        addMessageToChat(validChatId, {
-          id: aiMessageId,
-          text: '',
-          sender: 'ai',
-          timestamp: new Date(),
-          isComplete: false
-        });
-        
-        // Call the fetch API
-        const response = await sendFetchRequest(text.trim(), uploadedFilesData);
-        
-        // Update with complete response
-        updateMessageInChat(validChatId, aiMessageId, {
-          text: response.text,
-          imageUrl: response.imageUrl,
-          isComplete: true
-        }, true);
-        
-        showToast("Response received", "success");
+        // Non-streaming API call
+        try {
+          const response = await sendFetchRequest(messageText, uploadedFiles);
+          // Update AI message with complete response
+          updateMessageInChat(currentChatId, aiMessageId, {
+            text: response.text,
+            isComplete: true
+          });
+        } catch (error) {
+          // Show error and mark message as complete
+          setError(error instanceof Error ? error.message : 'Unknown error occurred');
+          updateMessageInChat(currentChatId, aiMessageId, {
+            text: 'Sorry, there was an error processing your request.',
+            isComplete: true
+          });
+        } finally {
+          // Clear processing state
+          setProcessing(false);
+        }
       }
     } catch (err) {
-      console.error('Error sending message:', err);
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+      // Handle any unexpected errors
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
       setError(errorMessage);
-      showToast(errorMessage, "error");
-      
-      // Add an error message to the chat
-      if(chatId) {
-        addMessageToChat(chatId, {
-          id: `error-${Date.now()}`,
-          text: `[Error sending message: ${err instanceof Error ? err.message : 'Unknown'}]`,
-          sender: 'ai',
-          timestamp: new Date(),
-          isComplete: true
-        });
-      }
-    } finally {
-      setIsProcessing(false);
+      showToast(errorMessage, 'error');
+      setProcessing(false);
     }
   };
   
   return (
     <div className="chat-interface">
-      {/* Use activeChatId from context to check for empty state */}
+      {/* Show empty state if no active chat */}
       {!activeChatId && activeChatMessages.length === 0 ? (
         <div className="empty-chat-state">
           <div className="empty-chat-content">
             <div className="empty-chat-icon">💬</div>
             <h3>No Active Conversation</h3>
             <p>Start a new chat by typing a message below or choose an existing conversation from the sidebar.</p>
-            {/* Button now uses the handleSendMessage logic implicitly when text is typed */}
           </div>
         </div>
       ) : (
-        /* Pass messages for the active chat */
-        <MessageList messages={activeChatMessages} /> 
+        <MessageList messages={activeChatMessages} />
       )}
       
       {/* Display loading state */}
@@ -239,7 +216,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
         </div>
       )}
       
-      {/* Display local error state */}
+      {/* Display error state */}
       {error && (
         <div className="error-message" onClick={() => clearError()}>
           <span className="error-icon">⚠️</span>
@@ -252,9 +229,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
       <MessageInput
         value={inputValue}
         onChange={setInputValue}
-        onSendMessage={handleSendMessage} // Use the refactored handler
-        isProcessing={combinedIsProcessing} // Use combined state
-        initialFiles={fileUploads} // Pass file uploads from useFileUpload hook
+        onSendMessage={handleSendMessage}
+        isProcessing={combinedIsProcessing}
+        initialFiles={fileUploads}
       />
     </div>
   );
