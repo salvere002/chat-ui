@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Message, MessageFile } from '../types/chat'; // Import the Message and MessageFile types
-import { FaFileAlt, FaRedo, FaEdit, FaCheck, FaTimes } from 'react-icons/fa'; // Import required icons
+import { FaFileAlt, FaRedo, FaEdit, FaCheck, FaTimes, FaCopy } from 'react-icons/fa'; // Import required icons
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
 import remarkGfm from 'remark-gfm'; // Import GFM plugin
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'; // Import syntax highlighter
@@ -24,6 +24,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   // Local state for edit mode
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text || '');
+
+  // State for copy button feedback
+  const [copied, setCopied] = useState(false);
 
   const formatTime = (date: Date): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -50,6 +53,16 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   const handleCancelEdit = () => {
     setEditText(text || '');
     setIsEditing(false);
+  };
+
+  // Handle copy message
+  const handleCopyMessage = () => {
+    if (text) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+      });
+    }
   };
 
   // Helper component to render a single file attachment
@@ -161,6 +174,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
           
           {/* Message actions */}
           <div className="message-actions">
+            {/* Copy button for all messages with text */}
+            {text && (
+              <button 
+                className={`message-action-button copy-button ${copied ? 'copied' : ''}`} 
+                onClick={handleCopyMessage}
+                title={copied ? "Copied!" : "Copy text"}
+              >
+                <FaCopy />
+              </button>
+            )}
+            
             {/* For user messages: Edit button (if editable and complete) */}
             {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
               <button 
@@ -172,8 +196,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
               </button>
             )}
             
-            {/* For AI messages: Regenerate button (if complete) */}
-            {sender === 'ai' && isComplete !== false && onRegenerateResponse && (
+            {/* Move regenerate button to user messages instead of AI messages */}
+            {sender === 'user' && isComplete !== false && onRegenerateResponse && (
               <button 
                 className="message-action-button regenerate-button" 
                 onClick={onRegenerateResponse}

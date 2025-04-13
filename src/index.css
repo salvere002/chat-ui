@@ -140,6 +140,41 @@
 /* Light theme class (explicit) */
 .light-theme {
   /* Light theme values match :root default values */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9f9fc;
+  --bg-tertiary: #f1f2f6;
+  --bg-hover: #f5f7fd;
+  --text-primary: #1a2038;
+  --text-secondary: #4a5072;
+  --text-tertiary: #6c739e;
+  --border-primary: #e2e5f1;
+  --border-secondary: #cdd3e9;
+  --border-color: #dde1f0;
+  
+  /* Primary colors */
+  --primary-color: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-active: #4338ca;
+  
+  /* Accent colors */
+  --accent-primary: #3b82f6;
+  --accent-secondary: #64748b;
+  --accent-success: #10b981;
+  --accent-danger: #ef4444;
+  --accent-warning: #f59e0b;
+  --accent-info: #06b6d4;
+  --accent-light: rgba(99, 102, 241, 0.1);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.1);
+  --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.05);
+  
+  /* Message bubbles */
+  --ai-bubble-bg: #f1f2f6;
+  --ai-bubble-text: #1a2038;
+  --user-bubble-bg: #6366f1;
+  --user-bubble-text: #ffffff;
 }
 
 /* Basic global resets */
