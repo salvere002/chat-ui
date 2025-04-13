@@ -58,60 +58,8 @@ A modern chat application featuring a React frontend with a Flask backend that s
 2. Install backend dependencies:
    ```bash
    pip install -r requirements.txt
+   pip install flask-cors
    ```
 
 3. Run the backend server:
-   ```bash
-   python app.py
    ```
-
-## Running the Application
-
-### Development Mode
-
-Run both frontend and backend together:
-```bash
-npm install -g concurrently  # Install concurrently if you don't have it
-npm run start
-```
-
-Or run them separately:
-
-- Backend:
-  ```bash
-  npm run start:backend
-  ```
-
-- Frontend:
-  ```bash
-  npm run start:frontend
-  ```
-
-The frontend will be available at http://localhost:5173 or http://localhost:3000
-The backend API will be available at http://localhost:5000
-
-### Production Mode
-
-For production deployment:
-
-1. Build the frontend:
-   ```bash
-   npm run build
-   ```
-
-2. Serve the static files from the Flask app or another web server
-
-3. Run the Flask backend with a production server like Gunicorn:
-   ```bash
-   cd backend
-   gunicorn -w 4 -b 0.0.0.0:5000 app:app
-   ```
-
-## Features
-
-- Real-time streaming responses using Server-Sent Events
-- File upload and download
-- Dynamic UI with typing indicators
-- Theme switching (light/dark mode)
-- Multiple chat sessions
-- Message editing and regeneration 

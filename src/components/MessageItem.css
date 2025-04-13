@@ -1,455 +1,145 @@
-/* Define the animation */
-@keyframes fadeInSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* Modern Chat UI Styling */
 
+/* Base message item */
 .message-item {
   display: flex;
-  margin-bottom: 10px;
-  max-width: 85%; /* Limit message width */
-  align-self: flex-start; /* Default to left alignment */
-  animation: fadeInSlideUp 0.3s ease forwards; /* Apply entry animation */
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  animation: message-appear 0.3s ease;
+  margin-bottom: 2px; /* Reduced spacing between messages */
+  max-width: 90%; /* Slightly wider messages */
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  transition: background-color 0.2s ease;
+  border-radius: 4px; /* Subtler rounded corners */
+}
+
+/* Remove animation for a cleaner appearance */
+.message-item {
+  animation: none;
 }
 
 .message-item.user {
-  align-self: flex-end; /* Align user messages to the right */
-  flex-direction: row-reverse; /* Reverse order for user */
+  align-self: flex-end;
+  flex-direction: row-reverse;
+  background-color: transparent; /* No background for user messages container */
 }
 
+/* AI message has subtle background */
+.message-item.ai {
+  background-color: var(--bg-secondary, #f9f9fc);
+}
+
+.dark-theme .message-item.ai {
+  background-color: var(--bg-secondary-dark, #1e1e2d);
+}
+
+/* Modern message bubbles without triangle tails */
 .message-content {
-  padding: 10px 15px;
-  border-radius: 18px;
-  background-color: var(--ai-bubble-bg, #e9ecef); /* Default AI bubble */
-  color: var(--ai-bubble-text, #495057);
+  padding: 12px 16px;
+  border-radius: 8px; /* Less rounded */
+  background-color: transparent; /* No background for AI bubble */
+  color: var(--text-primary, #1a2038);
   word-wrap: break-word;
-  position: relative; /* Needed for timestamp positioning later */
-  box-shadow: 0 1px 2px var(--shadow-color, rgba(0, 0, 0, 0.08));
-}
-
-.message-item.user .message-content {
-  background-color: var(--user-bubble-bg, #6366f1); /* User bubble - now using theme variable */
-  color: var(--user-bubble-text, #ffffff);
-}
-
-/* Increase visibility of actions and timestamp in user bubbles */
-.message-item.user .message-footer {
-  color: rgba(255, 255, 255, 0.8); /* More visible white text */
-}
-
-.message-item.user .message-action-button {
-  color: rgba(255, 255, 255, 0.8); /* More visible white icons */
-}
-
-.message-item.user .message-action-button:hover {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Modify the user bubble colors for light theme */
-.light-theme .message-item.user .message-content {
-  background-color: #5a5ee1; /* Slightly darker blue for better contrast */
-}
-
-.light-theme .message-item.user .message-content::before {
-  border-left-color: #5a5ee1;
-}
-
-/* Dark theme user bubble adjustments */
-.dark-theme .message-item.user .message-content {
-  background-color: #7353db; /* Use a slightly more visible purple in dark mode */
-  color: #ffffff;
-}
-
-.dark-theme .message-item.user .message-content::before {
-  border-left-color: #7353db;
-}
-
-/* Improve visibility of action buttons in dark theme */
-.dark-theme .message-item.user .message-action-button {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.dark-theme .message-item.user .message-action-button:hover {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.25);
-}
-
-/* Basic Triangle Tail (Optional) */
-.message-content::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  width: 0;
-  height: 0;
-  border: 10px solid transparent;
-  border-bottom: none;
-}
-
-.message-item:not(.user) .message-content::before {
-  left: -8px;
-  border-right-color: var(--ai-bubble-bg, #e9ecef);
-}
-
-.message-item.user .message-content::before {
-  right: -8px;
-  border-left-color: var(--user-bubble-bg, #6366f1);
-}
-
-/* Add dark theme support for user bubbles */
-.dark-theme .message-item.user .message-content {
-  background-color: var(--primary-color-dark, #818cf8);
-  color: var(--user-bubble-text, #ffffff);
-}
-
-.dark-theme .message-item.user .sender-icon {
-  background-color: var(--primary-color-dark, #818cf8);
-}
-
-/* Fix for file attachments in user messages */
-.dark-theme .message-item.user .file-attachment {
-  background-color: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.sender-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background-color: var(--bg-tertiary, #E9ECEF); /* Placeholder background */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1em;
-  font-weight: bold;
-  color: var(--text-secondary, #6C757D);
-  margin-right: 10px; /* Space between icon and message */
-  flex-shrink: 0;
-}
-
-.message-item.user .sender-icon {
-  margin-right: 0;
-  margin-left: 10px; /* Space on the other side for user */
-  /* Optionally use a different color/icon for user */
-  background-color: var(--user-bubble-bg, #6366f1);
-  color: var(--user-bubble-text, #ffffff);
-}
-
-.message-details {
-  font-size: 0.75em;
-  color: var(--text-secondary, #6C757D);
-  margin-top: 4px;
-  text-align: left;
-  padding-left: 5px; /* Align with bubble */
-}
-
-.message-item.user .message-details {
-  text-align: right;
-  padding-left: 0;
-  padding-right: 5px;
-}
-
-/* Styles for embedded images and file previews */
-.message-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px; /* Slightly rounded corners for images */
-  margin-top: 8px; /* Space between text and image */
-}
-
-.file-attachment-list {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.file-attachment {
-  display: flex;
-  align-items: center;
-  background-color: var(--bg-tertiary, #E9ECEF); /* Subtle background */
-  border: 1px solid var(--border-secondary, #CED4DA);
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  transition: background-color 0.2s ease;
-}
-
-.message-item.user .file-attachment {
-  background-color: rgba(255, 255, 255, 0.1); /* Lighter background on user bubble */
-  border-color: rgba(255, 255, 255, 0.3);
-  color: var(--user-bubble-text, #ffffff);
-}
-
-.file-icon {
-  margin-right: 5px;
-  width: 16px;
-  height: 16px;
-  opacity: 0.8;
-}
-
-.file-info span {
-  display: block; /* Put name and size on separate lines */
-  line-height: 1.2;
-}
-
-.file-info .file-size {
-  font-size: 0.9em;
-  opacity: 0.8;
-}
-
-.image-preview-container {
   position: relative;
-  display: inline-block; /* Fit content */
-  margin-right: 5px; /* Spacing */
-  margin-bottom: 5px;
+  box-shadow: none; /* Remove shadow */
+  max-width: 100%;
+  width: 100%;
 }
 
-.preview-image {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: 4px;
-  border: 1px solid var(--border-secondary, #CED4DA);
+/* Remove triangle tails */
+.message-content::before {
+  display: none;
 }
 
-.remove-file-button {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background-color: var(--error-bg, #f8d7da);
-  color: var(--error-text, #721c24);
-  border: 1px solid var(--error-border, #f5c6cb);
-  border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 10px;
-  font-weight: bold;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
+/* User messages styling */
+.message-item.user .message-content {
+  background-color: var(--accent-light, rgba(99, 102, 241, 0.1)); /* Subtle background */
+  color: var(--text-primary, #1a2038); /* Same text color as AI for better readability */
 }
 
-.remove-file-button:hover {
-  opacity: 0.8;
+/* Dark theme adjustments */
+.dark-theme .message-item.user .message-content {
+  background-color: rgba(115, 83, 219, 0.2); /* Subtle purple background */
+  color: var(--text-primary-dark, #f5f5ff);
 }
 
-/* Basic Responsiveness */
-@media (max-width: 480px) { /* Target smaller screens specifically */
-  .message-bubble {
-    max-width: 85%; /* Allow bubbles to be wider on very small screens */
-    padding: 8px 12px; /* Slightly reduce padding */
-  }
-
-  /* Make file attachment text slightly smaller */
-  .message-file-name,
-  .message-file-size {
-    font-size: 0.9em;
-  }
-
-  .message-file-icon {
-      font-size: 1.6em;
-  }
+.dark-theme .message-content {
+  color: var(--text-primary-dark, #f5f5ff);
 }
 
-/* Typing Indicator */
-@keyframes typing-dot-bounce {
-  0%, 80%, 100% {
-    transform: scale(0);
-  }
-  40% {
-    transform: scale(1.0);
-  }
-}
-
-.typing-indicator {
-  display: inline-block;
-  margin-left: 5px;
-  /* Adjust vertical alignment if needed */
-  vertical-align: middle; /* Try middle or bottom */
-}
-
-.typing-indicator span {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 3px;
-  background-color: currentColor; /* Use the text color of the bubble */
-  border-radius: 50%;
-  animation: typing-dot-bounce 1.4s infinite ease-in-out both;
-}
-
-.typing-indicator span:nth-child(1) {
-  animation-delay: -0.32s;
-}
-
-.typing-indicator span:nth-child(2) {
-  animation-delay: -0.16s;
-}
-
-.typing-indicator span:nth-child(3) {
-  animation-delay: 0s;
-  margin-right: 0; /* No margin on the last dot */
-}
-
-.message-text {
-  /* ... existing styles ... */
-}
-
-/* Add styles for file attachments */
-.message-files-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px; /* Space between files and text */
-}
-
-.message-ai-image-attachment {
-   margin-bottom: 8px; /* Space between AI image and text */
-   max-width: 300px; /* Limit AI image size */
-}
-
-.message-file-attachment {
-  display: flex;
-  align-items: center;
-  max-width: 200px; /* Limit preview width */
-  /* Add some basic styling if needed, like background or border */
-  /* background-color: rgba(0,0,0,0.05); */
-  /* padding: 4px; */
-  /* border-radius: 4px; */
-}
-
-.message-image-preview {
-  display: block; /* Ensure it behaves like a block element */
-  max-width: 100%; /* Fit within the attachment container */
-  height: auto; /* Maintain aspect ratio */
-  max-height: 150px; /* Limit preview height */
-  border-radius: 4px;
-  object-fit: cover; /* Cover the area nicely */
-  border: 1px solid var(--border-secondary, #CED4DA);
-}
-
-.message-file-link {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  color: inherit; /* Inherit color from bubble */
-  background-color: rgba(0,0,0,0.05);
-  padding: 5px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease; /* Smooth transition for hover/active states */
-}
-
-.message-file-link:hover {
-  background-color: rgba(0,0,0,0.1);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.message-file-link:active {
-  transform: translateY(0);
-  box-shadow: none;
-}
-
-.message-file-icon {
-  margin-right: 6px;
-  font-size: 1.2em;
-  flex-shrink: 0;
-  color: var(--text-secondary, #6C757D);
-}
-
-.message-file-details {
-  overflow: hidden;
-}
-
-.message-file-name {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.9em;
-  line-height: 1.3;
-}
-
-.message-file-size {
-  display: block;
-  font-size: 0.75em;
-  color: var(--text-secondary, #6C757D);
-  opacity: 0.8;
-  line-height: 1.2;
-}
-
-
-.message-timestamp {
-  /* ... existing styles ... */
-}
-
-/* Message footer with timestamp and actions */
+/* Message footer improvements */
 .message-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end; /* Move all items to the right */
   align-items: center;
   margin-top: 6px;
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
+  font-size: 0.7rem;
+  opacity: 0; /* Hide by default */
+  transition: opacity 0.2s ease;
 }
 
-/* Message actions container */
+.message-item:hover .message-footer {
+  opacity: 1; /* Show on hover */
+}
+
+/* Move timestamp to left of actions */
+.message-timestamp {
+  opacity: 0.7;
+  margin-right: auto; /* Push to left */
+}
+
+/* Action buttons styling */
 .message-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
-/* Shared styles for action buttons */
 .message-action-button {
   background: none;
   border: none;
   padding: 4px;
   border-radius: 4px;
   cursor: pointer;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #6c739e);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 14px;
 }
 
 .message-action-button:hover {
-  color: var(--text-primary);
-  background-color: var(--hover-bg);
+  color: var(--primary-color, #6366f1);
+  background-color: var(--accent-light, rgba(99, 102, 241, 0.1));
 }
 
-/* Copy button specific styles */
+.dark-theme .message-action-button {
+  color: var(--text-tertiary-dark, #a78bfa);
+}
+
+.dark-theme .message-action-button:hover {
+  color: var(--primary-color-dark, #a855f7);
+  background-color: rgba(168, 85, 247, 0.15);
+}
+
+/* Improved copy button */
 .copy-button {
   position: relative;
 }
 
 .copy-button.copied {
-  color: var(--accent-success);
+  color: var(--accent-success, #10b981);
 }
 
 .copy-button.copied::after {
-  content: 'Copied!';
+  content: 'Copied';
   position: absolute;
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: var(--accent-success);
+  background-color: var(--accent-success, #10b981);
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
   white-space: nowrap;
   animation: fadeOut 2s forwards;
 }
@@ -460,27 +150,188 @@
   100% { opacity: 0; }
 }
 
-/* Timestamp style */
-.message-timestamp {
-  opacity: 0.8;
+/* Regenerate button styling */
+.regenerate-button:hover {
+  color: var(--accent-info, #06b6d4);
+  transform: rotate(45deg);
+  transition: transform 0.3s ease;
+}
+
+/* Edit button styling */
+.edit-button:hover {
+  color: var(--accent-warning, #f59e0b);
+}
+
+/* Remove sender icon styling for cleaner look */
+.sender-icon {
+  display: none;
+}
+
+/* Code block improvements */
+.message-item pre {
+  background-color: var(--bg-tertiary, #f1f2f6) !important;
+  border-radius: 6px !important;
+  margin: 12px 0 !important;
+  padding: 12px !important;
+  overflow-x: auto !important;
+  font-family: var(--font-family-mono) !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.dark-theme .message-item pre {
+  background-color: var(--bg-tertiary-dark, #242424) !important;
+}
+
+/* Improved code syntax highlighting */
+.message-item code {
+  font-family: var(--font-family-mono) !important;
+  background-color: rgba(99, 102, 241, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.dark-theme .message-item code {
+  background-color: rgba(168, 85, 247, 0.15);
+}
+
+/* File attachment improvements */
+.file-attachment {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-tertiary, #f1f2f6);
+  border: 1px solid var(--border-secondary, #e2e5f1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.file-attachment:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dark-theme .file-attachment {
+  background-color: var(--bg-tertiary-dark, #242424);
+  border: 1px solid var(--border-primary-dark, #2d2d2d);
+}
+
+/* Improved image styling */
+.message-image-preview {
+  border-radius: 6px;
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  margin-top: 8px;
+  border: 1px solid var(--border-secondary, #e2e5f1);
+  background-color: var(--bg-tertiary, #f1f2f6);
+  transition: all 0.2s ease;
+}
+
+.message-image-preview:hover {
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dark-theme .message-image-preview {
+  border: 1px solid var(--border-primary-dark, #2d2d2d);
+  background-color: var(--bg-tertiary-dark, #242424);
+}
+
+/* Markdown styling improvements */
+.message-text {
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.message-text p {
+  margin-bottom: 12px;
+}
+
+.message-text h1, 
+.message-text h2,
+.message-text h3,
+.message-text h4 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.message-text ul, 
+.message-text ol {
+  margin-bottom: 12px;
+  padding-left: 24px;
+}
+
+.message-text li {
+  margin-bottom: 4px;
+}
+
+.message-text blockquote {
+  border-left: 3px solid var(--border-secondary, #e2e5f1);
+  padding-left: 16px;
+  margin-left: 0;
+  color: var(--text-secondary, #4a5072);
+}
+
+.dark-theme .message-text blockquote {
+  border-left-color: var(--border-secondary-dark, #3d3d3d);
+  color: var(--text-secondary-dark, #d0bfff);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .message-item {
+    max-width: 95%;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .message-content {
+    padding: 10px 12px;
+  }
+  
+  .message-text {
+    font-size: 14px;
+  }
+  
+  .message-footer {
+    margin-top: 4px;
+  }
+  
+  .message-image-preview {
+    max-height: 200px;
+  }
 }
 
 /* Edit mode styles */
 .message-edit-container {
   width: 100%;
+  margin-top: 4px;
 }
 
 .message-edit-textarea {
   width: 100%;
-  min-height: 80px;
-  border: 1px solid var(--border-primary);
+  min-height: 100px;
+  border: 1px solid var(--border-primary, #e2e5f1);
   border-radius: 6px;
-  padding: 8px;
+  padding: 12px;
   font-family: inherit;
-  font-size: inherit;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  resize: vertical;
+  font-size: 15px;
+  background-color: var(--bg-secondary, #f9f9fc);
+  color: var(--text-primary, #1a2038);
+  resize: none; /* Prevent manual resizing */
+  transition: border-color 0.2s ease;
+  line-height: 1.5;
+  overflow-y: hidden; /* Hide scrollbars for auto-height */
+}
+
+.message-edit-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #6366f1);
+  box-shadow: 0 0 0 2px var(--accent-light, rgba(99, 102, 241, 0.1));
 }
 
 .message-edit-actions {
@@ -495,174 +346,63 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 12px;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border-radius: 6px;
   font-size: 0.85rem;
   cursor: pointer;
   border: none;
-}
-
-.message-edit-save {
-  background-color: var(--accent-success);
-  color: white;
-}
-
-.message-edit-cancel {
-  background-color: var(--bg-tertiary);
-  color: var(--text-secondary);
-}
-
-/* Adjust message actions for dark theme */
-.dark-theme .message-action-button {
-  color: var(--text-tertiary-dark);
-}
-
-.dark-theme .message-action-button:hover {
-  color: var(--text-primary-dark);
-  background-color: var(--hover-bg-dark);
-}
-
-.dark-theme .message-edit-textarea {
-  background-color: var(--bg-secondary-dark);
-  border-color: var(--border-primary-dark);
-  color: var(--text-primary-dark);
-}
-
-.dark-theme .message-edit-cancel {
-  background-color: var(--bg-tertiary-dark);
-  color: var(--text-secondary-dark);
-}
-
-/* Improved message item transitions */
-@keyframes message-appear {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Hover effect for messages */
-.message-item:hover {
-  background-color: var(--hover-bg, rgba(0, 0, 0, 0.02));
-}
-
-.dark-theme .message-item:hover {
-  background-color: var(--hover-bg-dark, rgba(255, 255, 255, 0.05));
-}
-
-/* Improved image attachment styles */
-.image-attachment {
-  position: relative;
-  display: block;
-  border-radius: 8px;
-  overflow: hidden;
-  max-width: 300px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.image-attachment:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.image-attachment img {
-  display: block;
-  width: 100%;
-  height: auto;
-  transition: filter 0.2s ease;
-}
-
-/* File attachment improvements */
-.file-attachment:hover {
-  background-color: var(--file-hover-bg, rgba(0, 0, 0, 0.05));
-}
-
-.dark-theme .file-attachment:hover {
-  background-color: var(--file-hover-bg-dark, rgba(255, 255, 255, 0.1));
-}
-
-/* Loading indicator container in message */
-.message-item .loading-indicator {
-  margin-left: 8px;
-  display: inline-flex;
-  vertical-align: middle;
-}
-
-.message-item .loading-indicator.small .dots span {
-  width: 4px;
-  height: 4px;
-}
-
-/* Generated image improvements */
-.generated-image {
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.generated-image:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* Add subtle pulse animation to the avatar when message is incomplete */
-@keyframes avatar-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.message-item.ai .message-avatar {
   transition: all 0.2s ease;
 }
 
-.message-item.ai[data-is-complete="false"] .message-avatar {
-  animation: avatar-pulse 1.5s infinite;
+.message-edit-save {
+  background-color: var(--primary-color, #6366f1);
+  color: white;
 }
 
-/* Global rule to prevent resizing of all textareas in the chat UI */
-.message-item textarea,
-.message-content textarea,
-.message-input-container textarea {
-  resize: none !important;
+.message-edit-save:hover {
+  background-color: var(--primary-hover, #4f46e5);
+  transform: translateY(-1px);
 }
 
-/* Specific rule for message text content to prevent any dragging */
-.message-text {
-  resize: none !important;
-  user-select: text;
-  overflow-wrap: break-word;
-  word-break: break-word;
+.message-edit-cancel {
+  background-color: var(--bg-tertiary, #f1f2f6);
+  color: var(--text-secondary, #4a5072);
 }
 
-/* Dark theme styling for AI sender icon */
-.dark-theme .message-item:not(.user) .sender-icon {
-  background-color: var(--bg-tertiary-dark, #293548);
-  color: var(--text-secondary-dark, #cbd5e1);
+.message-edit-cancel:hover {
+  background-color: var(--bg-hover, #f5f7fd);
+  transform: translateY(-1px);
 }
 
-/* Regenerate button specific styles */
-.message-item.user .regenerate-button {
-  color: rgba(255, 255, 255, 0.9);
+/* Dark theme styles for edit mode */
+.dark-theme .message-edit-textarea {
+  background-color: var(--bg-secondary-dark, #1a1a1a);
+  border-color: var(--border-primary-dark, #2d2d2d);
+  color: var(--text-primary-dark, #f5f5ff);
 }
 
-.message-item.user .regenerate-button:hover {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.25);
-  transform: rotate(45deg);
-  transition: transform 0.3s ease;
+.dark-theme .message-edit-textarea:focus {
+  border-color: var(--primary-color-dark, #a855f7);
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.15);
 }
 
-.dark-theme .message-item.user .regenerate-button {
-  color: rgba(255, 255, 255, 0.9);
+.dark-theme .message-edit-save {
+  background-color: var(--primary-color-dark, #a855f7);
 }
 
-.dark-theme .message-item.user .regenerate-button:hover {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.3);
+.dark-theme .message-edit-save:hover {
+  background-color: var(--primary-hover-dark, #8b5cf6);
+}
+
+.dark-theme .message-edit-cancel {
+  background-color: var(--bg-tertiary-dark, #242424);
+  color: var(--text-secondary-dark, #d0bfff);
+}
+
+.dark-theme .message-edit-cancel:hover {
+  background-color: var(--hover-bg-dark, rgba(255, 255, 255, 0.05));
+}
+
+.dark-theme .message-item pre {
+  background-color: var(--bg-tertiary-dark, #242424) !important;
 } 

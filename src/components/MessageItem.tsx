@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Message, MessageFile } from '../types/chat'; // Import the Message and MessageFile types
 import { FaFileAlt, FaRedo, FaEdit, FaCheck, FaTimes, FaCopy } from 'react-icons/fa'; // Import required icons
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
@@ -27,6 +27,25 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
 
   // State for copy button feedback
   const [copied, setCopied] = useState(false);
+
+  // Ref for textarea auto-resizing
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Auto-resize the textarea based on content
+  const autoResizeTextarea = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto'; // Reset height to recalculate
+      textarea.style.height = `${textarea.scrollHeight}px`; // Set to scrollHeight
+    }
+  };
+  
+  // Call resize on edit text change
+  useEffect(() => {
+    if (isEditing) {
+      autoResizeTextarea();
+    }
+  }, [editText, isEditing]);
 
   const formatTime = (date: Date): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -65,6 +84,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     }
   };
 
+  // Handle textarea input change
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditText(e.target.value);
+  };
+
   // Helper component to render a single file attachment
   const FileAttachment: React.FC<{ file: MessageFile }> = ({ file }) => {
     // Track image URLs to prevent them from being revoked
@@ -74,15 +98,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     
     console.log(`Rendering FileAttachment for ${file.name} (ID: ${file.id}): URL = ${file.url}, Type = ${file.type}`);
     return (
-      <div className="message-file-attachment">
+      <div className="file-attachment">
         {file.type.startsWith('image/') ? (
           <img src={file.url} alt={file.name} className="message-image-preview" />
         ) : (
-          <a href={file.url} target="_blank" rel="noopener noreferrer" className="message-file-link">
-            <FaFileAlt className="message-file-icon" />
-            <div className="message-file-details">
-              <span className="message-file-name">{file.name}</span>
-              <span className="message-file-size">{fileService.formatFileSize(file.size)}</span>
+          <a href={file.url} target="_blank" rel="noopener noreferrer" className="file-link">
+            <FaFileAlt className="file-icon" />
+            <div className="file-details">
+              <span className="file-name">{file.name}</span>
+              <span className="file-size">{fileService.formatFileSize(file.size)}</span>
             </div>
           </a>
         )}
@@ -94,32 +118,33 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   const isIncomplete = sender === 'ai' && isComplete === false;
 
   return (
-    <div className={`message-item ${sender}`}>
+    <div className={`message-item ${sender}`} data-is-complete={isComplete !== false}>
       <div className="message-content">
-        {/* Render user's file attachments (map over the files array) */}
-        {sender === 'user' && files && files.length > 0 && (
-          <div className="message-files-container"> {/* Optional container for spacing/layout */}
+        {/* Render user's file attachments */}
+        {files && files.length > 0 && (
+          <div className="file-attachments-wrapper">
             {files.map((file) => (
               <FileAttachment key={file.id} file={file} />
             ))}
           </div>
         )}
+        
         {/* Render AI's image if present */}
         {imageUrl && sender === 'ai' && (
-          <div className="message-ai-image-attachment">
+          <div className="ai-image-wrapper">
             {/* Track this image URL to prevent revocation */}
             {(() => { fileService.trackActiveImageUrl(imageUrl); return null; })()}
-            <img src={imageUrl} alt="AI generated image" className="message-image-preview" />
+            <img src={imageUrl} alt="AI generated" className="message-image-preview" />
           </div>
         )}
-        {/* Render text using ReactMarkdown if present */}
+        
+        {/* Render text content */}
         {text && !isEditing && (
           <div className="message-text">
             <ReactMarkdown
               children={text}
-              remarkPlugins={[remarkGfm]} // Enable GFM features
+              remarkPlugins={[remarkGfm]}
               components={{
-                // Use 'any' for props to bypass strict type checking here
                 code({ node, inline, className, children, ...props }: any) {
                   const match = /language-(\w+)/.exec(className || '');
                   return !inline && match ? (
@@ -137,49 +162,54 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                     </code>
                   );
                 }
-              } as Components } // Keep the cast for the overall components object
+              } as Components}
             />
+            
             {/* Add typing indicator if AI message is incomplete */}
-            {sender === 'ai' && isComplete === false && (
+            {isIncomplete && (
               <LoadingIndicator type="dots" size="small" />
             )}
           </div>
         )}
+        
         {/* Edit mode text area */}
         {isEditing && (
           <div className="message-edit-container">
             <textarea
+              ref={textareaRef}
               className="message-edit-textarea"
               value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              rows={Math.max(3, (editText.match(/\n/g) || []).length + 1)}
+              onChange={handleTextareaChange}
+              placeholder="Edit your message..."
+              autoFocus
             />
             <div className="message-edit-actions">
-              <button className="message-edit-save" onClick={handleSaveEdit}>
-                <FaCheck /> Save
-              </button>
               <button className="message-edit-cancel" onClick={handleCancelEdit}>
                 <FaTimes /> Cancel
+              </button>
+              <button className="message-edit-save" onClick={handleSaveEdit}>
+                <FaCheck /> Save
               </button>
             </div>
           </div>
         )}
+        
         {/* If no text but still incomplete (e.g., only image incoming), show indicator */}
-        {!text && sender === 'ai' && isComplete === false && (
-            <LoadingIndicator type="dots" size="small" />
+        {!text && isIncomplete && (
+          <LoadingIndicator type="dots" size="small" />
         )}
-        {/* Timestamp and actions row */}
+        
+        {/* Actions footer - only show when hovering */}
         <div className="message-footer">
           <div className="message-timestamp">{formatTime(timestamp)}</div>
           
-          {/* Message actions */}
           <div className="message-actions">
             {/* Copy button for all messages with text */}
             {text && (
               <button 
                 className={`message-action-button copy-button ${copied ? 'copied' : ''}`} 
                 onClick={handleCopyMessage}
-                title={copied ? "Copied!" : "Copy text"}
+                title={copied ? "Copied" : "Copy text"}
               >
                 <FaCopy />
               </button>
@@ -196,7 +226,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
               </button>
             )}
             
-            {/* Move regenerate button to user messages instead of AI messages */}
+            {/* Regenerate button for user messages */}
             {sender === 'user' && isComplete !== false && onRegenerateResponse && (
               <button 
                 className="message-action-button regenerate-button" 
