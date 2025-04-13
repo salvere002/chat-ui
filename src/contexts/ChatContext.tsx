@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file is deprecated. Please use the Zustand store from src/stores/chatStore.ts instead.
+ * The ChatContext was replaced with a Zustand store for better state management.
+ * See STATE_MANAGEMENT.md for more information on the migration.
+ */
+
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { Message } from '../types/chat'; // Import Message type from the correct location
 import { sendStreamRequest, sendFetchRequest } from '../services/api'; // Import API services

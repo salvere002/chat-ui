@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useToastStore } from '../stores';
 import './Toast.css';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastProps {
+  id: string;
   message: string;
   type: ToastType;
   duration?: number;
@@ -11,74 +13,67 @@ interface ToastProps {
   isVisible: boolean;
 }
 
-const Toast: React.FC<ToastProps> = ({
-  message,
-  type,
-  duration = 3000,
-  onClose,
-  isVisible
-}) => {
-  const [progress, setProgress] = useState(100);
-  const [intervalId, setIntervalId] = useState<number | null>(null);
-
-  // Icon mapping based on toast type
-  const iconMap = {
-    success: '✓',
-    error: '✕',
-    info: 'ℹ',
-    warning: '⚠'
-  };
-
+const Toast: React.FC<ToastProps> = ({ id, message, type, duration = 3000, onClose, isVisible }) => {
+  // Handle auto-closing of toast after duration
   useEffect(() => {
-    if (isVisible) {
-      // Reset progress when toast becomes visible
-      setProgress(100);
-      
-      // Set up the progress bar decreasing
-      const interval = window.setInterval(() => {
-        setProgress((prevProgress) => {
-          if (prevProgress <= 0) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prevProgress - (100 / (duration / 100));
-        });
-      }, 100);
-      
-      setIntervalId(interval);
-      
-      // Set up auto-dismiss
-      const timeout = setTimeout(() => {
+    if (isVisible && duration > 0) {
+      const timer = setTimeout(() => {
         onClose();
       }, duration);
       
-      return () => {
-        clearInterval(interval);
-        clearTimeout(timeout);
-      };
+      // Clear timeout on component unmount
+      return () => clearTimeout(timer);
     }
   }, [isVisible, duration, onClose]);
-  
-  // Clear interval when manually closed
-  const handleClose = () => {
-    if (intervalId) {
-      clearInterval(intervalId);
-    }
-    onClose();
-  };
   
   if (!isVisible) return null;
   
   return (
-    <div className={`toast toast-${type} ${isVisible ? 'visible' : ''}`}>
+    <div className={`toast toast-${type}`} role="alert">
       <div className="toast-content">
-        <div className={`toast-icon ${type}`}>{iconMap[type]}</div>
+        {/* Icon based on toast type */}
+        <div className="toast-icon">
+          {type === 'success' && '✓'}
+          {type === 'error' && '⚠'}
+          {type === 'info' && 'ℹ'}
+          {type === 'warning' && '⚠'}
+        </div>
+        
+        {/* Toast message */}
         <div className="toast-message">{message}</div>
-        <button className="toast-close" onClick={handleClose}>×</button>
+        
+        {/* Close button */}
+        <button 
+          className="toast-close" 
+          onClick={onClose}
+          aria-label="Close notification"
+        >
+          ×
+        </button>
       </div>
-      <div className="toast-progress" style={{ width: `${progress}%` }} />
     </div>
   );
 };
 
+const ToastContainer: React.FC = () => {
+  const { toasts, hideToast } = useToastStore();
+  
+  return (
+    <div className="toast-container">
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          id={toast.id}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={() => hideToast(toast.id)}
+          isVisible={true}
+        />
+      ))}
+    </div>
+  );
+};
+
+export { ToastContainer };
 export default Toast; 

@@ -1,9 +1,9 @@
 import React from 'react';
-import { useChat } from '../contexts/ChatContext';
+import { useChatStore } from '../stores';
 import './ChatList.css';
 
 const ChatList: React.FC = () => {
-  const { chatSessions, activeChatId, setActiveChat, createChat, deleteChat } = useChat();
+  const { chatSessions, activeChatId, setActiveChat, createChat, deleteChat } = useChatStore();
 
   const handleCreateChat = () => {
     const newChatId = createChat();
@@ -33,11 +33,11 @@ const ChatList: React.FC = () => {
             className={`chat-list-item ${chat.id === activeChatId ? 'active' : ''}`}
             onClick={() => setActiveChat(chat.id)}
           >
-            <span className="chat-name">{chat.name}</span>
+            <span className="chat-name">{chat.name || chat.title}</span>
             <button
               className="delete-chat-button"
               onClick={(e) => handleDeleteChat(e, chat.id)}
-              aria-label={`Delete chat ${chat.name}`}
+              aria-label={`Delete chat ${chat.name || chat.title}`}
             >
               🗑️
             </button>
