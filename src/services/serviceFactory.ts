@@ -2,11 +2,12 @@ import { ApiClient, defaultApiClient } from './apiClient';
 import { BaseAdapter } from './adapters/BaseAdapter';
 import { RestApiAdapter } from './adapters/RestApiAdapter';
 import { MockAdapter } from './adapters/MockAdapter';
+import { SessionAdapter } from './adapters/SessionAdapter';
 
 /**
  * Service adapter types
  */
-export type AdapterType = 'rest' | 'mock';
+export type AdapterType = 'rest' | 'mock' | 'session';
 
 /**
  * Service environment configuration
@@ -15,6 +16,7 @@ export interface ServiceConfig {
   adapterType: AdapterType;
   apiBaseUrl?: string;
   useMockInDev?: boolean; // Option to use mock adapter in development
+  sessionEndpoint?: string; // Endpoint for session-based adapter
 }
 
 /**
@@ -23,7 +25,8 @@ export interface ServiceConfig {
 const DEFAULT_CONFIG: ServiceConfig = {
   adapterType: 'rest',
   apiBaseUrl: 'http://localhost:5001/api',
-  useMockInDev: true
+  useMockInDev: true,
+  sessionEndpoint: 'http://localhost:5001/api/session'
 };
 
 /**
@@ -46,7 +49,7 @@ export class ServiceFactory {
     
     // Auto-use mock adapter in development if configured
     if (this.config.useMockInDev && process.env.NODE_ENV === 'development') {
-      this.config.adapterType = 'mock';
+      this.config.adapterType = 'rest';
     }
   }
   
@@ -125,6 +128,12 @@ export class ServiceFactory {
         break;
       case 'mock':
         this.adapters.set(adapterType, new MockAdapter(apiClient));
+        break;
+      case 'session':
+        if (!this.config.sessionEndpoint) {
+          throw new Error('Session endpoint is required for session adapter');
+        }
+        this.adapters.set(adapterType, new SessionAdapter(apiClient, this.config.sessionEndpoint));
         break;
       default:
         throw new Error(`Unknown adapter type: ${adapterType}`);

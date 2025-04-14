@@ -6,7 +6,7 @@
 
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { Message } from '../types/chat'; // Import Message type from the correct location
-import { sendStreamRequest, sendFetchRequest } from '../services/api'; // Import API services
+import { ChatService } from '../services/chatService';
 
 // Define the structure for a chat session
 export interface ChatSession {
@@ -137,7 +137,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       
       if (isStreamMessage) {
         // Handle streaming response
-        await sendStreamRequest(
+        await ChatService.sendStreamingMessage(
           userMessage.text || '', 
           userMessage.files || [],
           {
@@ -166,7 +166,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         );
       } else {
         // Handle non-streaming response
-        const response = await sendFetchRequest(userMessage.text || '', userMessage.files || []);
+        const response = await ChatService.sendMessage(userMessage.text || '', userMessage.files || []);
         
         // Update with complete response
         updateMessageInChat(chatId, aiMessageId, {

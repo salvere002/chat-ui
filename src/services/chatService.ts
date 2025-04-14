@@ -1,4 +1,4 @@
-import { defaultAdapter } from './serviceFactory';
+import { serviceFactory, AdapterType } from './serviceFactory';
 import { StreamCallbacks, ProgressCallback } from './adapters/BaseAdapter';
 import { MessageRequest, MessageResponse, FileUploadResponse } from '../types/api';
 import { MessageFile } from '../types/chat';
@@ -8,12 +8,21 @@ import { MessageFile } from '../types/chat';
  * Uses the adapter pattern to support different backend implementations
  */
 export class ChatService {
+  private static adapter = serviceFactory.getAdapter();
+
+  /**
+   * Configure the chat service with a specific adapter type
+   */
+  static configure(config: { adapterType: AdapterType; sessionEndpoint?: string }) {
+    this.adapter = serviceFactory.switchAdapter(config.adapterType);
+  }
+
   /**
    * Send a message and get a complete response
    */
   static async sendMessage(text: string, files: MessageFile[] = []): Promise<MessageResponse> {
     const request: MessageRequest = { text, files };
-    return defaultAdapter.sendMessage(request);
+    return this.adapter.sendMessage(request);
   }
   
   /**
@@ -25,7 +34,7 @@ export class ChatService {
     callbacks: StreamCallbacks
   ): Promise<void> {
     const request: MessageRequest = { text, files };
-    return defaultAdapter.sendStreamingMessage(request, callbacks);
+    return this.adapter.sendStreamingMessage(request, callbacks);
   }
   
   /**
@@ -36,21 +45,21 @@ export class ChatService {
     file: File,
     onProgress: ProgressCallback
   ): Promise<FileUploadResponse> {
-    return defaultAdapter.uploadFile(fileId, file, onProgress);
+    return this.adapter.uploadFile(fileId, file, onProgress);
   }
   
   /**
    * Get all uploaded files
    */
   static async getFiles(): Promise<FileUploadResponse[]> {
-    return defaultAdapter.getFiles();
+    return this.adapter.getFiles();
   }
   
   /**
    * Get a single uploaded file by ID
    */
   static async getFile(fileId: string): Promise<FileUploadResponse> {
-    return defaultAdapter.getFile(fileId);
+    return this.adapter.getFile(fileId);
   }
 }
 

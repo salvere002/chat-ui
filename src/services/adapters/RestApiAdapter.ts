@@ -135,6 +135,7 @@ export class RestApiAdapter extends AbstractBaseAdapter {
         // Create form data to send the file
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('fileId', fileId);
         
         // Simulate varying progress before the actual upload
         const progressInterval = setInterval(() => {
@@ -143,9 +144,21 @@ export class RestApiAdapter extends AbstractBaseAdapter {
         }, 300);
         
         try {
-          // Upload the file - don't set Content-Type header for FormData
-          // The browser will automatically set the correct multipart/form-data with boundary
-          const data = await this.apiClient.post<FileUploadResponse>('/upload', formData);
+          // Upload the file using fetch directly to handle multipart/form-data properly
+          const response = await fetch(`${this.apiClient['baseUrl']}/upload`, {
+            method: 'POST',
+            body: formData,
+            // Don't set Content-Type header - browser will set it automatically with boundary
+          });
+          
+          if (!response.ok) {
+            throw new ApiError(
+              `Upload failed with status: ${response.status}`,
+              response.status
+            );
+          }
+          
+          const data = await response.json();
           
           // Set progress to 100%
           onProgress(fileId, 100);
