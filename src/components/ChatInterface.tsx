@@ -5,8 +5,8 @@ import LoadingIndicator from './LoadingIndicator';
 import { useChatStore, useToastStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { Agent, Message, MessageFile } from '../types/chat';
+import { ChatService } from '../services/chatService';
 import './ChatInterface.css';
-import { sendStreamRequest, sendFetchRequest } from '../services/api';
 
 interface ChatInterfaceProps {
   selectedAgent: Agent;
@@ -128,7 +128,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
       // Send the API request based on selected agent
       if (selectedAgent === 'stream') {
         // Streaming API call with proper callback handling
-        await sendStreamRequest(
+        await ChatService.sendStreamingMessage(
           messageText,
           uploadedFiles,
           {
@@ -164,7 +164,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
       } else {
         // Non-streaming API call
         try {
-          const response = await sendFetchRequest(messageText, uploadedFiles);
+          const response = await ChatService.sendMessage(messageText, uploadedFiles);
           // Update AI message with complete response
           updateMessageInChat(currentChatId, aiMessageId, {
             text: response.text,

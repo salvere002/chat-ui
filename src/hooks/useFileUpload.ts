@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { FileUploadState, MessageFile, PreviewFile } from '../types/chat';
-import { uploadFile } from '../services/api';
+import { ChatService } from '../services/chatService';
 import { fileService } from '../services/fileService';
 
 interface UseFileUploadReturn {
@@ -109,7 +109,7 @@ export function useFileUpload(): UseFileUploadReturn {
     
     // Start uploads and wait for them
     const uploadPromises = filesToUpload.map(fileWithId =>
-      uploadFile(fileWithId, handleUploadProgress)
+      ChatService.uploadFile(fileWithId.id, fileWithId.file, handleUploadProgress)
         .then(finalFileData => {
           updateUploadStatus(fileWithId.id, 'complete', finalFileData);
           
