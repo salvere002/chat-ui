@@ -4,11 +4,11 @@
   overflow-y: auto;
   padding: 0;
   background-color: var(--bg-primary, #ffffff);
+  position: relative; /* For absolute positioning of the scroll button */
 }
 
 .message-list {
   flex-grow: 1;
-  overflow-y: auto;
   padding: 0;
   display: flex; 
   flex-direction: column;
@@ -16,6 +16,58 @@
   max-width: 900px; /* Constrain width for better readability */
   margin: 0 auto; /* Center the message area */
   width: 100%;
+  position: relative;
+}
+
+/* Scroll to bottom button */
+.scroll-to-bottom-button {
+  position: fixed;
+  bottom: 150px; /* Position with spacing from bottom */
+  right: 30px; /* Positioned on the right side */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--bg-secondary, #f9f9fc);
+  color: var(--text-secondary, #4a5072);
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100; /* Make sure it's above other elements */
+  transition: all 0.2s ease;
+  opacity: 0.9;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Small screens */
+@media (max-width: 950px) {
+  .scroll-to-bottom-button {
+    bottom: 80px;
+    right: 20px; /* Fixed position on smaller screens */
+  }
+}
+
+.scroll-to-bottom-button:hover {
+  background-color: var(--bg-tertiary, #f1f2f6);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.scroll-to-bottom-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.dark-theme .scroll-to-bottom-button {
+  background-color: var(--bg-secondary-dark, #1a1a1a);
+  color: var(--text-primary-dark, #e0e0e0);
+  border-color: var(--border-color-dark, #333333);
+}
+
+.dark-theme .scroll-to-bottom-button:hover {
+  background-color: var(--bg-tertiary-dark, #242424);
 }
 
 /* Group consecutive messages from the same sender */
@@ -122,6 +174,13 @@
   
   .skeleton-message {
     max-width: 80%;
+  }
+  
+  .scroll-to-bottom-button {
+    bottom: 70px;
+    width: 36px;
+    height: 36px;
+    right: 16px;
   }
 }
 

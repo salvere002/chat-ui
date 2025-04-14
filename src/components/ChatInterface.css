@@ -9,6 +9,17 @@
   overflow: hidden; /* Prevent any content from breaking layout */
 }
 
+/* Message list container - the scrollable parent */
+.message-list-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* For scroll button positioning */
+  scroll-behavior: smooth;
+}
+
 .chat-interface-placeholder {
   display: flex;
   justify-content: center;
