@@ -1,8 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import MessageItem from './MessageItem';
 import { Message } from '../types/chat';
 import './MessageList.css';
 import { useChatStore } from '../stores';
+import { ChatService } from '../services/chatService';
+import { useAgentStore } from '../stores';
 
 interface MessageListProps {
   messages: Message[];
@@ -29,29 +31,199 @@ const MessageSkeleton: React.FC<{ count: number }> = ({ count }) => {
 
 const MessageList: React.FC<MessageListProps> = ({ messages }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { activeChatId, updateMessageInChat } = useChatStore();
+  const messageContainerRef = useRef<HTMLDivElement>(null);
+  const accumulatedTextRef = useRef<string>("");
+  const { activeChatId, updateMessageInChat, setProcessing, getChatById } = useChatStore();
+  const { selectedAgent } = useAgentStore();
+  const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
+  const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
+  const [previousLastMessageId, setPreviousLastMessageId] = useState<string>('');
+  const [regenerationError, setRegenerationError] = useState<string | null>(null);
   
-  // Remove the loading state for empty chats
-  // const isLoading = activeChatId && messages.length === 0;
+  // Scroll to bottom function - memoized to prevent unnecessary recreations
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messagesEndRef]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Check if user has scrolled up enough to show the button
+  const checkScrollPosition = useCallback(() => {
+    if (!messageContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    
+    // Show button when scrolled up more than 100px from bottom
+    const isScrolledUp = distanceFromBottom > 100;
+    setShowScrollButton(isScrolledUp);
+  }, [messageContainerRef]);
+  
+  // Handle scroll events
+  const handleScroll = useCallback(() => {
+    checkScrollPosition();
+  }, [checkScrollPosition]);
+  
+  // Add scroll event listener
+  useEffect(() => {
+    const messageContainer = messageContainerRef.current;
+    if (messageContainer) {
+      messageContainer.addEventListener('scroll', handleScroll);
+      // Force initial check after a small delay
+      setTimeout(() => checkScrollPosition(), 200);
+      return () => messageContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll, checkScrollPosition]);
 
+  // Initial scroll to bottom
   useEffect(() => {
     scrollToBottom();
-  }, [messages]); // Scroll whenever messages change
+    
+    // Force show button initially if there's enough content to scroll
+    setTimeout(() => {
+      if (messageContainerRef.current) {
+        const { scrollHeight, clientHeight } = messageContainerRef.current;
+        if (scrollHeight > clientHeight + 100) {
+          setShowScrollButton(true);
+        }
+      }
+    }, 300);
+  }, []); 
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    // Get current last message id
+    const currentLastMessageId = messages.length > 0 ? messages[messages.length - 1].id : '';
+    const shouldScrollToBottom = 
+      // If message count increased (new message added)
+      messages.length > previousMessageCount || 
+      // Or if the last message ID changed (content updated)
+      (messages.length > 0 && currentLastMessageId !== previousLastMessageId && previousLastMessageId !== '');
+    
+    if (shouldScrollToBottom) {
+      // Use multiple timeouts to ensure it scrolls even if DOM updates are delayed
+      setTimeout(scrollToBottom, 50);
+      setTimeout(scrollToBottom, 150);
+      setTimeout(scrollToBottom, 300);
+    }
+    
+    // Update previous message info
+    setPreviousMessageCount(messages.length);
+    setPreviousLastMessageId(currentLastMessageId);
+    
+    // Check if we need to show the scroll button after scrolling
+    setTimeout(() => {
+      checkScrollPosition();
+    }, 350);
+  }, [messages, previousMessageCount, previousLastMessageId, scrollToBottom, checkScrollPosition]);
+
+  // Also check if the message content is updating (for streaming responses)
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      
+      // If the last message is from AI and still processing (streaming)
+      if (lastMessage.sender === 'ai' && lastMessage.isComplete === false) {
+        // Ensure we're scrolled to the bottom to see the streaming message
+        const scrollInterval = setInterval(() => {
+          scrollToBottom();
+        }, 1000); // Check every second while streaming
+        
+        return () => clearInterval(scrollInterval);
+      }
+    }
+  }, [messages, scrollToBottom]);
+
+  // Generate or regenerate AI response based on a user message
+  const generateAIResponse = async (userMessageText: string, userMessageFiles: any[] = [], aiMessageId: string) => {
+    if (!activeChatId) return;
+    
+    try {
+      // Reset accumulated text
+      accumulatedTextRef.current = "";
+      
+      // Use the ChatService based on selected agent type
+      if (selectedAgent === 'stream') {
+        // Streaming API call
+        await ChatService.sendStreamingMessage(
+          userMessageText,
+          userMessageFiles,
+          {
+            onChunk: (chunk) => {
+              // Update the AI message with each chunk
+              if (chunk.text) {
+                // Append the new chunk to our accumulated text
+                accumulatedTextRef.current += chunk.text;
+                
+                // Update with the accumulated text
+                updateMessageInChat(activeChatId, aiMessageId, {
+                  text: accumulatedTextRef.current,
+                  imageUrl: chunk.imageUrl
+                });
+              }
+            },
+            onComplete: () => {
+              // Mark as complete when done
+              updateMessageInChat(activeChatId, aiMessageId, {
+                isComplete: true
+              });
+              // Clear processing state
+              setProcessing(false);
+              // Reset accumulated text
+              accumulatedTextRef.current = "";
+            },
+            onError: (error) => {
+              // Show error and mark message as complete
+              setRegenerationError(error.message);
+              updateMessageInChat(activeChatId, aiMessageId, {
+                text: 'Sorry, there was an error processing your request.',
+                isComplete: true
+              });
+              // Clear processing state
+              setProcessing(false);
+              // Reset accumulated text
+              accumulatedTextRef.current = "";
+            }
+          }
+        );
+      } else {
+        // Non-streaming API call
+        const response = await ChatService.sendMessage(userMessageText, userMessageFiles);
+        // Update AI message with complete response
+        updateMessageInChat(activeChatId, aiMessageId, {
+          text: response.text,
+          isComplete: true
+        });
+        // Clear processing state
+        setProcessing(false);
+      }
+    } catch (error) {
+      // Handle errors
+      console.error("Error generating AI response:", error);
+      updateMessageInChat(activeChatId, aiMessageId, {
+        text: 'Sorry, there was an error processing your request.',
+        isComplete: true
+      });
+      setProcessing(false);
+      // Reset accumulated text
+      accumulatedTextRef.current = "";
+    }
+  };
 
   // Handle regenerating response
-  const handleRegenerateResponse = (userMessageId: string) => {
+  const handleRegenerateResponse = async (userMessageId: string) => {
     if (!activeChatId) return;
     
     // Find the user message and the following AI message (if any)
     const userMessageIndex = messages.findIndex(msg => msg.id === userMessageId);
     if (userMessageIndex < 0 || userMessageIndex >= messages.length - 1) return; // No valid index or no following message
     
+    const userMessage = messages[userMessageIndex];
     const aiMessage = messages[userMessageIndex + 1];
     if (aiMessage.sender !== 'ai') return; // Ensure it's really an AI message
+    
+    // Set processing state
+    setProcessing(true);
     
     // Mark the AI message as regenerating
     updateMessageInChat(activeChatId, aiMessage.id, { 
@@ -59,65 +231,71 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
       isComplete: false 
     });
     
-    // Normally we would call an API to regenerate the message here
-    // For now, we'll just simulate a regeneration with a timeout
-    setTimeout(() => {
-      updateMessageInChat(activeChatId, aiMessage.id, { 
-        text: "This is a regenerated response for your message.",
-        isComplete: true 
-      });
-    }, 1000);
+    // Generate new response using our shared function
+    await generateAIResponse(userMessage.text, userMessage.files || [], aiMessage.id);
   };
 
   // Handle editing a user message
-  const handleEditMessage = (messageId: string, newText: string) => {
+  const handleEditMessage = async (messageId: string, newText: string) => {
     if (!activeChatId) return;
     
     // Find message index in the array
     const messageIndex = messages.findIndex(msg => msg.id === messageId);
     if (messageIndex < 0) return;
     
-    // Update the message
+    // Update the user message
     updateMessageInChat(activeChatId, messageId, { text: newText });
     
     // If there's a following AI message response, regenerate it
     if (messageIndex < messages.length - 1 && messages[messageIndex + 1].sender === 'ai') {
-      const aiMessageId = messages[messageIndex + 1].id;
+      const aiMessage = messages[messageIndex + 1];
+      
+      // Set processing state
+      setProcessing(true);
       
       // Mark the AI message as regenerating
-      updateMessageInChat(activeChatId, aiMessageId, { 
+      updateMessageInChat(activeChatId, aiMessage.id, { 
         text: "Regenerating response based on edited message...",
         isComplete: false 
       });
       
-      // Normally we would call an API to regenerate the message here
-      // For now, we'll just simulate a regeneration with a timeout
-      setTimeout(() => {
-        updateMessageInChat(activeChatId, aiMessageId, { 
-          text: "This is a response to your edited message.",
-          isComplete: true 
-        });
-      }, 1000);
+      // Use the shared function to generate the response with the edited message
+      const userFiles = messages[messageIndex].files || [];
+      await generateAIResponse(newText, userFiles, aiMessage.id);
     }
   };
 
   return (
-    <div className="message-list">
-      {messages.map((msg, index) => (
-        <MessageItem 
-          key={msg.id} 
-          message={msg} 
-          onRegenerateResponse={
-            msg.sender === 'user' && 
-            index < messages.length - 1 && 
-            messages[index + 1].sender === 'ai' 
-              ? () => handleRegenerateResponse(msg.id) 
-              : undefined
-          }
-          onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
-        />
-      ))}
-      <div ref={messagesEndRef} /> {/* Element to scroll to */}
+    <div className="message-list-container" ref={messageContainerRef}>
+      <div className="message-list">
+        {messages.map((msg, index) => (
+          <MessageItem 
+            key={msg.id} 
+            message={msg} 
+            onRegenerateResponse={
+              msg.sender === 'user' && 
+              index < messages.length - 1 && 
+              messages[index + 1].sender === 'ai' 
+                ? () => handleRegenerateResponse(msg.id) 
+                : undefined
+            }
+            onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
+          />
+        ))}
+        <div ref={messagesEndRef} /> {/* Element to scroll to */}
+      </div>
+      
+      {showScrollButton && (
+        <button 
+          className="scroll-to-bottom-button" 
+          onClick={scrollToBottom}
+          aria-label="Scroll to bottom"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      )}
     </div>
   );
 };
