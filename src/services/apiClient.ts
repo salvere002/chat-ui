@@ -1,4 +1,5 @@
 import { ApiError } from '../types/api';
+import { configManager } from '../utils/config';
 
 /**
  * Configuration for the API client
@@ -271,8 +272,7 @@ export class ApiClient {
 
 // Create a default API client instance
 export const defaultApiClient = new ApiClient({
-  baseUrl: 'http://localhost:5001/api',
-  defaultHeaders: {
-    'Content-Type': 'application/json',
-  },
+  baseUrl: configManager.getApiConfig().baseUrl,
+  defaultHeaders: configManager.getApiConfig().defaultHeaders,
+  timeout: configManager.getApiConfig().timeout
 }); 

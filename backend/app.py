@@ -8,15 +8,25 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from streaming import create_sse_response, stream_response_generator
+from config_loader import config_manager
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
 
-# Configuration
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'txt', 'doc', 'docx'}
+# Get configuration
+config = config_manager.get_backend_config()
+server_config = config_manager.get_server_config()
+uploads_config = config_manager.get_uploads_config()
+cors_config = config_manager.get_cors_config()
+
+# Enable CORS if configured
+if cors_config.get("enabled", True):
+    CORS(app)
+
+# Configure uploads
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), uploads_config.get("folder", "uploads"))
+ALLOWED_EXTENSIONS = set(uploads_config.get("allowedExtensions", ["png", "jpg", "jpeg", "gif", "pdf", "txt", "doc", "docx"]))
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload size
+app.config['MAX_CONTENT_LENGTH'] = uploads_config.get("maxContentLength", 16 * 1024 * 1024)  # Default 16MB
 
 # Create upload folder if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -113,5 +123,9 @@ def health_check():
     return jsonify({'status': 'healthy'})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5001))
-    app.run(host='0.0.0.0', port=port, debug=True) 
+    port = int(os.environ.get('PORT', server_config.get("port", 5001)))
+    app.run(
+        host=server_config.get("host", "0.0.0.0"), 
+        port=port, 
+        debug=server_config.get("debug", True)
+    ) 

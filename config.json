@@ -1,0 +1,34 @@
+{
+  "frontend": {
+    "api": {
+      "baseUrl": "http://localhost:5001/api",
+      "timeout": 30000,
+      "defaultHeaders": {
+        "Content-Type": "application/json"
+      }
+    },
+    "services": {
+      "adapterType": "rest",
+      "useMockInDev": false,
+      "sessionEndpoint": "http://localhost:5001/api/session"
+    },
+    "ui": {
+      "defaultTheme": "light"
+    }
+  },
+  "backend": {
+    "server": {
+      "host": "0.0.0.0",
+      "port": 5001,
+      "debug": true
+    },
+    "uploads": {
+      "folder": "uploads",
+      "allowedExtensions": ["png", "jpg", "jpeg", "gif", "pdf", "txt", "doc", "docx"],
+      "maxContentLength": 16777216
+    },
+    "cors": {
+      "enabled": true
+    }
+  }
+} 
