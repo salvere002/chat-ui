@@ -3,6 +3,7 @@ import { BaseAdapter } from './adapters/BaseAdapter';
 import { RestApiAdapter } from './adapters/RestApiAdapter';
 import { MockAdapter } from './adapters/MockAdapter';
 import { SessionAdapter } from './adapters/SessionAdapter';
+import { configManager } from '../utils/config';
 
 /**
  * Service adapter types
@@ -23,10 +24,10 @@ export interface ServiceConfig {
  * Default service configuration
  */
 const DEFAULT_CONFIG: ServiceConfig = {
-  adapterType: 'rest',
-  apiBaseUrl: 'http://localhost:5001/api',
-  useMockInDev: true,
-  sessionEndpoint: 'http://localhost:5001/api/session'
+  adapterType: configManager.getServicesConfig().adapterType as AdapterType,
+  apiBaseUrl: configManager.getApiConfig().baseUrl,
+  useMockInDev: configManager.getServicesConfig().useMockInDev,
+  sessionEndpoint: configManager.getServicesConfig().sessionEndpoint
 };
 
 /**
