@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Chat, Agent } from '../types/chat';
+import { Chat } from '../types/chat';
 import { useChatStore } from '../stores';
 import './Sidebar.css';
 
@@ -9,8 +9,6 @@ interface SidebarProps {
   onChatSelected: (chatId: string) => void;
   onNewChat: () => void;
   onDeleteChat: (chatId: string) => void;
-  selectedAgent: Agent;
-  onAgentChange: (agent: Agent) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -18,9 +16,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeChatId,
   onChatSelected,
   onNewChat,
-  onDeleteChat,
-  selectedAgent,
-  onAgentChange
+  onDeleteChat
 }) => {
   const { renameChatSession } = useChatStore();
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
@@ -115,20 +111,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   return (
     <div className="sidebar">
-      {/* Agent Selector */}
-      <div className="agent-selector">
-        <label htmlFor="agent-select">Response Mode:</label>
-        <select
-          id="agent-select"
-          value={selectedAgent}
-          onChange={(e) => onAgentChange(e.target.value as Agent)}
-          className="agent-select-dropdown"
-        >
-          <option value="stream">Stream</option>
-          <option value="fetch">Fetch</option>
-        </select>
-      </div>
-      
       <div className="sidebar-header">
         <h2>Conversations</h2>
         <button 

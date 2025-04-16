@@ -1,0 +1,210 @@
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.settings-modal {
+  background-color: var(--bg-color, #ffffff);
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  max-height: 90vh;
+  overflow-y: auto;
+  color: var(--text-color, #333333);
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+/* Dark theme specific styles for settings modal */
+.dark-theme .settings-modal {
+  background-color: var(--bg-primary-dark, #1e1e1e);
+  color: var(--text-primary-dark, #f5f5f5);
+  border-color: var(--border-color-dark, #444);
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  background-color: var(--bg-secondary, #f5f5f5);
+}
+
+/* Dark theme specific styles for settings header */
+.dark-theme .settings-header {
+  background-color: var(--bg-secondary-dark, #252525);
+  border-color: var(--border-color-dark, #444);
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-color, #333333);
+  font-weight: 600;
+}
+
+/* Dark theme specific styles for settings heading */
+.dark-theme .settings-header h2 {
+  color: var(--text-primary-dark, #f5f5f5);
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-color, #333333);
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+/* Dark theme specific styles for close button */
+.dark-theme .close-button {
+  color: var(--text-primary-dark, #f5f5f5);
+}
+
+.close-button:hover {
+  opacity: 1;
+}
+
+.settings-form {
+  padding: 20px;
+  background-color: var(--bg-color, #ffffff);
+}
+
+/* Dark theme specific styles for settings form */
+.dark-theme .settings-form {
+  background-color: var(--bg-primary-dark, #1e1e1e);
+}
+
+.settings-section {
+  margin-bottom: 25px;
+}
+
+.settings-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  color: var(--text-color, #333333);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color-light, #e0e0e0);
+  font-weight: 600;
+}
+
+/* Dark theme specific styles for section headings */
+.dark-theme .settings-section h3 {
+  color: var(--text-primary-dark, #f5f5f5);
+  border-color: var(--border-color-dark, #444);
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: var(--text-color, #333333);
+}
+
+/* Dark theme specific styles for form labels */
+.dark-theme .form-group label {
+  color: var(--text-primary-dark, #f5f5f5);
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  background-color: var(--input-bg, #ffffff);
+  color: var(--text-color, #333333);
+  font-size: 0.9rem;
+}
+
+/* Dark theme specific styles for form inputs and selects */
+.dark-theme .form-group input,
+.dark-theme .form-group select {
+  background-color: var(--bg-secondary-dark, #333333);
+  color: var(--text-primary-dark, #f5f5f5);
+  border-color: var(--border-color-dark, #555);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color, #0078d4);
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
+/* Dark theme specific styles for focused form elements */
+.dark-theme .form-group input:focus,
+.dark-theme .form-group select:focus {
+  border-color: var(--primary-color-dark, #2b88d8);
+  box-shadow: 0 0 0 2px rgba(43, 136, 216, 0.3);
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.save-button,
+.cancel-button {
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-button {
+  background-color: var(--primary-color, #0078d4);
+  color: white;
+  border: none;
+}
+
+.save-button:hover {
+  background-color: var(--primary-color-dark, #106ebe);
+}
+
+/* Dark theme specific styles for save button */
+.dark-theme .save-button {
+  background-color: var(--primary-color-dark, #2b88d8);
+}
+
+.dark-theme .save-button:hover {
+  background-color: var(--primary-color, #0078d4);
+}
+
+.cancel-button {
+  background-color: transparent;
+  color: var(--text-color, #333333);
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.cancel-button:hover {
+  background-color: var(--hover-color, #f5f5f5);
+}
+
+/* Dark theme specific styles for cancel button */
+.dark-theme .cancel-button {
+  color: var(--text-primary-dark, #f5f5f5);
+  border-color: var(--border-color-dark, #555);
+}
+
+.dark-theme .cancel-button:hover {
+  background-color: var(--hover-color-dark, #3a3a3a);
+} 
