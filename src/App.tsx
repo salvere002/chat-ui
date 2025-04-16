@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
-import { FaSun, FaMoon } from 'react-icons/fa';
+import { FaSun, FaMoon, FaCog } from 'react-icons/fa';
 import { ToastContainer } from './components/Toast';
 import { useThemeStore, useChatStore, useAgentStore } from './stores';
+import Settings from './components/Settings';
 import './App.css';
 
 const App: React.FC = () => {
@@ -23,6 +24,9 @@ const App: React.FC = () => {
   // Use the agent store for agent selection
   const { selectedAgent, setSelectedAgent } = useAgentStore();
   
+  // State for settings modal
+  const [showSettings, setShowSettings] = useState(false);
+  
   // Handler for creating a new chat
   const handleNewChat = () => {
     const newChatId = createChat('New Conversation');
@@ -31,14 +35,36 @@ const App: React.FC = () => {
   
   return (
     <div className={`app ${theme}-theme`}>
-      {/* Theme toggle */}
-      <button 
-        onClick={toggleTheme} 
-        className="theme-toggle-button" 
-        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-      >
-        {theme === 'light' ? <FaMoon /> : <FaSun />}
-      </button>
+      {/* App title */}
+      <h1 className="chat-title">Chat UI</h1>
+      
+      {/* Theme toggle and settings */}
+      <div className="app-header-controls">
+        <button 
+          onClick={toggleTheme} 
+          className="icon-button" 
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {theme === 'light' ? <FaMoon /> : <FaSun />}
+        </button>
+        
+        <button 
+          onClick={() => setShowSettings(true)} 
+          className="icon-button" 
+          aria-label="Open settings"
+        >
+          <FaCog />
+        </button>
+      </div>
+      
+      {/* Settings modal */}
+      {showSettings && (
+        <Settings 
+          onClose={() => setShowSettings(false)}
+          selectedAgent={selectedAgent}
+          onAgentChange={setSelectedAgent}
+        />
+      )}
       
       {/* Toast container for notifications */}
       <ToastContainer />
@@ -52,8 +78,6 @@ const App: React.FC = () => {
             onChatSelected={setActiveChat}
             onNewChat={handleNewChat}
             onDeleteChat={deleteChat}
-            selectedAgent={selectedAgent}
-            onAgentChange={setSelectedAgent}
           />
         </ErrorBoundary>
         
