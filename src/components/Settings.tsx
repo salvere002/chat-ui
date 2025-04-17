@@ -26,10 +26,21 @@ const Settings: React.FC<SettingsProps> = ({
     e.preventDefault();
     
     try {
-      // Update configuration
+      // Update configuration in the config manager first
+      configManager.updateApiConfig({
+        baseUrl: backendUrl
+      });
+      
+      configManager.updateServicesConfig({
+        adapterType: adapterType,
+        sessionEndpoint: backendUrl + '/session'
+      });
+      
+      // Update ChatService with the new configuration
       ChatService.configure({
         adapterType,
-        sessionEndpoint: backendUrl + '/session'
+        sessionEndpoint: backendUrl + '/session',
+        baseUrl: backendUrl
       });
       
       // Close settings
