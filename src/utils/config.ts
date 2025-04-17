@@ -55,6 +55,28 @@ export class ConfigManager {
   public getUiConfig() {
     return this.config.frontend.ui;
   }
+
+  /**
+   * Update API configuration
+   */
+  public updateApiConfig(apiConfig: Partial<typeof config.frontend.api>) {
+    this.config.frontend.api = {
+      ...this.config.frontend.api,
+      ...apiConfig
+    };
+    return this.config.frontend.api;
+  }
+
+  /**
+   * Update services configuration
+   */
+  public updateServicesConfig(servicesConfig: Partial<typeof config.frontend.services>) {
+    this.config.frontend.services = {
+      ...this.config.frontend.services,
+      ...servicesConfig
+    };
+    return this.config.frontend.services;
+  }
 }
 
 // Export a singleton instance

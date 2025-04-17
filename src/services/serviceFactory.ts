@@ -76,11 +76,15 @@ export class ServiceFactory {
    */
   public getApiClient(baseUrl?: string): ApiClient {
     if (!baseUrl) {
+      // If no baseUrl is provided, use the default client
       return this.apiClients.get('default')!;
     }
     
-    if (!this.apiClients.has(baseUrl)) {
-      this.apiClients.set(baseUrl, new ApiClient({
+    // For non-default URLs, check if we already have a client for this URL
+    const clientKey = baseUrl;
+    if (!this.apiClients.has(clientKey)) {
+      // Create a new client if we don't have one for this URL
+      this.apiClients.set(clientKey, new ApiClient({
         baseUrl,
         defaultHeaders: {
           'Content-Type': 'application/json'
@@ -88,7 +92,7 @@ export class ServiceFactory {
       }));
     }
     
-    return this.apiClients.get(baseUrl)!;
+    return this.apiClients.get(clientKey)!;
   }
   
   /**
@@ -107,13 +111,25 @@ export class ServiceFactory {
   /**
    * Switch to a different adapter type
    */
-  public switchAdapter(adapterType: AdapterType): BaseAdapter {
+  public switchAdapter(adapterType: AdapterType, apiBaseUrl?: string, sessionEndpoint?: string): BaseAdapter {
+    // Update configuration
     this.config.adapterType = adapterType;
     
-    if (!this.adapters.has(adapterType)) {
-      this.createAdapter(adapterType);
+    if (apiBaseUrl) {
+      this.config.apiBaseUrl = apiBaseUrl;
     }
     
+    if (sessionEndpoint) {
+      this.config.sessionEndpoint = sessionEndpoint;
+    }
+    
+    // Remove the existing adapter to force recreation with new settings
+    if (this.adapters.has(adapterType)) {
+      this.adapters.delete(adapterType);
+    }
+    
+    // Create and return the adapter
+    this.createAdapter(adapterType);
     return this.getAdapter();
   }
   
@@ -121,6 +137,7 @@ export class ServiceFactory {
    * Create a new adapter of the specified type
    */
   private createAdapter(adapterType: AdapterType): void {
+    // Always get the latest API client with the current configuration
     const apiClient = this.getApiClient(this.config.apiBaseUrl);
     
     switch (adapterType) {
@@ -139,6 +156,28 @@ export class ServiceFactory {
       default:
         throw new Error(`Unknown adapter type: ${adapterType}`);
     }
+  }
+  
+  /**
+   * Update the default API client with a new base URL
+   */
+  public updateDefaultApiClient(baseUrl: string): ApiClient {
+    // Update the config
+    this.config.apiBaseUrl = baseUrl;
+    
+    const apiClient = new ApiClient({
+      baseUrl,
+      defaultHeaders: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    this.apiClients.set('default', apiClient);
+    
+    // Clear existing adapters to force recreation on next request
+    this.adapters.clear();
+    
+    return apiClient;
   }
 }
 
