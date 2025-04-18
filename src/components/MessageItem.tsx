@@ -198,45 +198,45 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         {!text && isIncomplete && (
           <LoadingIndicator type="dots" size="small" />
         )}
+      </div>
+      
+      {/* Actions footer - only show when hovering (moved outside message-content) */}
+      <div className="message-footer">
+        <div className="message-timestamp">{formatTime(timestamp)}</div>
         
-        {/* Actions footer - only show when hovering */}
-        <div className="message-footer">
-          <div className="message-timestamp">{formatTime(timestamp)}</div>
+        <div className="message-actions">
+          {/* Copy button for all messages with text */}
+          {text && (
+            <button 
+              className={`message-action-button copy-button ${copied ? 'copied' : ''}`} 
+              onClick={handleCopyMessage}
+              title={copied ? "Copied" : "Copy text"}
+            >
+              <FaCopy />
+            </button>
+          )}
           
-          <div className="message-actions">
-            {/* Copy button for all messages with text */}
-            {text && (
-              <button 
-                className={`message-action-button copy-button ${copied ? 'copied' : ''}`} 
-                onClick={handleCopyMessage}
-                title={copied ? "Copied" : "Copy text"}
-              >
-                <FaCopy />
-              </button>
-            )}
-            
-            {/* For user messages: Edit button (if editable and complete) */}
-            {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
-              <button 
-                className="message-action-button edit-button" 
-                onClick={() => setIsEditing(true)}
-                title="Edit message"
-              >
-                <FaEdit />
-              </button>
-            )}
-            
-            {/* Regenerate button for user messages */}
-            {sender === 'user' && isComplete !== false && onRegenerateResponse && (
-              <button 
-                className="message-action-button regenerate-button" 
-                onClick={onRegenerateResponse}
-                title="Regenerate response"
-              >
-                <FaRedo />
-              </button>
-            )}
-          </div>
+          {/* For user messages: Edit button (if editable and complete) */}
+          {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
+            <button 
+              className="message-action-button edit-button" 
+              onClick={() => setIsEditing(true)}
+              title="Edit message"
+            >
+              <FaEdit />
+            </button>
+          )}
+          
+          {/* Regenerate button for user messages */}
+          {sender === 'user' && isComplete !== false && onRegenerateResponse && (
+            <button 
+              className="message-action-button regenerate-button" 
+              onClick={onRegenerateResponse}
+              title="Regenerate response"
+            >
+              <FaRedo />
+            </button>
+          )}
         </div>
       </div>
     </div>
