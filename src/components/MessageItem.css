@@ -3,6 +3,7 @@
 /* Base message item */
 .message-item {
   display: flex;
+  flex-direction: column; /* Stack content and footer vertically */
   margin-bottom: 2px; /* Reduced spacing between messages */
   max-width: 90%; /* Slightly wider messages */
   align-self: flex-start;
@@ -18,35 +19,37 @@
 
 .message-item.user {
   align-self: flex-end;
-  flex-direction: row-reverse;
+  align-items: flex-end; /* Align content to the right for user messages */
   background-color: transparent; /* No background for user messages container */
 }
 
 /* AI message has subtle background */
 .message-item.ai {
-  background-color: var(--bg-secondary, #f9f9fc);
+  background-color: transparent; /* Remove background from container */
+  align-items: flex-start; /* Align content to the left for AI messages */
 }
 
 .dark-theme .message-item.ai {
-  background-color: var(--bg-secondary-dark, #1e1e2d);
+  background-color: transparent; /* Remove background from container in dark mode */
 }
 
 /* Modern message bubbles without triangle tails */
 .message-content {
-  padding: 12px 16px;
+  padding: 10px 14px; /* Slightly reduced padding to decrease height */
   border-radius: 8px; /* Less rounded */
-  background-color: transparent; /* No background for AI bubble */
+  background-color: var(--bg-secondary, #f9f9fc); /* Add background to AI message content */
   color: var(--text-primary, #1a2038);
   word-wrap: break-word;
   position: relative;
   box-shadow: none; /* Remove shadow */
   max-width: 100%;
-  width: 100%;
+  width: max-content; /* Use max-content to ensure the bubble only takes up necessary space */
 }
 
-/* Remove triangle tails */
-.message-content::before {
-  display: none;
+/* Dark theme adjustments for AI content */
+.dark-theme .message-content {
+  background-color: var(--bg-secondary-dark, #1e1e2d);
+  color: var(--text-primary-dark, #f5f5ff);
 }
 
 /* User messages styling */
@@ -55,25 +58,32 @@
   color: var(--text-primary, #1a2038); /* Same text color as AI for better readability */
 }
 
-/* Dark theme adjustments */
+/* Dark theme adjustments for user content */
 .dark-theme .message-item.user .message-content {
   background-color: rgba(115, 83, 219, 0.2); /* Subtle purple background */
-  color: var(--text-primary-dark, #f5f5ff);
-}
-
-.dark-theme .message-content {
   color: var(--text-primary-dark, #f5f5ff);
 }
 
 /* Message footer improvements */
 .message-footer {
   display: flex;
-  justify-content: flex-end; /* Move all items to the right */
+  justify-content: flex-start; /* Default alignment for AI messages */
   align-items: center;
-  margin-top: 6px;
+  margin-top: 2px; /* Reduced gap between bubble and footer */
+  margin-left: 2px; /* Slight offset for AI messages */
   font-size: 0.7rem;
   opacity: 0; /* Hide by default */
   transition: opacity 0.2s ease;
+  width: max-content; /* Match the bubble width */
+  min-width: 80px; /* Ensure a minimum width for the footer */
+  padding: 0 2px; /* Small horizontal padding */
+}
+
+/* Align footer content depending on sender */
+.message-item.user .message-footer {
+  justify-content: flex-end; /* Align to right for user messages */
+  margin-right: 2px; /* Slight offset for user messages */
+  margin-left: 0; /* Reset left margin for user messages */
 }
 
 .message-item:hover .message-footer {
@@ -243,31 +253,42 @@
 
 /* Markdown styling improvements */
 .message-text {
-  line-height: 1.6;
+  line-height: 1.5; /* Slightly reduced line height */
   font-size: 15px;
 }
 
 .message-text p {
-  margin-bottom: 12px;
+  margin-bottom: 8px; /* Reduced bottom margin */
+}
+
+.message-text p:last-child {
+  margin-bottom: 0; /* No margin on last paragraph */
 }
 
 .message-text h1, 
 .message-text h2,
 .message-text h3,
 .message-text h4 {
-  margin-top: 20px;
-  margin-bottom: 10px;
+  margin-top: 16px; /* Reduced top margin */
+  margin-bottom: 8px; /* Reduced bottom margin */
   font-weight: 600;
+}
+
+.message-text h1:first-child, 
+.message-text h2:first-child,
+.message-text h3:first-child,
+.message-text h4:first-child {
+  margin-top: 0; /* No top margin for first heading */
 }
 
 .message-text ul, 
 .message-text ol {
-  margin-bottom: 12px;
+  margin-bottom: 8px; /* Reduced bottom margin */
   padding-left: 24px;
 }
 
 .message-text li {
-  margin-bottom: 4px;
+  margin-bottom: 2px; /* Reduced bottom margin */
 }
 
 .message-text blockquote {
@@ -286,11 +307,12 @@
 @media (max-width: 768px) {
   .message-item {
     max-width: 95%;
-    padding: 0.25rem 0.5rem;
+    padding: 0.2rem 0.5rem; /* Reduced vertical padding */
   }
   
   .message-content {
-    padding: 10px 12px;
+    padding: 8px 12px; /* Further reduced padding on mobile */
+    max-width: 100%; /* Ensure it doesn't overflow on mobile */
   }
   
   .message-text {
@@ -298,7 +320,9 @@
   }
   
   .message-footer {
-    margin-top: 4px;
+    margin-top: 1px; /* Even smaller gap on mobile */
+    padding: 0;
+    font-size: 0.65rem;
   }
   
   .message-image-preview {
@@ -314,7 +338,7 @@
 
 .message-edit-textarea {
   width: 100%;
-  min-height: 100px;
+  height: 50px;
   border: 1px solid var(--border-primary, #e2e5f1);
   border-radius: 6px;
   padding: 12px;
@@ -325,7 +349,7 @@
   resize: none; /* Prevent manual resizing */
   transition: border-color 0.2s ease;
   line-height: 1.5;
-  overflow-y: hidden; /* Hide scrollbars for auto-height */
+  overflow-y: scroll; /* Hide scrollbars for auto-height */
 }
 
 .message-edit-textarea:focus {
