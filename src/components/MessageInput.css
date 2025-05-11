@@ -1,12 +1,16 @@
 .message-input-container {
   display: flex;
   flex-direction: column; /* Stack previews above input/buttons */
-  border-top: 1px solid var(--border-primary, #DEE2E6);
-  padding: 10px;
-  background-color: var(--bg-secondary, #F8F9FA); /* Use secondary background */
+  padding: 10px 20px 20px; /* Increased padding at bottom */
+  background-color: transparent; /* Make container transparent */
   position: relative;
   margin-top: auto;
   transition: all 0.2s ease;
+  border-top: none; /* Remove the border */
+  max-width: 850px; /* Set max width for large screens */
+  width: 90%; /* Take 90% width of parent */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .file-preview-area {
@@ -19,6 +23,8 @@
   max-height: 150px;
   overflow-y: auto;
   padding: 5px;
+  background-color: var(--bg-secondary, #F8F9FA);
+  border-radius: 8px;
 }
 
 .file-preview-area:empty {
@@ -147,14 +153,16 @@
   border: 1px solid var(--border-secondary, #E0E0E0);
   border-radius: 24px; /* More rounded for modern look */
   padding: 8px 12px;
-  margin: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  margin: 0; /* Remove margin */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
   transition: box-shadow 0.2s ease, transform 0.1s ease;
+  position: relative; /* Position relative for absolute children if needed */
 }
 
 .message-input-area:focus-within {
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
   border-color: var(--primary-color, #4a90e2);
+  transform: translateY(-2px); /* Subtle lift effect on focus */
 }
 
 .upload-button { /* Added styles for upload button */
@@ -473,15 +481,13 @@
 
 /* Mobile responsive styles */
 @media (max-width: 768px) {
-  .message-input-area {
-    margin: 5px;
-    padding: 6px 10px;
+  .message-input-container {
+    padding: 10px;
+    width: 95%; /* Slightly wider on mobile */
   }
-
-  .message-textarea {
-    padding: 10px 12px;
-    font-size: 0.95rem;
-    line-height: 1.4;
+  
+  .message-input-area {
+    padding: 6px 10px;
   }
 
   .upload-button, 
@@ -500,7 +506,6 @@
 /* Very small screens */
 @media (max-width: 380px) {
   .message-input-area {
-    margin: 4px;
     padding: 4px 8px;
   }
 
@@ -516,21 +521,27 @@
   }
 }
 
+/* Wider screens */
+@media (min-width: 1200px) {
+  .message-input-container {
+    max-width: 900px; /* Slightly wider on very large screens */
+  }
+}
+
 /* Add dark theme support for the message input components */
 .dark-theme .message-input-container {
-  background-color: var(--bg-secondary-dark, #2a2a2a);
-  border-top-color: var(--border-color-dark, #444);
+  background-color: transparent;
 }
 
 .dark-theme .message-input-area {
-  background-color: var(--bg-primary-dark, #222);
-  border-color: var(--border-color-dark, #444);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  background-color: var(--bg-tertiary, #2a2a2a);
+  border-color: var(--border-dark, #444);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
 
 .dark-theme .message-input-area:focus-within {
-  border-color: var(--primary-color-dark, #5a9ee2);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border-color: var(--primary-color-dark, #5a9ae2);
 }
 
 .dark-theme .message-textarea {

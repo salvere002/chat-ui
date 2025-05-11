@@ -4,9 +4,21 @@
   height: 100%; /* Occupy full height within the app layout */
   width: 100%; /* Ensure it takes full width */
   background-color: var(--bg-primary, #ffffff); /* Use theme variable */
+  /* Add a subtle background pattern for modern chat look */
+  background-image: linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center;
   flex-grow: 1;
   position: relative; /* For proper positioning of children */
   overflow: hidden; /* Prevent any content from breaking layout */
+}
+
+/* Dark theme background pattern */
+.dark-theme .chat-interface {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-color: var(--bg-primary-dark, #1a1a1a);
 }
 
 /* Message list container - the scrollable parent */
@@ -18,6 +30,7 @@
   flex-direction: column;
   position: relative; /* For scroll button positioning */
   scroll-behavior: smooth;
+  padding-bottom: 20px; /* Add extra padding at bottom for floating input */
 }
 
 .chat-interface-placeholder {
@@ -108,7 +121,7 @@
 /* Loading container */
 .loading-container {
   position: absolute;
-  bottom: 80px;
+  bottom: 100px; /* Increased to account for floating input */
   left: 50%;
   transform: translateX(-50%);
   background-color: rgba(255, 255, 255, 0.9);
