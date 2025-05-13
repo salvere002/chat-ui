@@ -43,6 +43,7 @@ htmlcov/
 
 # IDE files
 .idea/
+.cursor/
 .vscode/
 *.swp
 *.swo
