@@ -30,36 +30,30 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
    */
   async sendMessage(request: MessageRequest): Promise<MessageResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: this.model,
-          messages: this.formatMessages(request),
-          temperature: 0.7,
-          max_tokens: 1000
-        })
-      });
+      const responseData = await this.apiClient.request<any>(
+        `${this.baseUrl}/chat/completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`
+          },
+          body: JSON.stringify({
+            model: this.model,
+            messages: this.formatMessages(request),
+            temperature: 0.7,
+            max_tokens: 1000
+          })
+        }
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new ApiError(
-          `OpenAI request failed: ${response.status} - ${errorText}`,
-          response.status
-        );
-      }
-
-      const data = await response.json();
       return {
-        text: data.choices[0]?.message?.content || '',
-        // OpenAI doesn't provide images in standard completions
-        // If using DALL-E, would need a separate endpoint call
+        text: responseData.choices[0]?.message?.content || '',
       };
     } catch (error) {
       console.error('Error in OpenAI request:', error);
+      // ApiClient.request will throw ApiError, so we can simplify error handling here
+      // or re-throw if specific logging/transformation is needed.
       throw error instanceof Error ? error : new Error(String(error));
     }
   }
@@ -71,88 +65,30 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
     request: MessageRequest,
     callbacks: StreamCallbacks
   ): Promise<void> {
-    const { onChunk, onComplete, onError } = callbacks;
-
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+      await this.apiClient.streamMessages(
+        `${this.baseUrl}/chat/completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`
+          },
+          body: JSON.stringify({
+            model: this.model,
+            messages: this.formatMessages(request),
+            temperature: 0.7,
+            max_tokens: 1000,
+            stream: true
+          })
         },
-        body: JSON.stringify({
-          model: this.model,
-          messages: this.formatMessages(request),
-          temperature: 0.7,
-          max_tokens: 1000,
-          stream: true // Enable streaming
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new ApiError(
-          `OpenAI stream request failed: ${response.status} - ${errorText}`,
-          response.status
-        );
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('Failed to get stream reader');
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      // Process the stream
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          onComplete();
-          break;
-        }
-
-        // Decode the chunk and add to buffer
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-
-        // Process SSE format from OpenAI
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-          
-          // Skip empty lines or "data: [DONE]"
-          if (!trimmedLine || trimmedLine === 'data: [DONE]') {
-            continue;
-          }
-          
-          // Process data line
-          if (trimmedLine.startsWith('data: ')) {
-            const jsonStr = trimmedLine.slice(6);
-            
-            try {
-              // Skip initial empty data object
-              if (jsonStr === '[DONE]') continue;
-              
-              const json = JSON.parse(jsonStr);
-              const content = json.choices[0]?.delta?.content;
-              
-              if (content) {
-                onChunk({ text: content });
-              }
-            } catch (err) {
-              console.error('Error parsing OpenAI stream data:', err);
-            }
-          }
-        }
-      }
+        callbacks // Pass original callbacks, ApiClient.streamMessages will handle onChunk with parsed data
+      );
     } catch (error) {
-      console.error('Error in OpenAI stream request:', error);
-      onError(error instanceof Error ? error : new Error(String(error)));
+      // ApiClient.streamMessages calls callbacks.onError internally
+      // This catch block can be removed or simplified if not adding extra logic.
+      console.error('Error in OpenAIAdapter stream request wrapper:', error);
+      // callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -180,49 +116,40 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
    * for actual usage with OpenAI's file endpoints
    */
   async uploadFile(
-    fileId: string, 
+    fileId: string, // fileId is not used by OpenAI file upload API directly in this simplified form
     file: File, 
-    onProgress: ProgressCallback
+    onProgress: ProgressCallback // ApiClient.request doesn't support onProgress directly with fetch
   ): Promise<FileUploadResponse> {
     try {
-      // Start progress reporting
       onProgress(fileId, 0);
       
-      // Create form data
       const formData = new FormData();
       formData.append('file', file);
       formData.append('purpose', 'assistants');
       
-      // Upload to OpenAI
-      const response = await fetch(`${this.baseUrl}/files`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: formData
-      });
+      const responseData = await this.apiClient.request<any>(
+        `${this.baseUrl}/files`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`
+            // Content-Type for FormData is set by browser
+          },
+          body: formData
+        }
+      );
       
-      // Complete progress
       onProgress(fileId, 100);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new ApiError(
-          `File upload failed: ${response.status} - ${errorText}`,
-          response.status
-        );
-      }
-      
-      const data = await response.json();
-      
       return {
-        id: data.id,
+        id: responseData.id,
         name: file.name,
         type: file.type,
         size: file.size,
-        url: '' // OpenAI doesn't provide direct URLs for uploaded files
+        url: '' // OpenAI doesn't provide direct URLs for uploaded files in this response
       };
     } catch (error) {
+      onProgress(fileId, 0);
       console.error('Error uploading file to OpenAI:', error);
       throw error instanceof Error ? error : new Error(String(error));
     }
@@ -233,29 +160,19 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
    */
   async getFiles(): Promise<FileUploadResponse[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/files`, {
+      const responseData = await this.apiClient.request<any>(`${this.baseUrl}/files`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`
         }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new ApiError(
-          `Failed to fetch files: ${response.status} - ${errorText}`,
-          response.status
-        );
-      }
-      
-      const data = await response.json();
-      
-      return data.data.map((file: any) => ({
+      return responseData.data.map((file: any) => ({
         id: file.id,
         name: file.filename,
-        type: '', // OpenAI doesn't provide MIME type
+        type: '', 
         size: file.bytes,
-        url: ''  // OpenAI doesn't provide direct URLs for files
+        url: ''  
       }));
     } catch (error) {
       console.error('Error getting files from OpenAI:', error);
@@ -268,29 +185,19 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
    */
   async getFile(fileId: string): Promise<FileUploadResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/files/${fileId}`, {
+      const fileData = await this.apiClient.request<any>(`${this.baseUrl}/files/${fileId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`
         }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new ApiError(
-          `Failed to fetch file: ${response.status} - ${errorText}`,
-          response.status
-        );
-      }
-      
-      const file = await response.json();
-      
       return {
-        id: file.id,
-        name: file.filename,
-        type: '', // OpenAI doesn't provide MIME type
-        size: file.bytes,
-        url: ''  // OpenAI doesn't provide direct URLs
+        id: fileData.id,
+        name: fileData.filename,
+        type: '', 
+        size: fileData.bytes,
+        url: '' 
       };
     } catch (error) {
       console.error('Error getting file from OpenAI:', error);
