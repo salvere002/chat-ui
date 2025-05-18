@@ -16,7 +16,14 @@ export class RestApiAdapter extends AbstractBaseAdapter {
    */
   async sendMessage(request: MessageRequest): Promise<MessageResponse> {
     try {
-      return await this.apiClient.post<MessageResponse>('/message/fetch', request);
+      return await this.apiClient.request<MessageResponse>(
+        '/message/fetch', 
+        { 
+          method: 'POST', 
+          body: JSON.stringify(request), 
+          headers: { 'Content-Type': 'application/json' } 
+        }
+      );
     } catch (error) {
       console.error('Error sending message:', error);
       if (error instanceof ApiError) {
@@ -37,85 +44,25 @@ export class RestApiAdapter extends AbstractBaseAdapter {
     request: MessageRequest,
     callbacks: StreamCallbacks
   ): Promise<void> {
-    const { onChunk, onComplete, onError } = callbacks;
-    
     try {
-      // Set up SSE connection
-      const response = await fetch(`${this.apiClient['baseUrl']}/message/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      await this.apiClient.streamMessages(
+        '/message/stream',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
         },
-        body: JSON.stringify(request),
-      });
-      
-      if (!response.ok) {
-        throw new ApiError(
-          `Stream request failed with status: ${response.status}`,
-          response.status
-        );
-      }
-      
-      // Get the reader from the response body stream
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('Failed to get stream reader');
-      }
-      
-      // Create a text decoder for processing chunks
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      // Process the stream
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          // If there's any buffer left, process it
-          if (buffer) {
-            this.processEventData(buffer, onChunk);
-          }
-          onComplete();
-          break;
-        }
-        
-        // Decode the chunk and add to buffer
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-        
-        // Process any complete events in the buffer
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || ''; // Keep the last potentially incomplete event
-        
-        for (const line of lines) {
-          if (line.trim() && line.startsWith('data:')) {
-            this.processEventData(line, onChunk);
-          }
-        }
-      }
+        callbacks
+      );
     } catch (error) {
-      console.error('Error in stream request:', error);
-      onError(error instanceof Error ? error : new Error(String(error)));
-    }
-  }
-  
-  /**
-   * Process a single event data line from the SSE stream
-   */
-  private processEventData(eventLine: string, onChunk: StreamCallbacks['onChunk']): void {
-    try {
-      // Extract the JSON data from the event line
-      const dataStr = eventLine.slice(eventLine.indexOf(':') + 1).trim();
-      const data = JSON.parse(dataStr);
-      
-      // Process the chunk
-      onChunk({
-        text: data.text,
-        imageUrl: data.imageUrl,
-        complete: data.complete,
-      });
-    } catch (err) {
-      console.error('Error parsing SSE data:', err);
+      // The streamMessages method in ApiClient should handle calling callbacks.onError
+      // So, this catch block might only be for truly unexpected errors or can be simplified/removed
+      // if ApiClient.streamMessages guarantees onError is called.
+      // For now, let ApiClient handle it, RestApiAdapter just calls it.
+      // console.error('Error in RestApiAdapter stream request wrapper:', error);
+      // callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     }
   }
   
@@ -127,76 +74,53 @@ export class RestApiAdapter extends AbstractBaseAdapter {
     file: File,
     onProgress: ProgressCallback
   ): Promise<FileUploadResponse> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Start progress indicator
-        onProgress(fileId, 0);
-        
-        // Create form data to send the file
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('fileId', fileId);
-        
-        // Simulate varying progress before the actual upload
-        const progressInterval = setInterval(() => {
-          const progress = Math.min(85, Math.random() * 30 + 55); // Cap at 85%
-          onProgress(fileId, Math.round(progress));
-        }, 300);
-        
-        try {
-          // Upload the file using fetch directly to handle multipart/form-data properly
-          const response = await fetch(`${this.apiClient['baseUrl']}/upload`, {
-            method: 'POST',
-            body: formData,
-            // Don't set Content-Type header - browser will set it automatically with boundary
-          });
-          
-          if (!response.ok) {
-            throw new ApiError(
-              `Upload failed with status: ${response.status}`,
-              response.status
-            );
-          }
-          
-          const data = await response.json();
-          
-          // Set progress to 100%
-          onProgress(fileId, 100);
-          
-          // For images, ensure we have a full URL for the API
-          let fileUrl = data.url;
-          if (fileUrl.startsWith('/')) {
-            const baseUrl = this.apiClient['baseUrl'].replace('/api', '');
-            fileUrl = `${baseUrl}${fileUrl}`;
-          }
-          
-          // Return the file metadata
-          resolve({
-            ...data,
-            url: fileUrl,
-          });
-        } finally {
-          // Clear the progress interval
-          clearInterval(progressInterval);
+    onProgress(fileId, 0);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fileId', fileId);
+
+    try {
+      const response = await this.apiClient.request<FileUploadResponse>(
+        `/upload`,
+        {
+          method: 'POST',
+          body: formData,
         }
-      } catch (error) {
-        console.error(`Upload error for ${fileId}:`, error);
-        reject(error);
+      );
+      
+      onProgress(fileId, 100);
+      
+      if (response.url && response.url.startsWith('/')) {
+        const origin = new URL(this.apiClient.getBaseUrl()).origin;
+        response.url = origin + response.url;
       }
-    });
+      
+      return response;
+    } catch (error) {
+      onProgress(fileId, 0);
+      console.error(`Upload error for ${fileId} in RestApiAdapter:`, error);
+      throw error;
+    }
   }
   
   /**
    * Get all uploaded files
    */
   async getFiles(): Promise<FileUploadResponse[]> {
-    return this.apiClient.get<FileUploadResponse[]>('/files');
+    return this.apiClient.request<FileUploadResponse[]>(
+      '/files', 
+      { method: 'GET' }
+    );
   }
   
   /**
    * Get a single uploaded file by ID
    */
   async getFile(fileId: string): Promise<FileUploadResponse> {
-    return this.apiClient.get<FileUploadResponse>(`/files/${fileId}`);
+    return this.apiClient.request<FileUploadResponse>(
+      `/files/${fileId}`,
+      { method: 'GET' }
+    );
   }
 } 

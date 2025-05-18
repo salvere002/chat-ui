@@ -1,5 +1,7 @@
 import { ApiError } from '../types/api';
 import { configManager } from '../utils/config';
+import { StreamCallbacks } from './adapters/BaseAdapter';
+import { StreamMessageChunk } from '../types/api';
 
 /**
  * Configuration for the API client
@@ -48,6 +50,13 @@ export class ApiClient {
     this.baseUrl = config.baseUrl;
     this.defaultHeaders = config.defaultHeaders || {};
     this.timeout = config.timeout || 30000; // Default 30 second timeout
+  }
+
+  /**
+   * Get the base URL configured for the API client.
+   */
+  public getBaseUrl(): string {
+    return this.baseUrl;
   }
 
   /**
@@ -118,10 +127,12 @@ export class ApiClient {
   /**
    * Make an HTTP request with timeout support
    */
-  private async request<T>(url: string, options: RequestInit = {}): Promise<T> {
+  public async request<T>(url: string, options: RequestInit = {}): Promise<T> {
     const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
     
     // Prepare request options with defaults
+    let processedRequest: RequestInit & { url: string }; // Defined here for wider scope in catch block
+    
     const requestOptions: RequestInit & { url: string } = {
       ...options,
       headers: {
@@ -131,9 +142,17 @@ export class ApiClient {
       url: fullUrl,
     };
 
+    // If body is FormData, remove Content-Type header to let the browser set it
+    if (options.body instanceof FormData) {
+      if (requestOptions.headers) {
+        delete (requestOptions.headers as Record<string, string>)['Content-Type'];
+        delete (requestOptions.headers as Record<string, string>)['content-type'];
+      }
+    }
+
     try {
       // Apply request interceptors
-      const processedRequest = this.applyRequestInterceptors(requestOptions);
+      processedRequest = this.applyRequestInterceptors(requestOptions);
       
       // Create AbortController for timeout
       const controller = new AbortController();
@@ -213,60 +232,156 @@ export class ApiClient {
     }
   }
 
-  /**
-   * HTTP GET request
-   */
-  async get<T>(url: string, options: RequestInit = {}): Promise<T> {
-    return this.request<T>(url, { ...options, method: 'GET' });
-  }
-
-  /**
-   * HTTP POST request
-   */
-  async post<T>(url: string, data?: any, options: RequestInit = {}): Promise<T> {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    };
-    
-    return this.request<T>(url, {
-      ...options,
-      method: 'POST',
-      headers,
-      body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  /**
-   * HTTP PUT request
-   */
-  async put<T>(url: string, data?: any, options: RequestInit = {}): Promise<T> {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    };
-    
-    return this.request<T>(url, {
-      ...options,
-      method: 'PUT',
-      headers,
-      body: data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  /**
-   * HTTP DELETE request
-   */
-  async delete<T>(url: string, options: RequestInit = {}): Promise<T> {
-    return this.request<T>(url, { ...options, method: 'DELETE' });
-  }
-
-  /**
-   * Create a server-sent event stream
-   */
-  createEventStream(url: string, options: RequestInit = {}): EventSource {
+  public async streamMessages(
+    url: string,
+    streamSetupOptions: RequestInit,
+    callbacks: StreamCallbacks
+  ): Promise<void> {
     const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
-    return new EventSource(fullUrl);
+
+    let processedRequest: RequestInit & { url: string }; // For broader scope
+    const requestOptions: RequestInit & { url: string } = {
+      ...streamSetupOptions,
+      headers: {
+        ...this.defaultHeaders,
+        ...(streamSetupOptions.headers || {}),
+        'Accept': 'text/event-stream',
+      },
+      url: fullUrl,
+    };
+
+    try {
+      processedRequest = this.applyRequestInterceptors(requestOptions);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      let response = await fetch(processedRequest.url, {
+        ...processedRequest,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      response = await this.applyResponseInterceptors(response, processedRequest);
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          try {
+            errorData = { message: await response.text() };
+          } catch (e2) {
+            errorData = { message: response.statusText };
+          }
+        }
+        const apiError = new ApiError(
+          errorData.message || `Stream setup failed with status ${response.status}`,
+          response.status,
+          errorData
+        );
+        
+        const errorHandledByInterceptor = await this.applyErrorInterceptors(apiError, processedRequest);
+        if (errorHandledByInterceptor instanceof Response) {
+          // If an error interceptor returns a Response, we can't stream from it.
+          // This indicates the interceptor handled the error and "short-circuited".
+          // We should probably not proceed with streaming and ensure onComplete or onError is called.
+          // For now, re-throwing the original ApiError or a new one.
+          console.warn('Error interceptor returned a Response during stream setup. Aborting stream.');
+          throw apiError; 
+        }
+        throw apiError; // If interceptor didn't throw or return a new Response
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Failed to get stream reader');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let field = '';
+      let eventName = 'message'; // Default SSE event type
+      let dataBuffer: string[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          if (dataBuffer.length > 0) { // Process any remaining buffered data as a final event
+            try {
+              const jsonData = dataBuffer.join('\n');
+              if (jsonData && jsonData.toLowerCase() !== '[done]') {
+                const chunkData = JSON.parse(jsonData) as StreamMessageChunk;
+                callbacks.onChunk(chunkData);
+              }
+            } catch (e) {
+              console.error('Error parsing final stream data JSON:', dataBuffer.join('\n'), e);
+            }
+          }
+          callbacks.onComplete();
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        
+        let eolIndex;
+        // Process buffer line by line (\n is the standard field separator)
+        while ((eolIndex = buffer.indexOf('\n')) >= 0) {
+          const line = buffer.substring(0, eolIndex);
+          buffer = buffer.substring(eolIndex + 1);
+
+          if (line.trim() === '') { // Empty line: dispatch event
+            if (dataBuffer.length > 0) {
+              const jsonData = dataBuffer.join('\n'); // Join multi-line data fields
+              if (jsonData && jsonData.toLowerCase() !== '[done]') {
+                try {
+                  const chunkData = JSON.parse(jsonData) as StreamMessageChunk;
+                  callbacks.onChunk(chunkData);
+                } catch (e) {
+                  console.error('Error parsing stream data JSON:', jsonData, e);
+                  // Consider calling callbacks.onError if parsing fails for a critical message
+                }
+              } else if (jsonData.toLowerCase() === '[done]') {
+                 // OpenAI specific: [DONE] indicates end of useful data before stream formally closes
+                 // onComplete will be called when stream is actually done.
+              }
+              dataBuffer = []; // Reset for next event
+            }
+            eventName = 'message'; // Reset event name for next event
+            continue;
+          }
+
+          const colonIndex = line.indexOf(':');
+          if (colonIndex <= 0) { // Not a valid field (no colon, or colon at start)
+            field = line; // Could be a comment if line starts with colon, or just a field name with no value
+          } else {
+            field = line.substring(0, colonIndex);
+            const fieldValue = line.substring(colonIndex + 1).trimLeft(); // Remove leading space from value
+
+            if (field === 'data') {
+              dataBuffer.push(fieldValue);
+            } else if (field === 'event') {
+              eventName = fieldValue;
+            } else if (field === 'id') {
+              // lastEventId = fieldValue; // Store if you need to re-establish connection with Last-Event-ID
+            } else if (field === 'retry') {
+              // retryInterval = parseInt(fieldValue, 10); // Store if you need to adjust retry logic
+            }
+            // Ignore unknown fields and comments (lines starting with a colon)
+          }
+        }
+      }
+    } catch (error) {
+      const finalError = error instanceof Error ? error : new Error(String(error));
+      try {
+        // Ensure processedRequest is defined for error interceptors, fallback to requestOptions
+        const reqOptsForError = processedRequest! ?? requestOptions;
+        await this.applyErrorInterceptors(finalError, reqOptsForError);
+        callbacks.onError(finalError); 
+      } catch (interceptedError) {
+        callbacks.onError(interceptedError instanceof Error ? interceptedError : new Error(String(interceptedError)));
+      }
+    }
   }
 }
 
