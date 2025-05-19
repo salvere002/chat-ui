@@ -6,5 +6,5 @@
     "moduleResolution": "Bundler",      // Or "NodeNext" or "Node16" depending on your setup
     "allowSyntheticDefaultImports": true // Recommended for Node.js compatibility
   },
-  "include": ["vite.config.ts"]      // Only include the Vite config file
+  "include": ["vite.config.ts", "src/proxy/**/*.ts"]  // Include Vite config and proxy files
 } 

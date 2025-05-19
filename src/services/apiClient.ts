@@ -128,7 +128,10 @@ export class ApiClient {
    * Make an HTTP request with timeout support
    */
   public async request<T>(url: string, options: RequestInit = {}): Promise<T> {
-    const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
+    const actualTargetBaseUrl = this.baseUrl; // This is the e.g., https://actual-backend.com
+    const endpointPath = url.startsWith('/') ? url : `/${url}`; // Ensure endpoint starts with a slash
+
+    const fullUrl = `/api/proxy/${encodeURIComponent(actualTargetBaseUrl)}${endpointPath}`;
     
     // Prepare request options with defaults
     let processedRequest: RequestInit & { url: string }; // Defined here for wider scope in catch block
@@ -237,7 +240,10 @@ export class ApiClient {
     streamSetupOptions: RequestInit,
     callbacks: StreamCallbacks
   ): Promise<void> {
-    const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
+    const actualTargetBaseUrl = this.baseUrl;
+    const endpointPath = url.startsWith('/') ? url : `/${url}`;
+
+    const fullUrl = `/api/proxy/${encodeURIComponent(actualTargetBaseUrl)}${endpointPath}`;
 
     let processedRequest: RequestInit & { url: string }; // For broader scope
     const requestOptions: RequestInit & { url: string } = {
