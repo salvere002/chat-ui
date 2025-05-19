@@ -1,4 +1,4 @@
-import { ApiClient } from '../apiClient';
+import { ApiClient, DataTransformer } from '../apiClient';
 import { AbstractBaseAdapter, StreamCallbacks, ProgressCallback } from './BaseAdapter';
 import { ApiError, MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
 
@@ -22,7 +22,8 @@ export class RestApiAdapter extends AbstractBaseAdapter {
           method: 'POST', 
           body: JSON.stringify(request), 
           headers: { 'Content-Type': 'application/json' } 
-        }
+        },
+        this.transformMessageResponse
       );
     } catch (error) {
       console.error('Error sending message:', error);
@@ -36,6 +37,15 @@ export class RestApiAdapter extends AbstractBaseAdapter {
       );
     }
   }
+  
+  /**
+   * Transform raw message response to MessageResponse type
+   */
+  private transformMessageResponse: DataTransformer<any, MessageResponse> = (rawData) => {
+    // Process the raw data into the expected MessageResponse type
+    // This allows for normalization, validation, or transformation of the API response
+    return rawData as MessageResponse;
+  };
   
   /**
    * Send a message and get a streaming response
@@ -86,16 +96,11 @@ export class RestApiAdapter extends AbstractBaseAdapter {
         {
           method: 'POST',
           body: formData,
-        }
+        },
+        this.transformFileUploadResponse
       );
       
       onProgress(fileId, 100);
-      
-      if (response.url && response.url.startsWith('/')) {
-        const origin = new URL(this.apiClient.getBaseUrl()).origin;
-        response.url = origin + response.url;
-      }
-      
       return response;
     } catch (error) {
       onProgress(fileId, 0);
@@ -105,14 +110,47 @@ export class RestApiAdapter extends AbstractBaseAdapter {
   }
   
   /**
+   * Transform raw file upload response to FileUploadResponse type
+   */
+  private transformFileUploadResponse: DataTransformer<any, FileUploadResponse> = (rawData) => {
+    const response = rawData as FileUploadResponse;
+    
+    // Post-process the response if needed
+    if (response.url && response.url.startsWith('/')) {
+      const origin = new URL(this.apiClient.getBaseUrl()).origin;
+      response.url = origin + response.url;
+    }
+    
+    return response;
+  };
+  
+  /**
    * Get all uploaded files
    */
   async getFiles(): Promise<FileUploadResponse[]> {
     return this.apiClient.request<FileUploadResponse[]>(
       '/files', 
-      { method: 'GET' }
+      { method: 'GET' },
+      this.transformFilesResponse
     );
   }
+  
+  /**
+   * Transform raw files response to FileUploadResponse[] type
+   */
+  private transformFilesResponse: DataTransformer<any, FileUploadResponse[]> = (rawData) => {
+    // Ensure we have an array and process each item
+    const files = Array.isArray(rawData) ? rawData : [];
+    
+    // Process each file response
+    return files.map(file => {
+      if (file.url && file.url.startsWith('/')) {
+        const origin = new URL(this.apiClient.getBaseUrl()).origin;
+        file.url = origin + file.url;
+      }
+      return file;
+    });
+  };
   
   /**
    * Get a single uploaded file by ID
@@ -120,7 +158,8 @@ export class RestApiAdapter extends AbstractBaseAdapter {
   async getFile(fileId: string): Promise<FileUploadResponse> {
     return this.apiClient.request<FileUploadResponse>(
       `/files/${fileId}`,
-      { method: 'GET' }
+      { method: 'GET' },
+      this.transformFileUploadResponse
     );
   }
 } 

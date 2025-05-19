@@ -1,5 +1,5 @@
 import { AbstractBaseAdapter } from './BaseAdapter';
-import { ApiClient, RequestInterceptor, ResponseInterceptor } from '../apiClient';
+import { ApiClient, RequestInterceptor, ResponseInterceptor, DataTransformer } from '../apiClient';
 import { MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
 import { StreamCallbacks, ProgressCallback } from './BaseAdapter';
 
@@ -40,12 +40,24 @@ export class SessionAdapter extends AbstractBaseAdapter {
   }
 
   async sendMessage(request: MessageRequest): Promise<MessageResponse> {
-    return this.apiClient.request<MessageResponse>(this.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
+    return this.apiClient.request<MessageResponse>(
+      this.endpoint, 
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      },
+      this.transformMessageResponse
+    );
   }
+
+  /**
+   * Transform raw message response to MessageResponse type
+   */
+  private transformMessageResponse: DataTransformer<any, MessageResponse> = (rawData) => {
+    // Process or validate the raw data as needed
+    return rawData as MessageResponse;
+  };
 
   async sendStreamingMessage(request: MessageRequest, callbacks: StreamCallbacks): Promise<void> {
     await this.apiClient.streamMessages(
@@ -69,18 +81,15 @@ export class SessionAdapter extends AbstractBaseAdapter {
     formData.append('fileId', fileId);
 
     try {
-      const response = await this.apiClient.request<FileUploadResponse>(this.endpoint, {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await this.apiClient.request<FileUploadResponse>(
+        this.endpoint, 
+        {
+          method: 'POST',
+          body: formData,
+        },
+        this.transformFileUploadResponse
+      );
       onProgress(fileId, 100);
-
-      // Ensure the URL is absolute if it's a relative path from the server
-      if (response.url && response.url.startsWith('/')) {
-        const origin = new URL(this.apiClient.getBaseUrl()).origin;
-        response.url = origin + response.url;
-      }
-
       return response;
     } catch (error) {
       onProgress(fileId, 0);
@@ -88,19 +97,50 @@ export class SessionAdapter extends AbstractBaseAdapter {
     }
   }
 
+  /**
+   * Transform raw file upload response to FileUploadResponse type
+   */
+  private transformFileUploadResponse: DataTransformer<any, FileUploadResponse> = (rawData) => {
+    const response = rawData as FileUploadResponse;
+    
+    // Ensure the URL is absolute if it's a relative path from the server
+    if (response.url && response.url.startsWith('/')) {
+      const origin = new URL(this.apiClient.getBaseUrl()).origin;
+      response.url = origin + response.url;
+    }
+    
+    return response;
+  };
+
   async getFiles(): Promise<FileUploadResponse[]> {
-    return this.apiClient.request<FileUploadResponse[]>(this.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'getFiles' }),
-    });
+    return this.apiClient.request<FileUploadResponse[]>(
+      this.endpoint, 
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getFiles' }),
+      },
+      this.transformFilesResponse
+    );
   }
 
+  /**
+   * Transform raw files response to FileUploadResponse[] type
+   */
+  private transformFilesResponse: DataTransformer<any, FileUploadResponse[]> = (rawData) => {
+    // Process or validate the raw data as needed
+    return (Array.isArray(rawData) ? rawData : []) as FileUploadResponse[];
+  };
+
   async getFile(fileId: string): Promise<FileUploadResponse> {
-    return this.apiClient.request<FileUploadResponse>(this.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'getFile', fileId }),
-    });
+    return this.apiClient.request<FileUploadResponse>(
+      this.endpoint, 
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getFile', fileId }),
+      },
+      this.transformFileUploadResponse
+    );
   }
 } 
