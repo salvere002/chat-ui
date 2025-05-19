@@ -1,6 +1,6 @@
 import { AbstractBaseAdapter, StreamCallbacks, ProgressCallback } from './BaseAdapter';
 import { ApiError, MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
-import { ApiClient } from '../apiClient';
+import { ApiClient, DataTransformer } from '../apiClient';
 
 // Mock responses for demo/offline use
 const MOCK_RESPONSES = {
@@ -43,6 +43,22 @@ export class MockAdapter extends AbstractBaseAdapter {
   }
   
   /**
+   * Mock implementation doesn't use apiClient.request directly,
+   * but we implement transform functions for consistency with other adapters
+   */
+  private transformMessageResponse: DataTransformer<any, MessageResponse> = (rawData) => {
+    return rawData as MessageResponse;
+  };
+  
+  private transformFileResponse: DataTransformer<any, FileUploadResponse> = (rawData) => {
+    return rawData as FileUploadResponse;
+  };
+  
+  private transformFilesListResponse: DataTransformer<any, FileUploadResponse[]> = (rawData) => {
+    return Array.isArray(rawData) ? rawData : [];
+  };
+  
+  /**
    * Send a message and get a complete response
    */
   async sendMessage(request: MessageRequest): Promise<MessageResponse> {
@@ -60,7 +76,8 @@ export class MockAdapter extends AbstractBaseAdapter {
       response = { text: MOCK_RESPONSES.echo(text) };
     }
     
-    return response;
+    // We can use our transformer for consistency, though it's not needed in this mock implementation
+    return this.transformMessageResponse(response);
   }
   
   /**
@@ -149,7 +166,8 @@ export class MockAdapter extends AbstractBaseAdapter {
         // Store the mock file
         this.mockFiles[fileId] = mockFileResponse;
         
-        resolve(mockFileResponse);
+        // Apply our transformer for consistency
+        resolve(this.transformFileResponse(mockFileResponse));
       } catch (error) {
         console.error(`Mock upload error for ${fileId}:`, error);
         reject(error);
@@ -162,7 +180,7 @@ export class MockAdapter extends AbstractBaseAdapter {
    */
   async getFiles(): Promise<FileUploadResponse[]> {
     await this.simulateNetworkDelay();
-    return Object.values(this.mockFiles);
+    return this.transformFilesListResponse(Object.values(this.mockFiles));
   }
   
   /**
@@ -176,7 +194,7 @@ export class MockAdapter extends AbstractBaseAdapter {
       throw new ApiError(`File with ID ${fileId} not found`, 404);
     }
     
-    return file;
+    return this.transformFileResponse(file);
   }
   
   /**

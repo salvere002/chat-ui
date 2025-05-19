@@ -1,6 +1,6 @@
 import { AbstractBaseAdapter, StreamCallbacks, ProgressCallback } from './BaseAdapter';
 import { ApiError, MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
-import { ApiClient } from '../apiClient';
+import { ApiClient, DataTransformer } from '../apiClient';
 
 /**
  * OpenAI API adapter
@@ -30,7 +30,7 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
    */
   async sendMessage(request: MessageRequest): Promise<MessageResponse> {
     try {
-      const responseData = await this.apiClient.request<any>(
+      return await this.apiClient.request<MessageResponse, any>(
         `${this.baseUrl}/chat/completions`,
         {
           method: 'POST',
@@ -44,12 +44,9 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
             temperature: 0.7,
             max_tokens: 1000
           })
-        }
+        },
+        this.transformOpenAIMessageResponse
       );
-
-      return {
-        text: responseData.choices[0]?.message?.content || '',
-      };
     } catch (error) {
       console.error('Error in OpenAI request:', error);
       // ApiClient.request will throw ApiError, so we can simplify error handling here
@@ -57,6 +54,15 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
       throw error instanceof Error ? error : new Error(String(error));
     }
   }
+
+  /**
+   * Transform OpenAI chat completion response to MessageResponse type
+   */
+  private transformOpenAIMessageResponse: DataTransformer<any, MessageResponse> = (responseData) => {
+    return {
+      text: responseData.choices[0]?.message?.content || '',
+    };
+  };
 
   /**
    * Send a message and get a streaming response
@@ -127,7 +133,7 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
       formData.append('file', file);
       formData.append('purpose', 'assistants');
       
-      const responseData = await this.apiClient.request<any>(
+      const response = await this.apiClient.request<FileUploadResponse, any>(
         `${this.baseUrl}/files`,
         {
           method: 'POST',
@@ -136,18 +142,12 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
             // Content-Type for FormData is set by browser
           },
           body: formData
-        }
+        },
+        this.transformOpenAIFileResponse
       );
       
       onProgress(fileId, 100);
-      
-      return {
-        id: responseData.id,
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        url: '' // OpenAI doesn't provide direct URLs for uploaded files in this response
-      };
+      return response;
     } catch (error) {
       onProgress(fileId, 0);
       console.error('Error uploading file to OpenAI:', error);
@@ -156,24 +156,33 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
   }
 
   /**
+   * Transform OpenAI file response to FileUploadResponse type
+   */
+  private transformOpenAIFileResponse: DataTransformer<any, FileUploadResponse> = (responseData) => {
+    return {
+      id: responseData.id,
+      name: responseData.filename,
+      type: '',
+      size: responseData.bytes,
+      url: ''
+    };
+  };
+
+  /**
    * Get all uploaded files
    */
   async getFiles(): Promise<FileUploadResponse[]> {
     try {
-      const responseData = await this.apiClient.request<any>(`${this.baseUrl}/files`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`
-        }
-      });
-      
-      return responseData.data.map((file: any) => ({
-        id: file.id,
-        name: file.filename,
-        type: '', 
-        size: file.bytes,
-        url: ''  
-      }));
+      return await this.apiClient.request<FileUploadResponse[], any>(
+        `${this.baseUrl}/files`, 
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`
+          }
+        },
+        this.transformOpenAIFilesListResponse
+      );
     } catch (error) {
       console.error('Error getting files from OpenAI:', error);
       throw error instanceof Error ? error : new Error(String(error));
@@ -181,24 +190,33 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
   }
 
   /**
+   * Transform OpenAI files list response to FileUploadResponse[] type
+   */
+  private transformOpenAIFilesListResponse: DataTransformer<any, FileUploadResponse[]> = (responseData) => {
+    return responseData.data.map((file: any) => ({
+      id: file.id,
+      name: file.filename,
+      type: '', 
+      size: file.bytes,
+      url: ''  
+    }));
+  };
+
+  /**
    * Get a single uploaded file by ID
    */
   async getFile(fileId: string): Promise<FileUploadResponse> {
     try {
-      const fileData = await this.apiClient.request<any>(`${this.baseUrl}/files/${fileId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`
-        }
-      });
-      
-      return {
-        id: fileData.id,
-        name: fileData.filename,
-        type: '', 
-        size: fileData.bytes,
-        url: '' 
-      };
+      return await this.apiClient.request<FileUploadResponse, any>(
+        `${this.baseUrl}/files/${fileId}`, 
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`
+          }
+        },
+        this.transformOpenAIFileResponse
+      );
     } catch (error) {
       console.error('Error getting file from OpenAI:', error);
       throw error instanceof Error ? error : new Error(String(error));

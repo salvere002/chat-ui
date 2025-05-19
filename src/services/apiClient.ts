@@ -36,6 +36,12 @@ export type ErrorInterceptor = (
 ) => Promise<Response | void>;
 
 /**
+ * Data transformer function type
+ * Transforms raw response data to the expected type
+ */
+export type DataTransformer<R, T> = (rawData: R) => T;
+
+/**
  * API Client with interceptor support
  */
 export class ApiClient {
@@ -125,9 +131,13 @@ export class ApiClient {
   }
 
   /**
-   * Make an HTTP request with timeout support
+   * Make an HTTP request with timeout support and data transformation
    */
-  public async request<T>(url: string, options: RequestInit = {}): Promise<T> {
+  public async request<T, R = any>(
+    url: string, 
+    options: RequestInit = {}, 
+    transformer?: DataTransformer<R, T>
+  ): Promise<T> {
     const actualTargetBaseUrl = this.baseUrl; // This is the e.g., https://actual-backend.com
     const endpointPath = url.startsWith('/') ? url : `/${url}`; // Ensure endpoint starts with a slash
 
@@ -214,13 +224,21 @@ export class ApiClient {
         }
       }
       
-      // Return JSON or text data based on content type
+      // Get raw response data based on content type
       const contentType = response.headers.get('content-type');
+      let rawData: R;
       if (contentType && contentType.includes('application/json')) {
-        return await response.json();
+        rawData = await response.json();
       } else {
-        return await response.text() as unknown as T;
+        rawData = await response.text() as unknown as R;
       }
+      
+      // Apply transformation if provided, otherwise return raw data as T
+      if (transformer) {
+        return transformer(rawData);
+      }
+      
+      return rawData as unknown as T;
     } catch (error) {
       // Re-throw any unhandled errors
       if (error instanceof ApiError) {
