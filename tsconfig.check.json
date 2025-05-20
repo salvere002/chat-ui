@@ -1,0 +1,37 @@
+{
+    "compilerOptions": {
+      // --- Essential options from your main tsconfig.json ---
+      "target": "ESNext",
+      "lib": ["DOM", "DOM.Iterable", "ESNext"],
+      "jsx": "react-jsx",
+      "module": "ESNext",
+      "moduleResolution": "Bundler", // Or "Node" if that's what you use in tsconfig.json
+      "allowImportingTsExtensions": true,
+      "resolveJsonModule": true,
+      "isolatedModules": true, // From your main tsconfig (often for Vite)
+      "esModuleInterop": true,
+      "forceConsistentCasingInFileNames": true,
+      "strict": true,
+      "noImplicitAny": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+      "noFallthroughCasesInSwitch": true,
+      "skipLibCheck": true, // Speeds up checking by not re-checking library .d.ts files
+  
+      // --- Key option for a check-only configuration ---
+      "noEmit": true // Explicitly state that no files should be emitted
+    },
+    "include": [
+      "src/**/*.ts",       // Include all TypeScript files in your src directory
+      "src/**/*.tsx",      // Include all TSX (React) files in your src directory
+      "vite.config.ts"     // Include your Vite config if it's written in TypeScript
+      // Add any other specific files or glob patterns for TypeScript code you want to check
+    ],
+    "exclude": [
+      "node_modules",
+      "dist",              // Exclude build output
+      "proxy-server",      // Exclude the proxy-server directory if it has its own tsconfig/check
+      "**/*.test.ts",      // Optionally exclude test files
+      "**/*.spec.ts"       // Optionally exclude spec files
+    ]
+  }
