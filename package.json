@@ -6,8 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc -p tsconfig.build.json && vite build",
     "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.check.json",
     "backend:win": "cd backend && .\\venv\\Scripts\\activate && python app.py",
     "backend:unix": "cd backend && source venv/bin/activate && python app.py",
     "backend": "node -e \"process.platform === 'win32' ? require('child_process').execSync('npm run backend:win', {stdio: 'inherit'}) : require('child_process').execSync('npm run backend:unix', {stdio: 'inherit'})\"",
