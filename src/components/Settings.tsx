@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Agent } from '../types/chat';
-import { configManager } from '../utils/config';
+import { useServiceConfigStore } from '../stores';
 import { ChatService, AdapterType } from '../services/chatService';
 import './Settings.css';
 
@@ -15,26 +15,39 @@ const Settings: React.FC<SettingsProps> = ({
   selectedAgent, 
   onAgentChange 
 }) => {
+  const {
+    currentAdapterType,
+    getCurrentConfig,
+    updateConfig,
+    setCurrentAdapterType
+  } = useServiceConfigStore();
+
   // Get current configuration
-  const [backendUrl, setBackendUrl] = useState(configManager.getApiConfig().baseUrl);
-  const [adapterType, setAdapterType] = useState<AdapterType>(
-    configManager.getServicesConfig().adapterType as AdapterType
-  );
+  const currentConfig = getCurrentConfig();
+  
+  // Form state
+  const [backendUrl, setBackendUrl] = useState(currentConfig.baseUrl);
+  const [adapterType, setAdapterType] = useState<AdapterType>(currentAdapterType);
+
+  // Update form when adapter type changes
+  useEffect(() => {
+    const config = useServiceConfigStore.getState().getConfig(adapterType);
+    setBackendUrl(config.baseUrl);
+  }, [adapterType]);
   
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Update configuration in the config manager first
-      configManager.updateApiConfig({
-        baseUrl: backendUrl
-      });
-      
-      configManager.updateServicesConfig({
-        adapterType: adapterType,
+      // Update configuration for the current adapter type
+      updateConfig(adapterType, {
+        baseUrl: backendUrl,
         sessionEndpoint: backendUrl + '/session'
       });
+      
+      // Set as current adapter type
+      setCurrentAdapterType(adapterType);
       
       // Update ChatService with the new configuration
       ChatService.configure({
@@ -76,17 +89,6 @@ const Settings: React.FC<SettingsProps> = ({
             <h3>Connection</h3>
             
             <div className="form-group">
-              <label htmlFor="backend-url">Backend URL:</label>
-              <input
-                id="backend-url"
-                type="text"
-                value={backendUrl}
-                onChange={(e) => setBackendUrl(e.target.value)}
-                placeholder="http://localhost:5001/api"
-              />
-            </div>
-            
-            <div className="form-group">
               <label htmlFor="adapter-type">Connection Method:</label>
               <select
                 id="adapter-type"
@@ -97,6 +99,17 @@ const Settings: React.FC<SettingsProps> = ({
                 <option value="session">Session Based</option>
                 <option value="mock">Mock (Testing)</option>
               </select>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="backend-url">Backend URL:</label>
+              <input
+                id="backend-url"
+                type="text"
+                value={backendUrl}
+                onChange={(e) => setBackendUrl(e.target.value)}
+                placeholder="http://localhost:5001/api"
+              />
             </div>
           </div>
           
