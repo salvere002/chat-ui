@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Agent } from '../types/chat';
 import { useServiceConfigStore } from '../stores';
-import { ChatService, AdapterType } from '../services/chatService';
+import { AdapterType } from '../services/chatService';
 import './Settings.css';
 
 interface SettingsProps {
@@ -46,15 +46,8 @@ const Settings: React.FC<SettingsProps> = ({
         sessionEndpoint: backendUrl + '/session'
       });
       
-      // Set as current adapter type
+      // Set as current adapter type (this will automatically configure ChatService)
       setCurrentAdapterType(adapterType);
-      
-      // Update ChatService with the new configuration
-      ChatService.configure({
-        adapterType,
-        sessionEndpoint: backendUrl + '/session',
-        baseUrl: backendUrl
-      });
       
       // Close settings
       onClose();

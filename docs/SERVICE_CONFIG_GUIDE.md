@@ -16,6 +16,7 @@ The service configuration system separates static configuration from dynamic ser
 - Persists configurations to localStorage
 - Each adapter type (REST, Session, Mock) has its own configuration
 - Configurations are automatically switched when changing adapter types
+- Automatically configures ChatService when configurations change
 
 ## How It Works
 
@@ -23,7 +24,8 @@ When you change the connection method in the Settings panel:
 1. The configuration for that adapter type is automatically loaded
 2. You can modify the backend URL for that specific adapter
 3. The configuration is saved specifically for that adapter type
-4. Next time you select that adapter, your saved configuration is restored
+4. ChatService is automatically reconfigured with the new settings
+5. Next time you select that adapter, your saved configuration is restored
 
 ## Usage
 
@@ -51,19 +53,22 @@ function MyComponent() {
 
 ### 2. Monitoring Configuration Changes
 
-Use the custom `useServiceConfig` hook to monitor and react to configuration changes:
+Use `useEffect` to monitor and react to configuration changes:
 
 ```typescript
-import { useServiceConfig } from '../hooks/useServiceConfig';
+import { useEffect } from 'react';
+import { useServiceConfigStore } from '../stores';
 
 function MyComponent() {
-  // This will automatically update when the configuration changes
-  const currentConfig = useServiceConfig((config) => {
-    console.log('Config changed:', config);
-    // Handle configuration change (e.g., reconnect to new endpoint)
-  });
+  const { currentAdapterType, getCurrentConfig } = useServiceConfigStore();
+  const currentConfig = getCurrentConfig();
   
-  // The component will re-render when config changes
+  useEffect(() => {
+    console.log('Config changed:', currentConfig);
+    // Handle configuration change (e.g., update UI, reconnect)
+    // ChatService is already automatically configured
+  }, [currentConfig, currentAdapterType]);
+  
   return <div>Current URL: {currentConfig?.baseUrl}</div>;
 }
 ```
@@ -71,17 +76,16 @@ function MyComponent() {
 ### 3. Getting Specific Config Values
 
 ```typescript
-import { useServiceConfigValue } from '../hooks/useServiceConfig';
+import { useServiceConfigStore } from '../stores';
 
 function ApiStatusComponent() {
-  // Get specific values with automatic updates
-  const baseUrl = useServiceConfigValue('baseUrl');
-  const adapterType = useServiceConfigValue('adapterType');
+  const { getCurrentConfig } = useServiceConfigStore();
+  const config = getCurrentConfig();
   
   return (
     <div className="api-status">
-      <div>API URL: {baseUrl}</div>
-      <div>Connection: {adapterType}</div>
+      <div>API URL: {config.baseUrl}</div>
+      <div>Connection: {config.adapterType}</div>
     </div>
   );
 }
@@ -90,10 +94,12 @@ function ApiStatusComponent() {
 ### 4. Checking Service Readiness
 
 ```typescript
-import { useServiceReady } from '../hooks/useServiceConfig';
+import { useServiceConfigStore } from '../stores';
 
 function ServiceHealthComponent() {
-  const isReady = useServiceReady();
+  const { getCurrentConfig } = useServiceConfigStore();
+  const config = getCurrentConfig();
+  const isReady = !!(config?.baseUrl && config?.adapterType);
   
   if (!isReady) {
     return (
@@ -116,6 +122,7 @@ function ConfigManagerComponent() {
   const { updateConfig, setCurrentAdapterType } = useServiceConfigStore();
   
   const switchToProduction = () => {
+    // This will automatically configure ChatService
     setCurrentAdapterType('rest');
     updateConfig('rest', {
       baseUrl: 'https://api.production.com'
@@ -123,6 +130,7 @@ function ConfigManagerComponent() {
   };
   
   const switchToDevelopment = () => {
+    // This will automatically configure ChatService
     setCurrentAdapterType('rest');
     updateConfig('rest', {
       baseUrl: 'http://localhost:5001/api'
@@ -145,6 +153,7 @@ The Settings panel provides a simple interface for configuration management:
 1. **Connection Method Dropdown**: When you change the connection method, the backend URL automatically updates to the saved configuration for that adapter type
 2. **Backend URL Field**: You can modify the URL, and it will be saved specifically for the current connection method
 3. **Automatic Persistence**: Each adapter type remembers its own backend URL configuration
+4. **Automatic Service Configuration**: ChatService is automatically reconfigured when settings are saved
 
 ### Configuration Examples:
 - **REST API**: `http://localhost:5001/api`
@@ -185,8 +194,6 @@ Service configurations are automatically persisted to localStorage under the key
 src/
 ├── stores/
 │   └── serviceConfigStore.ts     # Service configuration store
-├── hooks/
-│   └── useServiceConfig.ts       # Service config monitoring hooks
 ├── utils/
 │   └── config.ts                 # Static configuration manager
 ├── components/
@@ -198,9 +205,23 @@ src/
 
 ## Migration Notes
 
-### From Old Config Manager
-The new system is simpler - you no longer need to manually manage configurations. Just select a connection method and set its URL.
+### From Custom Hooks
+Previously we had custom hooks like `useServiceConfig`, but now you can use the store directly:
 
+**Before:**
+```typescript
+import { useServiceConfig } from '../hooks/useServiceConfig';
+const config = useServiceConfig();
+```
+
+**After:**
+```typescript
+import { useServiceConfigStore } from '../stores';
+const { getCurrentConfig } = useServiceConfigStore();
+const config = getCurrentConfig();
+```
+
+### From Old Config Manager
 **Before:**
 ```typescript
 configManager.updateApiConfig({ baseUrl: 'http://localhost:3000/api' });
@@ -238,17 +259,17 @@ test('should update configuration for specific adapter', () => {
 
 ## Best Practices
 
-1. **Adapter-Specific Configuration**: Use different URLs for different adapter types
+1. **Direct Store Usage**: Use the store directly instead of additional abstraction layers
 2. **Environment Management**: Set up different configurations for development/production
-3. **Error Handling**: Always check if service is ready before making API calls
-4. **Monitoring**: Use hooks to monitor configuration changes in components
+3. **Error Handling**: Always check if config exists before using it
+4. **Automatic Updates**: Let the store handle ChatService configuration automatically
 5. **Type Safety**: Leverage TypeScript interfaces for configuration objects
 
 ## Benefits
 
-1. **Simplicity**: No need to manually create or manage configurations
-2. **Automatic Switching**: Configurations automatically switch based on connection method
+1. **Simplicity**: Direct store usage without unnecessary custom hooks
+2. **Automatic Configuration**: ChatService is automatically configured when settings change
 3. **Persistence**: Each adapter type remembers its configuration
 4. **Type Safety**: Full TypeScript support with proper interfaces
 5. **Separation of Concerns**: Clear distinction between static and dynamic configurations
-6. **Developer Experience**: Easy to use hooks and clear API 
+6. **Developer Experience**: Simple and intuitive API 

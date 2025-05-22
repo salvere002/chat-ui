@@ -46,6 +46,18 @@ const getDefaultConfig = (): Record<AdapterType, ServiceConfig> => {
   };
 };
 
+// Function to configure ChatService
+const configureChatService = (config: ServiceConfig) => {
+  // Import ChatService dynamically to avoid circular dependencies
+  import('../services/chatService').then(({ ChatService }) => {
+    ChatService.configure({
+      adapterType: config.adapterType,
+      baseUrl: config.baseUrl,
+      sessionEndpoint: config.sessionEndpoint
+    });
+  });
+};
+
 const useServiceConfigStore = create<ServiceConfigStore>()(
   persist(
     (set, get) => ({
@@ -62,20 +74,33 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
       },
       
       updateConfig: (adapterType, updates) => {
-        set((state) => ({
-          configs: {
+        set((state) => {
+          const newConfig = {
+            ...state.configs[adapterType],
+            ...updates,
+            adapterType // Ensure adapter type is not changed
+          };
+          
+          const newConfigs = {
             ...state.configs,
-            [adapterType]: {
-              ...state.configs[adapterType],
-              ...updates,
-              adapterType // Ensure adapter type is not changed
-            }
+            [adapterType]: newConfig
+          };
+          
+          // If updating the current adapter's config, reconfigure ChatService
+          if (adapterType === state.currentAdapterType) {
+            configureChatService(newConfig);
           }
-        }));
+          
+          return { configs: newConfigs };
+        });
       },
       
       setCurrentAdapterType: (adapterType) => {
         set({ currentAdapterType: adapterType });
+        
+        // Configure ChatService with the new current config
+        const config = get().configs[adapterType];
+        configureChatService(config);
       }
     }),
     {
@@ -87,5 +112,12 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
     }
   )
 );
+
+// Initialize ChatService on first load
+if (typeof window !== 'undefined') {
+  const state = useServiceConfigStore.getState();
+  const currentConfig = state.getCurrentConfig();
+  configureChatService(currentConfig);
+}
 
 export default useServiceConfigStore; 
