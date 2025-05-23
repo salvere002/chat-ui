@@ -10,6 +10,8 @@ interface SettingsProps {
   onAgentChange: (agent: Agent) => void;
 }
 
+type SettingsTab = 'general';
+
 const Settings: React.FC<SettingsProps> = ({ 
   onClose, 
   selectedAgent, 
@@ -24,6 +26,9 @@ const Settings: React.FC<SettingsProps> = ({
 
   // Get current configuration
   const currentConfig = getCurrentConfig();
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   
   // Form state
   const [backendUrl, setBackendUrl] = useState(currentConfig.baseUrl);
@@ -77,50 +82,65 @@ const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
         
+        {/* Tab Navigation */}
+        <div className="settings-tabs">
+          <button
+            className={`settings-tab ${activeTab === 'general' ? 'active' : ''}`}
+            onClick={() => setActiveTab('general')}
+          >
+            General
+          </button>
+        </div>
+        
         <form onSubmit={handleSubmit} className="settings-form">
-          <div className="settings-section">
-            <h3>Connection</h3>
-            
-            <div className="form-group">
-              <label htmlFor="adapter-type">Connection Method:</label>
-              <select
-                id="adapter-type"
-                value={adapterType}
-                onChange={(e) => setAdapterType(e.target.value as AdapterType)}
-              >
-                <option value="rest">REST API</option>
-                <option value="session">Session Based</option>
-                <option value="mock">Mock (Testing)</option>
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="backend-url">Backend URL:</label>
-              <input
-                id="backend-url"
-                type="text"
-                value={backendUrl}
-                onChange={(e) => setBackendUrl(e.target.value)}
-                placeholder="http://localhost:5001/api"
-              />
-            </div>
-          </div>
-          
-          <div className="settings-section">
-            <h3>Response</h3>
-            
-            <div className="form-group">
-              <label htmlFor="response-mode">Response Mode:</label>
-              <select
-                id="response-mode"
-                value={selectedAgent}
-                onChange={(e) => onAgentChange(e.target.value as Agent)}
-              >
-                <option value="stream">Stream (Real-time)</option>
-                <option value="fetch">Fetch (Complete)</option>
-              </select>
-            </div>
-          </div>
+          {/* General Tab */}
+          {activeTab === 'general' && (
+            <>
+              <div className="settings-section">
+                <h3>Connection</h3>
+                
+                <div className="form-group">
+                  <label htmlFor="adapter-type">Connection Method:</label>
+                  <select
+                    id="adapter-type"
+                    value={adapterType}
+                    onChange={(e) => setAdapterType(e.target.value as AdapterType)}
+                  >
+                    <option value="rest">REST API</option>
+                    <option value="session">Session Based</option>
+                    <option value="mock">Mock (Testing)</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="backend-url">Backend URL:</label>
+                  <input
+                    id="backend-url"
+                    type="text"
+                    value={backendUrl}
+                    onChange={(e) => setBackendUrl(e.target.value)}
+                    placeholder="http://localhost:5001/api"
+                  />
+                </div>
+              </div>
+              
+              <div className="settings-section">
+                <h3>Response</h3>
+                
+                <div className="form-group">
+                  <label htmlFor="response-mode">Response Mode:</label>
+                  <select
+                    id="response-mode"
+                    value={selectedAgent}
+                    onChange={(e) => onAgentChange(e.target.value as Agent)}
+                  >
+                    <option value="stream">Stream (Real-time)</option>
+                    <option value="fetch">Fetch (Complete)</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
           
           <div className="settings-actions">
             <button type="submit" className="save-button">Save Changes</button>

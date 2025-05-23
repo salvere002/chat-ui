@@ -35,6 +35,8 @@
   --accent-warning: #f59e0b;
   --accent-info: #06b6d4;
   --accent-light: rgba(99, 102, 241, 0.1);
+  --accent-purple: #8b5cf6;
+  --accent-purple-light: rgba(139, 92, 246, 0.1);
   
   /* Semantic colors */
   --error-color: #ef4444;
@@ -124,6 +126,8 @@
   --accent-danger: #ef4444;
   --accent-warning: #f59e0b;
   --accent-info: #818cf8;
+  --accent-purple: #a855f7;
+  --accent-purple-light: rgba(168, 85, 247, 0.2);
   
   /* Override shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -164,6 +168,8 @@
   --accent-warning: #f59e0b;
   --accent-info: #06b6d4;
   --accent-light: rgba(99, 102, 241, 0.1);
+  --accent-purple: #8b5cf6;
+  --accent-purple-light: rgba(139, 92, 246, 0.1);
   
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.1);

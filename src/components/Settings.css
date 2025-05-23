@@ -4,23 +4,44 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fade-in 0.2s ease;
 }
 
 .settings-modal {
   background-color: var(--bg-color, #ffffff);
-  border-radius: 10px;
+  border-radius: 16px;
   width: 90%;
-  max-width: 500px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-  max-height: 90vh;
+  max-width: 700px;
+  min-height: 500px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  max-height: 85vh;
   overflow-y: auto;
   color: var(--text-color, #333333);
   border: 1px solid var(--border-color, #e0e0e0);
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Animation keyframes */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Dark theme specific styles for settings modal */
@@ -34,9 +55,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
+  padding: 20px 25px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   background-color: var(--bg-secondary, #f5f5f5);
+  border-radius: 16px 16px 0 0;
 }
 
 /* Dark theme specific styles for settings header */
@@ -47,7 +69,7 @@
 
 .settings-header h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   color: var(--text-color, #333333);
   font-weight: 600;
 }
@@ -60,11 +82,17 @@
 .close-button {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   cursor: pointer;
   color: var(--text-color, #333333);
   opacity: 0.7;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
 }
 
 /* Dark theme specific styles for close button */
@@ -74,11 +102,65 @@
 
 .close-button:hover {
   opacity: 1;
+  background-color: var(--hover-color, rgba(0, 0, 0, 0.05));
+  transform: rotate(90deg);
+}
+
+/* Tab navigation styles */
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  background-color: var(--bg-secondary, #f9f9f9);
+}
+
+.dark-theme .settings-tabs {
+  background-color: var(--bg-secondary-dark, #252525);
+  border-color: var(--border-color-dark, #444);
+}
+
+.settings-tab {
+  flex: 1;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.settings-tab:hover {
+  color: var(--text-primary, #333);
+  background-color: var(--hover-color, rgba(0, 0, 0, 0.02));
+}
+
+.settings-tab.active {
+  color: var(--primary-color, #0078d4);
+  border-bottom-color: var(--primary-color, #0078d4);
+  background-color: transparent;
+}
+
+.dark-theme .settings-tab {
+  color: var(--text-secondary-dark, #aaa);
+}
+
+.dark-theme .settings-tab:hover {
+  color: var(--text-primary-dark, #f5f5f5);
+  background-color: var(--hover-color-dark, rgba(255, 255, 255, 0.05));
+}
+
+.dark-theme .settings-tab.active {
+  color: var(--primary-color-dark, #2b88d8);
+  border-bottom-color: var(--primary-color-dark, #2b88d8);
 }
 
 .settings-form {
-  padding: 20px;
+  padding: 25px;
   background-color: var(--bg-color, #ffffff);
+  min-height: 300px;
 }
 
 /* Dark theme specific styles for settings form */
@@ -87,15 +169,15 @@
 }
 
 .settings-section {
-  margin-bottom: 25px;
+  margin-bottom: 30px;
 }
 
 .settings-section h3 {
-  margin: 0 0 15px 0;
-  font-size: 1.1rem;
+  margin: 0 0 20px 0;
+  font-size: 1.25rem;
   color: var(--text-color, #333333);
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color-light, #e0e0e0);
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-color-light, #e0e0e0);
   font-weight: 600;
 }
 
@@ -103,6 +185,46 @@
 .dark-theme .settings-section h3 {
   color: var(--text-primary-dark, #f5f5f5);
   border-color: var(--border-color-dark, #444);
+}
+
+/* Placeholder content styles */
+.settings-placeholder {
+  color: var(--text-secondary, #666);
+  font-size: 1rem;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.dark-theme .settings-placeholder {
+  color: var(--text-secondary-dark, #aaa);
+}
+
+.coming-soon-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.coming-soon-list li {
+  padding: 10px 0;
+  padding-left: 25px;
+  position: relative;
+  color: var(--text-secondary, #666);
+}
+
+.coming-soon-list li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--primary-color, #0078d4);
+}
+
+.dark-theme .coming-soon-list li {
+  color: var(--text-secondary-dark, #aaa);
+}
+
+.dark-theme .coming-soon-list li::before {
+  color: var(--primary-color-dark, #2b88d8);
 }
 
 .form-group {
@@ -207,4 +329,26 @@
 
 .dark-theme .cancel-button:hover {
   background-color: var(--hover-color-dark, #3a3a3a);
+}
+
+/* Responsive design for settings modal */
+@media (max-width: 768px) {
+  .settings-modal {
+    max-width: 95%;
+    min-height: 400px;
+    margin: 10px;
+  }
+  
+  .settings-tabs {
+    overflow-x: auto;
+  }
+  
+  .settings-tab {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+  
+  .settings-form {
+    padding: 20px;
+  }
 } 
