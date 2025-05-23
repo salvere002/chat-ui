@@ -185,31 +185,47 @@ html, body, .app, .app-container, .chat-area, .message-input-container,
 }
 
 .app-header-controls {
-  position: absolute;
+  position: fixed; /* Changed to fixed for better positioning */
   top: 15px;
   right: 20px;
   display: flex;
-  gap: 15px;
-  z-index: 10;
+  gap: 10px; /* Reduced gap for better space usage */
+  z-index: 100; /* Increased z-index to ensure it stays on top */
+  background-color: rgba(255, 255, 255, 0.8); /* Add background for better visibility */
+  backdrop-filter: blur(10px);
+  padding: 4px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark theme background for controls */
+.dark-theme .app-header-controls {
+  background-color: rgba(30, 30, 30, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .icon-button {
   background: none;
   border: none;
-  width: 36px;
-  height: 36px;
+  width: 32px; /* Reduced size for better fit */
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: var(--text-color);
-  font-size: 1.1rem;
-  transition: background-color 0.2s;
+  font-size: 1rem; /* Slightly smaller icon */
+  transition: all 0.2s;
 }
 
 .icon-button:hover {
   background-color: var(--hover-color);
+  transform: scale(1.1);
+}
+
+.icon-button:active {
+  transform: scale(0.95);
 }
 
 .chat-title {
@@ -243,5 +259,36 @@ html, body, .app, .app-container, .chat-area, .message-input-container,
   .chat-title {
     left: 20px;
     top: 60px;
+  }
+}
+
+/* Responsive design - improved for different screen sizes */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .app-header-controls {
+    top: 10px;
+    right: 10px;
+    gap: 5px;
+    padding: 3px;
+  }
+  
+  .icon-button {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+  
+  .chat-title {
+    display: none; /* Hide title on mobile to save space */
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header-controls {
+    top: 5px;
+    right: 5px;
   }
 } 
