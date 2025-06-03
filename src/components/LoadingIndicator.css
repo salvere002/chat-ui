@@ -1,60 +1,66 @@
+/* Loading Indicator - Professional Loading States */
 .loading-indicator {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-2);
 }
 
-/* Sizes */
-.loading-indicator.small .spinner,
-.loading-indicator.small .pulse {
-  width: 16px;
-  height: 16px;
+/* Size Variants */
+.loading-indicator.small {
+  --indicator-size: 16px;
+  --dot-size: 4px;
+  --font-size: var(--text-xs);
 }
 
-.loading-indicator.medium .spinner,
-.loading-indicator.medium .pulse {
-  width: 24px;
-  height: 24px;
+.loading-indicator.medium {
+  --indicator-size: 24px;
+  --dot-size: 6px;
+  --font-size: var(--text-sm);
 }
 
-.loading-indicator.large .spinner,
-.loading-indicator.large .pulse {
-  width: 40px;
-  height: 40px;
+.loading-indicator.large {
+  --indicator-size: 32px;
+  --dot-size: 8px;
+  --font-size: var(--text-base);
 }
 
-/* Spinner */
+/* Spinner Type - Simple Rotation */
 .loading-indicator .spinner {
+  width: var(--indicator-size);
+  height: var(--indicator-size);
+  border: 2px solid var(--color-border-secondary);
+  border-top-color: var(--color-accent-primary);
   border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: var(--primary-color, #4a90e2);
   animation: spin 0.8s linear infinite;
+  transform-origin: center;
 }
 
-/* Dots */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dots Type - Sequential Animation */
 .loading-indicator .dots {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: calc(var(--dot-size) * 0.5);
 }
 
 .loading-indicator .dots span {
-  width: 8px;
-  height: 8px;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  background-color: var(--color-accent-primary);
   border-radius: 50%;
-  background-color: var(--primary-color, #4a90e2);
-  animation: dotPulse 1.4s infinite ease-in-out;
+  animation: dotPulse 1.4s ease-in-out infinite;
+  opacity: 0.3;
 }
 
-.loading-indicator.small .dots span {
-  width: 6px;
-  height: 6px;
-}
-
-.loading-indicator.large .dots span {
-  width: 10px;
-  height: 10px;
+.loading-indicator .dots span:nth-child(1) {
+  animation-delay: 0s;
 }
 
 .loading-indicator .dots span:nth-child(2) {
@@ -65,44 +71,98 @@
   animation-delay: 0.4s;
 }
 
-/* Pulse */
-.loading-indicator .pulse {
-  border-radius: 50%;
-  background-color: var(--primary-color, #4a90e2);
-  opacity: 0.6;
-  animation: pulse 1.2s infinite ease-in-out;
-}
-
-/* Loading text */
-.loading-text {
-  margin-top: 8px;
-  font-size: 14px;
-  color: var(--text-secondary, #666);
-}
-
-/* Animations */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 @keyframes dotPulse {
-  0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Pulse Type - Breathing Effect */
+.loading-indicator .pulse {
+  width: var(--indicator-size);
+  height: var(--indicator-size);
+  background-color: var(--color-accent-primary);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.8); opacity: 0.5; }
-  50% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(0.8); opacity: 0.5; }
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
 }
 
-/* Dark theme support */
+/* Loading Text */
+.loading-text {
+  font-size: var(--font-size);
+  color: var(--color-text-secondary);
+  margin: 0;
+  opacity: 1; /* Changed from 0 to 1 */
+  animation: fadeIn var(--transition-base) ease-out;
+}
+
+/* Inline Loading - For Messages */
+.loading-indicator.inline {
+  display: inline-flex;
+  flex-direction: row;
+  vertical-align: middle;
+}
+
+.loading-indicator.inline .dots {
+  margin: 0;
+}
+
+.loading-indicator.inline .loading-text {
+  margin-left: var(--space-2);
+}
+
+/* Dark Theme Adjustments */
 .dark-theme .loading-indicator .spinner {
-  border-color: rgba(255, 255, 255, 0.1);
-  border-top-color: var(--primary-color, #4a90e2);
+  border-color: var(--color-border-primary);
+  border-top-color: var(--color-accent-primary);
 }
 
-.dark-theme .loading-text {
-  color: var(--text-secondary-dark, #aaa);
-} 
+/* Performance Optimizations */
+@media (prefers-reduced-motion: reduce) {
+  .loading-indicator .spinner {
+    animation: none;
+    border-top-color: transparent;
+    border-right-color: var(--color-accent-primary);
+  }
+  
+  .loading-indicator .dots span {
+    animation: none;
+    opacity: 0.6;
+  }
+  
+  .loading-indicator .pulse {
+    animation: none;
+    opacity: 0.6;
+  }
+  
+  .loading-text {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .loading-indicator .spinner {
+    border-width: 3px;
+  }
+  
+  .loading-indicator .dots span {
+    outline: 1px solid currentColor;
+  }
+}

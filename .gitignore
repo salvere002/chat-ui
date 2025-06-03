@@ -52,4 +52,9 @@ htmlcov/
 *.sublime-project
 
 # OS files
-Thumbs.db 
+Thumbs.db
+
+# Project Export Scripts (utility only, not part of the actual project)
+export-project.py
+export-project.sh
+project-export.txt

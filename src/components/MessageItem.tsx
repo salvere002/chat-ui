@@ -118,7 +118,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   const isIncomplete = sender === 'ai' && isComplete === false;
 
   return (
-    <div className={`message-item ${sender}`} data-is-complete={isComplete !== false}>
+    <div 
+      className={`message-item ${sender} ${isEditing ? 'editing' : ''}`} 
+      data-is-complete={isComplete !== false}
+    >
       <div className="message-content">
         {/* Render user's file attachments */}
         {files && files.length > 0 && (
@@ -243,4 +246,4 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   );
 };
 
-export default MessageItem; 
+export default MessageItem;
