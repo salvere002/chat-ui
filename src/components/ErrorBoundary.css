@@ -1,82 +1,217 @@
+/* Error Boundary - Professional Error Display */
 .error-boundary {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 20px;
+  padding: var(--space-5);
+  background-color: var(--color-bg-primary);
 }
 
+/* Error Content - Clean Card Design */
 .error-content {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-lg);
   text-align: center;
   max-width: 400px;
   width: 100%;
+  animation: errorSlideUp var(--transition-base) ease-out;
 }
 
+@keyframes errorSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Error Icon - Visual Indicator */
 .error-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-4);
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-full);
+  font-size: 32px;
+  animation: errorPulse 2s ease-in-out infinite;
 }
 
+@keyframes errorPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+/* Error Title - Clear Heading */
 .error-boundary h2 {
-  color: #e74c3c;
-  margin-top: 0;
-  margin-bottom: 12px;
-  font-size: 20px;
+  font-size: var(--text-xl);
   font-weight: 600;
+  color: var(--color-error);
+  margin: 0 0 var(--space-3) 0;
 }
 
+/* Error Message - Descriptive Text */
 .error-message {
-  color: #555;
-  margin-bottom: 24px;
-  line-height: 1.5;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-5);
 }
 
+/* Error Button - Recovery Action */
 .error-button {
-  background-color: #4a90e2;
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background-color: var(--color-accent-primary);
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 4px;
-  padding: 10px 16px;
-  font-size: 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .error-button:hover {
-  background-color: #3a80d2;
+  background-color: var(--color-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Dark theme support */
+.error-button:active {
+  transform: scale(0.98);
+}
+
+/* Error Details - Technical Info (Optional) */
+.error-details {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-secondary);
+  text-align: left;
+}
+
+.error-details summary {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition-fast);
+}
+
+.error-details summary:hover {
+  color: var(--color-text-secondary);
+}
+
+.error-details pre {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Dark Theme Support */
 .dark-theme .error-content {
-  background-color: #2a2a2a;
-  color: #f0f0f0;
+  background-color: var(--color-bg-elevated);
+  border-color: var(--color-border-primary);
 }
 
 .dark-theme .error-boundary h2 {
-  color: #ff6b6b;
+  color: var(--color-error);
 }
 
-.dark-theme .error-message {
-  color: #ddd;
+.dark-theme .error-details pre {
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-primary);
 }
 
-/* Mobile responsiveness */
-@media (max-width: 480px) {
+/* Responsive Design */
+@media (max-width: 768px) {
+  .error-boundary {
+    padding: var(--space-4);
+  }
+  
   .error-content {
-    padding: 16px;
+    padding: var(--space-5);
   }
   
   .error-icon {
-    font-size: 36px;
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
   }
   
   .error-boundary h2 {
-    font-size: 18px;
+    font-size: var(--text-lg);
   }
-} 
+  
+  .error-message {
+    font-size: var(--text-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .error-boundary {
+    padding: var(--space-3);
+  }
+  
+  .error-content {
+    padding: var(--space-4);
+  }
+  
+  .error-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+}
+
+/* Performance Optimizations */
+@media (prefers-reduced-motion: reduce) {
+  .error-content {
+    animation: none;
+  }
+  
+  .error-icon {
+    animation: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .error-content {
+    border-width: 2px;
+  }
+  
+  .error-icon {
+    border: 2px solid currentColor;
+  }
+  
+  .error-button {
+    border: 2px solid transparent;
+  }
+}

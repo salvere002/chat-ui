@@ -1,39 +1,41 @@
+/* Settings Modal - Professional Configuration Interface */
 .settings-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(5px);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  animation: fade-in 0.2s ease;
+  z-index: var(--z-modal);
+  padding: var(--space-4);
+  animation: fadeIn var(--transition-fast) ease-out;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Settings Modal - Clean Card Design */
 .settings-modal {
-  background-color: var(--bg-color, #ffffff);
-  border-radius: 16px;
-  width: 90%;
-  max-width: 700px;
-  min-height: 500px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  background-color: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 600px;
   max-height: 85vh;
-  overflow-y: auto;
-  color: var(--text-color, #333333);
-  border: 1px solid var(--border-color, #e0e0e0);
-  animation: slide-up 0.3s ease-out;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp var(--transition-base) ease-out;
 }
 
-/* Animation keyframes */
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slide-up {
+@keyframes slideUp {
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -44,159 +46,247 @@
   }
 }
 
-/* Dark theme specific styles for settings modal */
-.dark-theme .settings-modal {
-  background-color: var(--bg-primary-dark, #1e1e1e);
-  color: var(--text-primary-dark, #f5f5f5);
-  border-color: var(--border-color-dark, #444);
-}
-
+/* Settings Header - Professional Title Bar */
 .settings-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 20px 25px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-  background-color: var(--bg-secondary, #f5f5f5);
-  border-radius: 16px 16px 0 0;
-}
-
-/* Dark theme specific styles for settings header */
-.dark-theme .settings-header {
-  background-color: var(--bg-secondary-dark, #252525);
-  border-color: var(--border-color-dark, #444);
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-primary);
 }
 
 .settings-header h2 {
-  margin: 0;
-  font-size: 1.75rem;
-  color: var(--text-color, #333333);
+  font-size: var(--text-xl);
   font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
 }
 
-/* Dark theme specific styles for settings heading */
-.dark-theme .settings-header h2 {
-  color: var(--text-primary-dark, #f5f5f5);
-}
-
+/* Close Button - Clean Icon */
 .close-button {
-  background: none;
-  border: none;
-  font-size: 1.75rem;
-  cursor: pointer;
-  color: var(--text-color, #333333);
-  opacity: 0.7;
-  transition: all 0.2s;
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-}
-
-/* Dark theme specific styles for close button */
-.dark-theme .close-button {
-  color: var(--text-primary-dark, #f5f5f5);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  font-size: 24px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .close-button:hover {
-  opacity: 1;
-  background-color: var(--hover-color, rgba(0, 0, 0, 0.05));
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
   transform: rotate(90deg);
 }
 
-/* Tab navigation styles */
+/* Settings Tabs - Clean Navigation */
 .settings-tabs {
   display: flex;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-  background-color: var(--bg-secondary, #f9f9f9);
-}
-
-.dark-theme .settings-tabs {
-  background-color: var(--bg-secondary-dark, #252525);
-  border-color: var(--border-color-dark, #444);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-primary);
+  padding: 0 var(--space-6);
 }
 
 .settings-tab {
   flex: 1;
-  padding: 16px 20px;
+  padding: var(--space-3) var(--space-4);
   background: none;
   border: none;
-  border-bottom: 3px solid transparent;
-  font-size: 1rem;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--text-secondary, #666);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   position: relative;
 }
 
+.settings-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--color-accent-primary);
+  transform: scaleX(0);
+  transition: transform var(--transition-fast);
+}
+
 .settings-tab:hover {
-  color: var(--text-primary, #333);
-  background-color: var(--hover-color, rgba(0, 0, 0, 0.02));
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-tertiary);
 }
 
 .settings-tab.active {
-  color: var(--primary-color, #0078d4);
-  border-bottom-color: var(--primary-color, #0078d4);
+  color: var(--color-accent-primary);
   background-color: transparent;
 }
 
-.dark-theme .settings-tab {
-  color: var(--text-secondary-dark, #aaa);
+.settings-tab.active::after {
+  transform: scaleX(1);
 }
 
-.dark-theme .settings-tab:hover {
-  color: var(--text-primary-dark, #f5f5f5);
-  background-color: var(--hover-color-dark, rgba(255, 255, 255, 0.05));
-}
-
-.dark-theme .settings-tab.active {
-  color: var(--primary-color-dark, #2b88d8);
-  border-bottom-color: var(--primary-color-dark, #2b88d8);
-}
-
+/* Settings Form - Clean Form Layout */
 .settings-form {
-  padding: 25px;
-  background-color: var(--bg-color, #ffffff);
-  min-height: 300px;
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6);
+  background-color: var(--color-bg-primary);
 }
 
-/* Dark theme specific styles for settings form */
-.dark-theme .settings-form {
-  background-color: var(--bg-primary-dark, #1e1e1e);
+/* Custom Scrollbar */
+.settings-form::-webkit-scrollbar {
+  width: 6px;
 }
 
+.settings-form::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-form::-webkit-scrollbar-thumb {
+  background: var(--color-border-primary);
+  border-radius: var(--radius-full);
+}
+
+/* Settings Section - Organized Groups */
 .settings-section {
-  margin-bottom: 30px;
+  margin-bottom: var(--space-6);
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
 }
 
 .settings-section h3 {
-  margin: 0 0 20px 0;
-  font-size: 1.25rem;
-  color: var(--text-color, #333333);
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--border-color-light, #e0e0e0);
+  font-size: var(--text-base);
   font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4) 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-secondary);
 }
 
-/* Dark theme specific styles for section headings */
-.dark-theme .settings-section h3 {
-  color: var(--text-primary-dark, #f5f5f5);
-  border-color: var(--border-color-dark, #444);
+/* Form Groups - Clean Input Layout */
+.form-group {
+  margin-bottom: var(--space-4);
 }
 
-/* Placeholder content styles */
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* Form Controls - Professional Inputs */
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: var(--space-3);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  transition: all var(--transition-fast);
+}
+
+.form-group input:hover,
+.form-group select:hover {
+  border-color: var(--color-text-tertiary);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+  background-color: var(--color-bg-primary);
+}
+
+/* Select Dropdown - Custom Arrow */
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  background-size: 16px;
+  padding-right: var(--space-7);
+  cursor: pointer;
+}
+
+/* Settings Actions - Button Group */
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-secondary);
+}
+
+/* Save Button - Primary Action */
+.save-button {
+  padding: var(--space-3) var(--space-5);
+  background-color: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.save-button:hover {
+  background-color: var(--color-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.save-button:active {
+  transform: scale(0.98);
+}
+
+/* Cancel Button - Secondary Action */
+.cancel-button {
+  padding: var(--space-3) var(--space-5);
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cancel-button:hover {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-tertiary);
+}
+
+/* Placeholder Content - Clean Info */
 .settings-placeholder {
-  color: var(--text-secondary, #666);
-  font-size: 1rem;
-  margin-bottom: 20px;
-  font-style: italic;
-}
-
-.dark-theme .settings-placeholder {
-  color: var(--text-secondary-dark, #aaa);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
 }
 
 .coming-soon-list {
@@ -206,149 +296,119 @@
 }
 
 .coming-soon-list li {
-  padding: 10px 0;
-  padding-left: 25px;
   position: relative;
-  color: var(--text-secondary, #666);
+  padding-left: var(--space-5);
+  margin-bottom: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
 }
 
 .coming-soon-list li::before {
-  content: "→";
+  content: '→';
   position: absolute;
   left: 0;
-  color: var(--primary-color, #0078d4);
+  color: var(--color-accent-primary);
+  font-weight: 600;
 }
 
-.dark-theme .coming-soon-list li {
-  color: var(--text-secondary-dark, #aaa);
-}
-
-.dark-theme .coming-soon-list li::before {
-  color: var(--primary-color-dark, #2b88d8);
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: var(--text-color, #333333);
-}
-
-/* Dark theme specific styles for form labels */
-.dark-theme .form-group label {
-  color: var(--text-primary-dark, #f5f5f5);
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 4px;
-  background-color: var(--input-bg, #ffffff);
-  color: var(--text-color, #333333);
-  font-size: 0.9rem;
-}
-
-/* Dark theme specific styles for form inputs and selects */
-.dark-theme .form-group input,
-.dark-theme .form-group select {
-  background-color: var(--bg-secondary-dark, #333333);
-  color: var(--text-primary-dark, #f5f5f5);
-  border-color: var(--border-color-dark, #555);
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: var(--primary-color, #0078d4);
-  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
-}
-
-/* Dark theme specific styles for focused form elements */
-.dark-theme .form-group input:focus,
-.dark-theme .form-group select:focus {
-  border-color: var(--primary-color-dark, #2b88d8);
-  box-shadow: 0 0 0 2px rgba(43, 136, 216, 0.3);
-}
-
-.settings-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.save-button,
-.cancel-button {
-  padding: 10px 15px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.save-button {
-  background-color: var(--primary-color, #0078d4);
-  color: white;
-  border: none;
-}
-
-.save-button:hover {
-  background-color: var(--primary-color-dark, #106ebe);
-}
-
-/* Dark theme specific styles for save button */
-.dark-theme .save-button {
-  background-color: var(--primary-color-dark, #2b88d8);
-}
-
-.dark-theme .save-button:hover {
-  background-color: var(--primary-color, #0078d4);
-}
-
-.cancel-button {
-  background-color: transparent;
-  color: var(--text-color, #333333);
-  border: 1px solid var(--border-color, #e0e0e0);
-}
-
-.cancel-button:hover {
-  background-color: var(--hover-color, #f5f5f5);
-}
-
-/* Dark theme specific styles for cancel button */
-.dark-theme .cancel-button {
-  color: var(--text-primary-dark, #f5f5f5);
-  border-color: var(--border-color-dark, #555);
-}
-
-.dark-theme .cancel-button:hover {
-  background-color: var(--hover-color-dark, #3a3a3a);
-}
-
-/* Responsive design for settings modal */
+/* Responsive Design */
 @media (max-width: 768px) {
+  .settings-overlay {
+    padding: var(--space-3);
+  }
+  
   .settings-modal {
-    max-width: 95%;
-    min-height: 400px;
-    margin: 10px;
+    max-width: 100%;
+    max-height: 90vh;
+  }
+  
+  .settings-header {
+    padding: var(--space-4);
   }
   
   .settings-tabs {
-    overflow-x: auto;
-  }
-  
-  .settings-tab {
-    padding: 12px 16px;
-    font-size: 0.9rem;
+    padding: 0 var(--space-4);
   }
   
   .settings-form {
-    padding: 20px;
+    padding: var(--space-4);
   }
-} 
+  
+  .settings-section {
+    margin-bottom: var(--space-5);
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-overlay {
+    padding: 0;
+  }
+  
+  .settings-modal {
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  
+  .settings-header {
+    padding: var(--space-3);
+  }
+  
+  .settings-header h2 {
+    font-size: var(--text-lg);
+  }
+  
+  .settings-tabs {
+    padding: 0 var(--space-3);
+  }
+  
+  .settings-tab {
+    padding: var(--space-3);
+    font-size: var(--text-xs);
+  }
+  
+  .settings-form {
+    padding: var(--space-3);
+  }
+  
+  .settings-actions {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  
+  .save-button,
+  .cancel-button {
+    width: 100%;
+  }
+}
+
+/* Performance Optimizations */
+@media (prefers-reduced-motion: reduce) {
+  .settings-overlay,
+  .settings-modal {
+    animation: none;
+  }
+  
+  .settings-tab::after {
+    transition: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .settings-modal {
+    border: 2px solid var(--color-border-primary);
+  }
+  
+  .form-group input,
+  .form-group select {
+    border-width: 2px;
+  }
+  
+  .save-button {
+    border: 2px solid transparent;
+  }
+  
+  .cancel-button {
+    border-width: 2px;
+  }
+}
