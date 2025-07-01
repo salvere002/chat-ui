@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Agent } from '../types/chat';
+import { ResponseMode } from '../types/chat';
 import { useServiceConfigStore } from '../stores';
 import { AdapterType } from '../services/chatService';
 import './Settings.css';
 
 interface SettingsProps {
   onClose: () => void;
-  selectedAgent: Agent;
-  onAgentChange: (agent: Agent) => void;
+  selectedResponseMode: ResponseMode;
+  onResponseModeChange: (responseMode: ResponseMode) => void;
 }
 
 type SettingsTab = 'general';
 
 const Settings: React.FC<SettingsProps> = ({ 
   onClose, 
-  selectedAgent, 
-  onAgentChange 
+  selectedResponseMode, 
+  onResponseModeChange 
 }) => {
   const {
     currentAdapterType,
@@ -131,8 +131,8 @@ const Settings: React.FC<SettingsProps> = ({
                   <label htmlFor="response-mode">Response Mode:</label>
                   <select
                     id="response-mode"
-                    value={selectedAgent}
-                    onChange={(e) => onAgentChange(e.target.value as Agent)}
+                    value={selectedResponseMode}
+                    onChange={(e) => onResponseModeChange(e.target.value as ResponseMode)}
                   >
                     <option value="stream">Stream (Real-time)</option>
                     <option value="fetch">Fetch (Complete)</option>

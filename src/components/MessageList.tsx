@@ -4,7 +4,7 @@ import { Message } from '../types/chat';
 import './MessageList.css';
 import { useChatStore } from '../stores';
 import { ChatService } from '../services/chatService';
-import { useAgentStore } from '../stores';
+import { useResponseModeStore } from '../stores';
 
 interface MessageListProps {
   messages: Message[];
@@ -17,7 +17,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const accumulatedTextRef = useRef<string>("");
   const { activeChatId, updateMessageInChat, setProcessing } = useChatStore();
-  const { selectedAgent } = useAgentStore();
+  const { selectedResponseMode } = useResponseModeStore();
   const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
   const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
   const [previousLastMessageId, setPreviousLastMessageId] = useState<string>('');
@@ -124,8 +124,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
       // Reset accumulated text
       accumulatedTextRef.current = "";
       
-      // Use the ChatService based on selected agent type
-      if (selectedAgent === 'stream') {
+      // Use the ChatService based on selected response mode
+      if (selectedResponseMode === 'stream') {
         // Streaming API call
         await ChatService.sendStreamingMessage(
           userMessageText,

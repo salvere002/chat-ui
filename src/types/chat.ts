@@ -55,5 +55,5 @@ export interface BranchNode {
   childBranches: string[]; // Child branch IDs
 }
 
-// Agent type for different message sending methods
-export type Agent = 'stream' | 'fetch'; 
+// Response mode type for different message sending methods
+export type ResponseMode = 'stream' | 'fetch'; 
