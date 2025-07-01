@@ -4,15 +4,15 @@ import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
 import { useChatStore, useToastStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
-import { Agent, Message, MessageFile } from '../types/chat';
+import { ResponseMode, Message, MessageFile } from '../types/chat';
 import { ChatService } from '../services/chatService';
 import './ChatInterface.css';
 
 interface ChatInterfaceProps {
-  selectedAgent: Agent;
+  selectedResponseMode: ResponseMode;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) => {
   // Get chat state and handlers from the Zustand store
   const {
     activeChatId,
@@ -128,8 +128,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
       // Add initial empty AI message to the chat
       addMessageToChat(currentChatId, aiMessage);
       
-      // Send the API request based on selected agent
-      if (selectedAgent === 'stream') {
+      // Send the API request based on selected response mode
+      if (selectedResponseMode === 'stream') {
         // Streaming API call with proper callback handling
         await ChatService.sendStreamingMessage(
           messageText,

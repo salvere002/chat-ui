@@ -4,7 +4,7 @@ import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { FaSun, FaMoon, FaCog } from 'react-icons/fa';
 import { ToastContainer } from './components/Toast';
-import { useThemeStore, useChatStore, useAgentStore } from './stores';
+import { useThemeStore, useChatStore, useResponseModeStore } from './stores';
 import Settings from './components/Settings';
 import './App.css';
 
@@ -21,8 +21,8 @@ const App: React.FC = () => {
     deleteChat
   } = useChatStore();
   
-  // Use the agent store for agent selection
-  const { selectedAgent, setSelectedAgent } = useAgentStore();
+  // Use the response mode store for response mode selection
+  const { selectedResponseMode, setSelectedResponseMode } = useResponseModeStore();
   
   // State for settings modal
   const [showSettings, setShowSettings] = useState(false);
@@ -61,8 +61,8 @@ const App: React.FC = () => {
       {showSettings && (
         <Settings 
           onClose={() => setShowSettings(false)}
-          selectedAgent={selectedAgent}
-          onAgentChange={setSelectedAgent}
+          selectedResponseMode={selectedResponseMode}
+          onResponseModeChange={setSelectedResponseMode}
         />
       )}
       
@@ -83,7 +83,7 @@ const App: React.FC = () => {
         
         <div className="chat-area">
           <ErrorBoundary>
-            <ChatInterface selectedAgent={selectedAgent} />
+            <ChatInterface selectedResponseMode={selectedResponseMode} />
           </ErrorBoundary>
         </div>
       </div>

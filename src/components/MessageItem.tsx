@@ -10,7 +10,7 @@ import './MessageItem.css';
 import { fileService } from '../services/fileService';
 import useChatStore from '../stores/chatStore';
 import { ChatService } from '../services/chatService';
-import { useAgentStore } from '../stores';
+import { useResponseModeStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
 
 interface MessageItemProps {
@@ -34,8 +34,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     setProcessing
   } = useChatStore();
   
-  // Get agent selection for AI responses
-  const { selectedAgent } = useAgentStore();
+  // Get response mode selection for AI responses
+  const { selectedResponseMode } = useResponseModeStore();
   
   // Local state for edit mode
   const [isEditing, setIsEditing] = useState(false);
@@ -152,8 +152,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       // Add initial empty AI message to the chat
       addMessageToChat(chatId, aiMessage);
       
-      // Use the ChatService based on selected agent type
-      if (selectedAgent === 'stream') {
+      // Use the ChatService based on selected response mode
+      if (selectedResponseMode === 'stream') {
         // Reset accumulated text
         accumulatedTextRef.current = '';
         

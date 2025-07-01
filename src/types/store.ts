@@ -1,4 +1,4 @@
-import { Message, Chat, Agent, BranchNode } from './chat';
+import { Message, Chat, ResponseMode, BranchNode } from './chat';
 
 // Define interface for the chat store state
 export interface ChatStore {
@@ -50,8 +50,8 @@ export interface ToastStore {
   hideToast: (id: string) => void;
 }
 
-// Define interface for the agent store state
-export interface AgentStore {
-  selectedAgent: Agent;
-  setSelectedAgent: (agent: Agent) => void;
+// Define interface for the response mode store state
+export interface ResponseModeStore {
+  selectedResponseMode: ResponseMode;
+  setSelectedResponseMode: (responseMode: ResponseMode) => void;
 } 
