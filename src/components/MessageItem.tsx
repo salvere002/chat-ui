@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Message, MessageFile } from '../types/chat'; // Import the Message and MessageFile types
-import { FaFileAlt, FaRedo, FaEdit, FaCheck, FaTimes, FaCopy } from 'react-icons/fa'; // Import required icons
+import { FaFileAlt, FaRedo, FaEdit, FaCheck, FaTimes, FaCopy, FaChevronLeft, FaChevronRight } from 'react-icons/fa'; // Import required icons
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
 import remarkGfm from 'remark-gfm'; // Import GFM plugin
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'; // Import syntax highlighter
@@ -8,18 +8,34 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; //
 import type { Components } from 'react-markdown'; // Import CodeProps directly from react-markdown
 import './MessageItem.css';
 import { fileService } from '../services/fileService';
-import { useChatStore } from '../stores';
+import useChatStore from '../stores/chatStore';
+import { ChatService } from '../services/chatService';
+import { useAgentStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
 
 interface MessageItemProps {
   message: Message;
   onRegenerateResponse?: () => void;
   onEditMessage?: (messageId: string, newText: string) => void;
+  chatId: string;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, chatId }) => {
   // Destructure files array instead of single file
   const { text, sender, timestamp, files, imageUrl, isComplete, id } = message;
+  
+  // Get store methods for branch management
+  const { 
+    getBranchOptionsAtMessage, 
+    switchToBranch, 
+    createBranchFromMessage,
+    addMessageToChat,
+    updateMessageInChat,
+    setProcessing
+  } = useChatStore();
+  
+  // Get agent selection for AI responses
+  const { selectedAgent } = useAgentStore();
   
   // Local state for edit mode
   const [isEditing, setIsEditing] = useState(false);
@@ -30,6 +46,45 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
 
   // Ref for textarea auto-resizing
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Get branch options and debug what's happening
+  const branchOptions = getBranchOptionsAtMessage(chatId, id);
+  
+  // Debug: Let's see what data we have
+  console.log('🔍 Branch detection debug for message:', {
+    messageId: id,
+    messageText: text?.substring(0, 30),
+    messageBranchId: message.branchId,
+    branchOptions: branchOptions.length,
+    branchOptionsData: branchOptions,
+    branchPoint: message.branchPoint,
+    children: message.children
+  });
+  
+  // Check if this message has branches (either from getBranchOptionsAtMessage or branchPoint flag)
+  const hasBranches = branchOptions.length > 1 || message.branchPoint === true;
+  const totalBranches = Math.max(branchOptions.length, hasBranches ? 2 : 1);
+  
+  // Find current branch index
+  const currentBranchIndex = branchOptions.findIndex(option => option.id === message.branchId);
+  const actualCurrentBranchIndex = currentBranchIndex >= 0 ? currentBranchIndex : 0;
+  
+  // Detailed logging for switcher condition
+  const switcherCondition = hasBranches && totalBranches > 1;
+  console.log('🔍 Branch switcher condition for message:', {
+    messageId: id,
+    messageText: text?.substring(0, 30),
+    messageBranchId: message.branchId,
+    branchOptions: branchOptions.length,
+    branchOptionsData: branchOptions,
+    branchPoint: message.branchPoint,
+    hasBranches,
+    totalBranches,
+    currentBranchIndex,
+    actualCurrentBranchIndex,
+    switcherCondition,
+    willShowSwitcher: switcherCondition
+  });
   
   // Auto-resize the textarea based on content
   const autoResizeTextarea = () => {
@@ -51,21 +106,152 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
-  // Helper to format file size
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+  // Handle branch navigation
+  const handlePreviousBranch = () => {
+    if (hasBranches && actualCurrentBranchIndex > 0 && branchOptions.length > actualCurrentBranchIndex - 1) {
+      const previousBranch = branchOptions[actualCurrentBranchIndex - 1];
+      if (previousBranch) {
+        switchToBranch(chatId, previousBranch.id);
+      }
+    }
   };
 
-  // Handle edit save
-  const handleSaveEdit = () => {
-    if (onEditMessage && editText.trim()) {
-      onEditMessage(id, editText);
+  const handleNextBranch = () => {
+    if (hasBranches && actualCurrentBranchIndex < totalBranches - 1 && branchOptions.length > actualCurrentBranchIndex + 1) {
+      const nextBranch = branchOptions[actualCurrentBranchIndex + 1];
+      if (nextBranch) {
+        switchToBranch(chatId, nextBranch.id);
+      }
     }
+  };
+
+  // Generate AI response for new branch
+  const generateAIResponseForNewBranch = async (userText: string, userFiles: any[]) => {
+    if (!chatId) return;
+    
+    try {
+      // Set processing state
+      setProcessing(true);
+      
+      // Create a unique message ID for AI response
+      const aiMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Create initial AI message (will be updated with stream)
+      // It should inherit the current branch context
+      const aiMessage: Message = {
+        id: aiMessageId,
+        text: '',
+        sender: 'ai',
+        timestamp: new Date(),
+        isComplete: false,
+        branchId: message.branchId, // Inherit current branch context
+        children: []
+      };
+      
+      // Add initial empty AI message to the chat
+      addMessageToChat(chatId, aiMessage);
+      
+      // Use the ChatService based on selected agent type
+      if (selectedAgent === 'stream') {
+        // Reset accumulated text
+        accumulatedTextRef.current = '';
+        
+        // Streaming API call
+        await ChatService.sendStreamingMessage(
+          userText,
+          userFiles,
+          {
+            onChunk: (chunk) => {
+              // Update the AI message with each chunk
+              if (chunk.text) {
+                accumulatedTextRef.current += chunk.text;
+                updateMessageInChat(chatId, aiMessageId, {
+                  text: accumulatedTextRef.current,
+                  imageUrl: chunk.imageUrl
+                });
+              }
+            },
+            onComplete: () => {
+              // Mark as complete when done
+              updateMessageInChat(chatId, aiMessageId, {
+                isComplete: true
+              });
+              // Clear processing state
+              setProcessing(false);
+              // Reset accumulated text
+              accumulatedTextRef.current = '';
+            },
+            onError: (error) => {
+              // Show error and mark message as complete
+              console.error('AI response error:', error.message);
+              updateMessageInChat(chatId, aiMessageId, {
+                text: 'Sorry, there was an error processing your request.',
+                isComplete: true
+              });
+              // Clear processing state
+              setProcessing(false);
+              // Reset accumulated text
+              accumulatedTextRef.current = '';
+            }
+          }
+        );
+      } else {
+        // Non-streaming API call
+        const response = await ChatService.sendMessage(userText, userFiles);
+        // Update AI message with complete response
+        updateMessageInChat(chatId, aiMessageId, {
+          text: response.text,
+          isComplete: true
+        });
+        // Clear processing state
+        setProcessing(false);
+      }
+    } catch (error) {
+      // Handle errors
+      console.error("Error generating AI response for new branch:", error);
+      setProcessing(false);
+    }
+  };
+
+  // Helper to get current message text (for streaming)  
+  const accumulatedTextRef = useRef<string>('');
+
+  // Handle creating new branch (replacing edit functionality)
+  const handleCreateBranch = () => {
+    if (!editText.trim()) {
+      setIsEditing(false);
+      return;
+    }
+
+
+    // Create a new version of this message in a new branch
+    // The new message should have a new ID but replace the original in the new branch
+    const newMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // New unique ID
+      text: editText.trim(),
+      sender: message.sender,
+      timestamp: new Date(), // New timestamp
+      files: message.files || [],
+      isComplete: true,
+      children: [],
+      branchId: message.branchId, // Will be updated by createBranchFromMessage
+      parentId: message.parentId
+    };
+
+    // Create branch from THIS message (not parent) - this message will have multiple branches
+    const newBranchId = createBranchFromMessage(chatId, message.id, newMessage);
+    switchToBranch(chatId, newBranchId);
+    
+    // Generate AI response for the new branch
+    generateAIResponseForNewBranch(editText.trim(), message.files || []);
+    
     setIsEditing(false);
+  };
+
+  // Handle edit save (now creates branch instead)
+  const handleSaveEdit = () => {
+    handleCreateBranch();
   };
 
   // Cancel edit
@@ -208,6 +394,31 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         <div className="message-timestamp">{formatTime(timestamp)}</div>
         
         <div className="message-actions">
+          {/* Branch navigation - show when message has multiple branches */}
+          {hasBranches && totalBranches > 1 && (
+            <div className="branch-navigation">
+              <button 
+                className="message-action-button branch-nav-button" 
+                onClick={handlePreviousBranch}
+                disabled={actualCurrentBranchIndex <= 0}
+                title="Previous branch"
+              >
+                <FaChevronLeft />
+              </button>
+              <span className="branch-counter">
+                {actualCurrentBranchIndex + 1}/{totalBranches}
+              </span>
+              <button 
+                className="message-action-button branch-nav-button" 
+                onClick={handleNextBranch}
+                disabled={actualCurrentBranchIndex >= totalBranches - 1}
+                title="Next branch"
+              >
+                <FaChevronRight />
+              </button>
+            </div>
+          )}
+          
           {/* Copy button for all messages with text */}
           {text && (
             <button 
@@ -219,12 +430,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
             </button>
           )}
           
-          {/* For user messages: Edit button (if editable and complete) */}
+          {/* For user messages: Create Branch button (replacing edit) */}
           {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
             <button 
               className="message-action-button edit-button" 
               onClick={() => setIsEditing(true)}
-              title="Edit message"
+              title="Create new branch"
             >
               <FaEdit />
             </button>

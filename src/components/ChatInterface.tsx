@@ -15,7 +15,6 @@ interface ChatInterfaceProps {
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
   // Get chat state and handlers from the Zustand store
   const {
-    chatSessions,
     activeChatId,
     getChatById,
     addMessageToChat,
@@ -23,14 +22,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
     isProcessing: storeIsProcessing,
     setProcessing,
     createChat,
-    setActiveChat
+    setActiveChat,
+    getCurrentBranchMessages
   } = useChatStore();
 
   // Get toast functions from Zustand store
   const { showToast } = useToastStore();
 
-  // Get the messages for the currently active chat
-  const activeChatMessages = activeChatId ? getChatById(activeChatId)?.messages || [] : [];
+  // Get the messages for the currently active chat (branch-aware)
+  const activeChatMessages = activeChatId ? getCurrentBranchMessages(activeChatId) : [];
   
   // Local state for error handling
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
   // Get file upload state and handlers from custom hook
   const { 
     fileUploads, 
-    handleFileSelect,
     uploadFiles, 
     resetFileUploads,
     isProcessing: isFileProcessing
@@ -98,7 +97,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
         text: messageText,
         sender: 'user',
         timestamp: new Date(),
-        files: uploadedFiles.length > 0 ? uploadedFiles : undefined
+        files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+        branchId: 'main',
+        children: []
       };
       
       // Add to chat state
@@ -119,7 +120,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
         text: '',
         sender: 'ai',
         timestamp: new Date(),
-        isComplete: false
+        isComplete: false,
+        branchId: 'main',
+        children: []
       };
       
       // Add initial empty AI message to the chat
@@ -203,7 +206,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedAgent }) => {
           </div>
         </div>
       ) : (
-        <MessageList messages={activeChatMessages} />
+        <MessageList messages={activeChatMessages} chatId={activeChatId} />
       )}
       
       {/* Display loading state */}

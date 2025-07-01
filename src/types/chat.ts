@@ -16,6 +16,11 @@ export interface Message {
   // AI specific fields
   imageUrl?: string; // URL of an image sent by the AI
   isComplete?: boolean; // Flag for streaming responses (true/undefined if complete)
+  // Branch structure
+  parentId?: string; // Parent message ID for tree structure
+  branchId: string; // Unique identifier for this branch path
+  children: string[]; // Child message IDs
+  branchPoint?: boolean; // True if this message has multiple child branches
 }
 
 // Define a type for the preview file state
@@ -40,6 +45,14 @@ export interface Chat {
   name?: string; // Include name for compatibility 
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Branch node metadata
+export interface BranchNode {
+  id: string;
+  messageId: string; // Message this branch starts from
+  depth: number; // How deep in the tree
+  childBranches: string[]; // Child branch IDs
 }
 
 // Agent type for different message sending methods
