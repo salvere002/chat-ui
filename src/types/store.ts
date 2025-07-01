@@ -1,4 +1,4 @@
-import { Message, Chat, Agent } from './chat';
+import { Message, Chat, Agent, BranchNode } from './chat';
 
 // Define interface for the chat store state
 export interface ChatStore {
@@ -7,6 +7,10 @@ export interface ChatStore {
   activeChatId: string | null;
   isProcessing: boolean;
   error: string | null;
+  // Branch state
+  activeBranchPath: Map<string, string[]>; // chatId -> branch path
+  branchTree: Map<string, Map<string, BranchNode>>; // chatId -> branchId -> BranchNode
+  messageBranches: Map<string, Map<string, string[]>>; // chatId -> messageId -> branchIds
   
   // Actions
   createChat: (name?: string) => string;
@@ -18,6 +22,14 @@ export interface ChatStore {
   renameChatSession: (chatId: string, newName: string) => void;
   clearError: () => void;
   setProcessing: (isProcessing: boolean) => void;
+  // Branch actions
+  getCurrentBranchMessages: (chatId: string) => Message[];
+  createBranchFromMessage: (chatId: string, messageId: string, newMessage: Message) => string;
+  switchToBranch: (chatId: string, branchId: string) => void;
+  deleteBranch: (chatId: string, branchId: string) => void;
+  getBranchingPoints: (chatId: string) => Message[];
+  getBranchOptionsAtMessage: (chatId: string, messageId: string) => BranchNode[];
+  getBreadcrumb: (chatId: string) => string[];
 }
 
 // Define interface for the theme store state

@@ -8,37 +8,19 @@ import { useAgentStore } from '../stores';
 
 interface MessageListProps {
   messages: Message[];
+  chatId: string | null;
 }
 
-// Loading skeleton for messages
-const MessageSkeleton: React.FC<{ count: number }> = ({ count }) => {
-  return (
-    <>
-      {Array(count).fill(0).map((_, index) => (
-        <div key={index} className={`message-item ${index % 2 === 0 ? 'user' : 'ai'}`}>
-          <div className={`message-content skeleton-message ${index % 2 === 0 ? 'user' : 'ai'}`}>
-            <div className="skeleton skeleton-line" style={{ width: `${Math.random() * 40 + 60}%`, height: '12px' }}></div>
-            <div className="skeleton skeleton-line" style={{ width: `${Math.random() * 30 + 40}%`, height: '12px' }}></div>
-            {index % 2 !== 0 && Math.random() > 0.5 && (
-              <div className="skeleton skeleton-line" style={{ width: `${Math.random() * 20 + 20}%`, height: '12px' }}></div>
-            )}
-          </div>
-        </div>
-      ))}
-    </>
-  );
-};
 
-const MessageList: React.FC<MessageListProps> = ({ messages }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const accumulatedTextRef = useRef<string>("");
-  const { activeChatId, updateMessageInChat, setProcessing, getChatById } = useChatStore();
+  const { activeChatId, updateMessageInChat, setProcessing } = useChatStore();
   const { selectedAgent } = useAgentStore();
   const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
   const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
   const [previousLastMessageId, setPreviousLastMessageId] = useState<string>('');
-  const [regenerationError, setRegenerationError] = useState<string | null>(null);
   
   // Scroll to bottom function - memoized to prevent unnecessary recreations
   const scrollToBottom = useCallback(() => {
@@ -174,7 +156,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
             },
             onError: (error) => {
               // Show error and mark message as complete
-              setRegenerationError(error.message);
+              console.error('Regeneration error:', error.message);
               updateMessageInChat(activeChatId, aiMessageId, {
                 text: 'Sorry, there was an error processing your request.',
                 isComplete: true
@@ -272,6 +254,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
           <MessageItem 
             key={msg.id} 
             message={msg} 
+            chatId={chatId || ''}
             onRegenerateResponse={
               msg.sender === 'user' && 
               index < messages.length - 1 && 

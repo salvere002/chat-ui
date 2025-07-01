@@ -167,6 +167,43 @@
 .message-actions {
   display: flex;
   gap: var(--space-1);
+  align-items: center;
+}
+
+/* Branch Navigation */
+.branch-navigation {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
+}
+
+.branch-nav-button {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.branch-nav-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.branch-nav-button svg {
+  font-size: 10px !important;
+}
+
+.branch-counter {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  min-width: 24px;
+  text-align: center;
+  padding: 0 var(--space-1);
 }
 
 .message-action-button {

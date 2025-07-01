@@ -121,3 +121,25 @@ If you need to modify the application configuration:
 2. Restart both frontend and backend applications to apply changes
 
 For production deployment, make sure to update the API base URL and other settings in the configuration file.
+
+## Message Branching and Versioning
+
+This application supports message branching, allowing users to explore different conversational paths from any user message.
+
+### How it Works
+
+-   **Creating a Branch**: To create a new branch, simply edit any of your previous messages. Instead of overwriting the original message, the application will preserve the original and create a new "branch" with your edited message and the subsequent AI response.
+-   **Switching Branches**: When a message has multiple branches, a branch switcher will appear below the message. You can use the arrow buttons to navigate between the different versions of the conversation.
+-   **Branch Indicator**: The switcher displays the current branch number and the total number of available branches (e.g., "1/3").
+
+### Data Structure
+
+The branching feature is managed within the `chatStore` using a few key data structures:
+
+-   **`Message`**: The `Message` object in `src/types/chat.ts` has been extended to support branching:
+    -   `branchId`: Identifies which branch the message belongs to.
+    -   `parentId`: The ID of the message from which this message was branched.
+    -   `branchPoint`: A boolean flag that is `true` if a message is the starting point for one or more branches.
+-   **`branchTree`**: A `Map` that stores the relationships between branches, forming a tree-like structure for each chat session.
+-   **`messageBranches`**: A `Map` that links a message ID to the different branch IDs that originate from it.
+-   **`activeBranchPath`**: A `Map` that keeps track of the currently active branch path for each chat, from the 'main' branch to the current tip.
