@@ -63,7 +63,8 @@ const useAgentStore = create<AgentStore>((set, get) => ({
 
   // Actions
   setAgents: (agents: Agent[]) => {
-    set({ agents });
+    const sanitizedAgents = agents.map(agent => sanitizeAgent(agent));
+    set({ agents: sanitizedAgents });
   },
 
   addAgent: (agent: Agent) => {
@@ -75,9 +76,14 @@ const useAgentStore = create<AgentStore>((set, get) => ({
 
   updateAgent: (agentId: string, updates: Partial<Agent>) => {
     set((state) => ({
-      agents: state.agents.map(agent =>
-        agent.id === agentId ? { ...agent, ...updates } : agent
-      )
+      agents: state.agents.map(agent => {
+        if (agent.id === agentId) {
+          const updatedAgent = { ...agent, ...updates };
+          // Ensure the updated agent still has required fields
+          return sanitizeAgent(updatedAgent);
+        }
+        return agent;
+      })
     }));
   },
 
