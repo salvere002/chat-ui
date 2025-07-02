@@ -1,0 +1,134 @@
+.agent-selector {
+  position: relative;
+  display: inline-block;
+}
+
+.agent-selector-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0px 0px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 10px;
+  width: 70px;
+  gap: 1px;
+  height: 2px;
+}
+
+.agent-selector-button:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+}
+
+.agent-selector-button:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-alpha);
+}
+
+/* Removed agent-info class as it's no longer used */
+
+.agent-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.agent-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.agent-name {
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+  line-height: 1;
+}
+
+.agent-dropdown {
+  position: fixed;
+  transform: translate(-10%, -110%);
+  left: 50%;
+  min-width: 180px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.agent-option {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  gap: 8px;
+}
+
+.agent-option:hover {
+  background: var(--color-surface-hover);
+}
+
+.agent-option.selected {
+  background: var(--color-primary-alpha);
+  color: var(--color-primary);
+}
+
+.agent-option:first-child {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.agent-option:last-child {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.agent-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-option .agent-name {
+  font-weight: 500;
+  margin-bottom: 2px;
+  font-size: 12px;
+}
+
+.agent-description {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+.agent-option.selected .agent-description {
+  color: var(--color-primary);
+  opacity: 0.8;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .agent-dropdown {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}

@@ -2,6 +2,7 @@ import React, { useState, useRef, KeyboardEvent, ChangeEvent, useEffect, DragEve
 import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane } from 'react-icons/fa'; // Added FaPaperPlane
 import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
+import AgentSelector from './AgentSelector';
 import './MessageInput.css';
 
 interface MessageInputProps {
@@ -45,9 +46,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     // Reset height to auto so we can get the right scrollHeight
     textarea.style.height = 'auto';
     
-    // Set height based on content
-    const newHeight = Math.min(textarea.scrollHeight, 150); // Cap at max-height
-    textarea.style.height = `${newHeight}px`;
+    textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
   // Function to handle Send button click
@@ -217,23 +216,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* Input Area */}
       <div className="message-input-area">
-        <button 
-          onClick={handleUploadClick} 
-          className="upload-button" 
-          aria-label="Attach file" 
-          title="Attach file" 
-          disabled={isProcessing}
-        >
-          <FaPaperclip />
-        </button>
-        <input
-          type="file"
-          multiple
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-          accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"
-        />
+        <div className="input-controls">
+          <AgentSelector />
+          <button 
+            onClick={handleUploadClick} 
+            className="upload-button" 
+            aria-label="Attach file" 
+            title="Attach file" 
+            disabled={isProcessing}
+          >
+            <FaPaperclip size={8} />
+          </button>
+        </div>
         <textarea
           ref={textAreaRef}
           value={value}

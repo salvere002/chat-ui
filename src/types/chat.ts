@@ -56,4 +56,17 @@ export interface BranchNode {
 }
 
 // Response mode type for different message sending methods
-export type ResponseMode = 'stream' | 'fetch'; 
+export type ResponseMode = 'stream' | 'fetch';
+
+// Agent configuration interface
+export interface Agent {
+  id: string;
+  name: string;
+  description?: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  systemPrompt?: string;
+  avatar?: string;
+  isActive?: boolean;
+} 
