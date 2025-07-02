@@ -88,6 +88,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   // Function to trigger file input click
   const handleUploadClick = () => {
+    if (isProcessing) return;
     fileInputRef.current?.click();
   };
 
@@ -219,14 +220,22 @@ const MessageInput: React.FC<MessageInputProps> = ({
         <div className="input-controls">
           <AgentSelector />
           <button 
-            onClick={handleUploadClick} 
-            className="upload-button" 
-            aria-label="Attach file" 
-            title="Attach file" 
-            disabled={isProcessing}
-          >
-            <FaPaperclip size={8} />
-          </button>
+          onClick={handleUploadClick} 
+          className="upload-button" 
+          aria-label="Attach file" 
+          title="Attach file" 
+          disabled={isProcessing}
+        >
+          <FaPaperclip size={8} />
+        </button>
+        <input
+          type="file"
+          multiple
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+          accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"
+        />
         </div>
         <textarea
           ref={textAreaRef}

@@ -2,6 +2,25 @@ import { create } from 'zustand';
 import { AgentStore } from '../types/store';
 import { Agent } from '../types/chat';
 
+// Helper function to ensure agent has all required fields for UI compatibility
+const sanitizeAgent = (agent: Partial<Agent>): Agent => {
+  if (!agent.id || !agent.name) {
+    throw new Error('Agent must have id and name');
+  }
+  
+  return {
+    isActive: true,
+    description: '',
+    model: 'gpt-4-turbo',
+    temperature: 0.7,
+    maxTokens: 2000,
+    systemPrompt: 'You are a helpful AI assistant.',
+    ...agent,
+    id: agent.id,
+    name: agent.name
+  } as Agent;
+};
+
 // Mock agents data for initial testing
 const defaultAgents: Agent[] = [
   {
@@ -48,8 +67,9 @@ const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   addAgent: (agent: Agent) => {
+    const sanitizedAgent = sanitizeAgent(agent);
     set((state) => ({
-      agents: [...state.agents, agent]
+      agents: [...state.agents, sanitizedAgent]
     }));
   },
 

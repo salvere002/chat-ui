@@ -72,7 +72,7 @@ const AgentSelector: React.FC = () => {
             left: dropdownPosition.left
           }}
         >
-          {agents.filter(agent => agent.isActive).map((agent) => (
+          {agents.filter(agent => agent.isActive !== false).map((agent) => (
             <div
               key={agent.id}
               className={`agent-option ${selectedAgentId === agent.id ? 'selected' : ''}`}
