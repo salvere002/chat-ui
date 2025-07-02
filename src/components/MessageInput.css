@@ -163,7 +163,7 @@
 /* Message Input Area - Professional Input Group */
 .message-input-area {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--space-2);
   background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border-secondary);
@@ -171,6 +171,20 @@
   padding: var(--space-2);
   transition: all var(--transition-fast);
   position: relative;
+}
+
+/* Input controls vertical */
+.input-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* Agent selector in input controls */
+.input-controls .agent-selector {
+  flex-shrink: 0;
 }
 
 .message-input-area:focus-within {
@@ -184,16 +198,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   background-color: transparent;
-  border: none;
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-radius: 50px;
   color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all var(--transition-fast);
   flex-shrink: 0;
+  font-size: 8px;
 }
 
 .upload-button:hover:not(:disabled) {
@@ -230,6 +245,7 @@
   resize: none;
   overflow-y: auto;
   transition: all var(--transition-fast);
+  box-sizing: border-box;
 }
 
 .message-textarea:focus {

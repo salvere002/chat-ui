@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
-import { useChatStore, useToastStore } from '../stores';
+import { useChatStore, useToastStore, useAgentStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
 import { ChatService } from '../services/chatService';
@@ -28,6 +28,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
 
   // Get toast functions from Zustand store
   const { showToast } = useToastStore();
+
+  // Get agent information from the agent store
+  const { getSelectedAgent } = useAgentStore();
+  const selectedAgent = getSelectedAgent();
 
   // Get the messages for the currently active chat (branch-aware)
   const activeChatMessages = activeChatId ? getCurrentBranchMessages(activeChatId) : [];
