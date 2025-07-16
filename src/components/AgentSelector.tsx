@@ -17,8 +17,8 @@ const AgentSelector: React.FC = () => {
 
   const toggleDropdown = () => {
     if (!isOpen && buttonRef.current) {
-      // Find the message input area (parent container)
-      const inputArea = buttonRef.current.closest('.message-input-area');
+      // Find the input area container (the div with bg-bg-secondary)
+      const inputArea = buttonRef.current.closest('div[class*="bg-bg-secondary"]');
       if (inputArea) {
         const inputRect = inputArea.getBoundingClientRect();
         const buttonRect = buttonRef.current.getBoundingClientRect();
@@ -53,7 +53,7 @@ const AgentSelector: React.FC = () => {
     <div className="relative inline-block" ref={dropdownRef}>
       <button
         ref={buttonRef}
-        className="flex items-center justify-between p-0 bg-bg-primary border border-border-secondary rounded-full cursor-pointer transition-all duration-200 text-xs w-[70px] gap-0.5 h-2 hover:bg-bg-secondary hover:border-border-hover focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_var(--color-accent-light)]"
+        className="flex items-center justify-between px-2 py-1 bg-bg-primary border border-border-secondary rounded-full cursor-pointer transition-all duration-200 text-xs w-[70px] gap-0.5 min-h-[24px] hover:bg-bg-secondary hover:border-border-hover focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_var(--color-accent-light)]"
         onClick={toggleDropdown}
         type="button"
       >
