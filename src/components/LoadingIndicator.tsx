@@ -1,5 +1,4 @@
 import React from 'react';
-import './LoadingIndicator.css';
 
 interface LoadingIndicatorProps {
   size?: 'small' | 'medium' | 'large';
@@ -13,24 +12,28 @@ const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
   text
 }) => {
   return (
-    <div className={`loading-indicator ${size} ${type}`}>
+    <div className={`flex flex-col items-center justify-center gap-2 ${
+      size === 'small' ? '[--indicator-size:16px] [--dot-size:4px] text-xs' :
+      size === 'large' ? '[--indicator-size:32px] [--dot-size:8px] text-base' :
+      '[--indicator-size:24px] [--dot-size:6px] text-sm'
+    }`}>
       {type === 'spinner' && (
-        <div className="spinner"></div>
+        <div className="w-[var(--indicator-size)] h-[var(--indicator-size)] border-2 border-border-secondary border-t-accent-primary rounded-full animate-spin origin-center" />
       )}
       
       {type === 'dots' && (
-        <div className="dots">
-          <span></span>
-          <span></span>
-          <span></span>
+        <div className="flex items-center gap-[calc(var(--dot-size)*0.5)]">
+          <span className="w-[var(--dot-size)] h-[var(--dot-size)] bg-accent-primary rounded-full animate-pulse-dot opacity-30" />
+          <span className="w-[var(--dot-size)] h-[var(--dot-size)] bg-accent-primary rounded-full animate-pulse-dot opacity-30" style={{animationDelay: '0.2s'}} />
+          <span className="w-[var(--dot-size)] h-[var(--dot-size)] bg-accent-primary rounded-full animate-pulse-dot opacity-30" style={{animationDelay: '0.4s'}} />
         </div>
       )}
       
       {type === 'pulse' && (
-        <div className="pulse"></div>
+        <div className="w-[var(--indicator-size)] h-[var(--indicator-size)] bg-accent-primary rounded-full animate-pulse" />
       )}
       
-      {text && <p className="loading-text">{text}</p>}
+      {text && <p className="text-text-secondary m-0 animate-fade-in">{text}</p>}
     </div>
   );
 };

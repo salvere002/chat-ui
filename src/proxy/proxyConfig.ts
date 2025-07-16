@@ -47,7 +47,7 @@ export function createProxyConfig(): Record<string, any> {
               const targetPath = target.pathname === '/' ? '' : target.pathname;
               proxyReq.path = `${targetPath}${remainingPath}`;
               
-              console.log(`Proxying to: ${target.protocol}//${target.host}${proxyReq.path}`);
+              // Proxying request
             } catch (error) {
               console.error(`Invalid target URL derived: ${encodedTarget}`, error);
               if (!res.headersSent) {
@@ -87,10 +87,7 @@ export function createProxyConfig(): Record<string, any> {
                 .replace(/;\s*[Ss]ame[Ss]ite=[^;]+/i, '; SameSite=Lax');
             });
             
-            // Log the cookie transformation
-            console.log(`Transformed cookies: 
-              Original: ${JSON.stringify(proxyRes.headers['set-cookie'])}
-              Modified: ${JSON.stringify(cookies)}`);
+            // Cookie transformation applied
               
             proxyRes.headers['set-cookie'] = cookies;
           }
