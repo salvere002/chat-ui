@@ -232,12 +232,6 @@ const useChatStore = create<ChatStore>((set, get) => ({
       chatMessageBranches.set(messageId, [...messageBranches, newBranchId]);
       newMessageBranches.set(chatId, chatMessageBranches);
       
-      // Debug: Check what we're updating
-      console.log('🔀 createBranchFromMessage updating message:', {
-        messageId,
-        newBranchId,
-        existingMessageBranches: state.messageBranches.get(chatId)?.get(messageId) || []
-      });
 
       return {
         ...state,
@@ -248,7 +242,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
                 messages: [
                   ...chat.messages.map(msg => {
                     if (msg.id === messageId) {
-                      console.log('🔀 Setting branchPoint=true for message:', msg.id);
+                      // Setting branchPoint=true for message
                       return { ...msg, branchPoint: true, children: [...msg.children, messageWithBranch.id] };
                     }
                     return msg;
