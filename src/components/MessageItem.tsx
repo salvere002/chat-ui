@@ -6,7 +6,6 @@ import remarkGfm from 'remark-gfm'; // Import GFM plugin
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'; // Import syntax highlighter
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Import a theme (adjust path as needed)
 import type { Components } from 'react-markdown'; // Import CodeProps directly from react-markdown
-import './MessageItem.css';
 import { fileService } from '../services/fileService';
 import useChatStore from '../stores/chatStore';
 import { ChatService } from '../services/chatService';
@@ -47,19 +46,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   // Ref for textarea auto-resizing
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // Get branch options and debug what's happening
+  // Get branch options
   const branchOptions = getBranchOptionsAtMessage(chatId, id);
   
-  // Debug: Let's see what data we have
-  console.log('🔍 Branch detection debug for message:', {
-    messageId: id,
-    messageText: text?.substring(0, 30),
-    messageBranchId: message.branchId,
-    branchOptions: branchOptions.length,
-    branchOptionsData: branchOptions,
-    branchPoint: message.branchPoint,
-    children: message.children
-  });
   
   // Check if this message has branches (either from getBranchOptionsAtMessage or branchPoint flag)
   const hasBranches = branchOptions.length > 1 || message.branchPoint === true;
@@ -69,22 +58,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   const currentBranchIndex = branchOptions.findIndex(option => option.id === message.branchId);
   const actualCurrentBranchIndex = currentBranchIndex >= 0 ? currentBranchIndex : 0;
   
-  // Detailed logging for switcher condition
   const switcherCondition = hasBranches && totalBranches > 1;
-  console.log('🔍 Branch switcher condition for message:', {
-    messageId: id,
-    messageText: text?.substring(0, 30),
-    messageBranchId: message.branchId,
-    branchOptions: branchOptions.length,
-    branchOptionsData: branchOptions,
-    branchPoint: message.branchPoint,
-    hasBranches,
-    totalBranches,
-    currentBranchIndex,
-    actualCurrentBranchIndex,
-    switcherCondition,
-    willShowSwitcher: switcherCondition
-  });
   
   // Auto-resize the textarea based on content
   const autoResizeTextarea = () => {
@@ -282,17 +256,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       fileService.trackActiveImageUrl(file.url);
     }
     
-    console.log(`Rendering FileAttachment for ${file.name} (ID: ${file.id}): URL = ${file.url}, Type = ${file.type}`);
+    // Rendering FileAttachment
     return (
-      <div className="file-attachment">
+      <div className="inline-block max-w-xs bg-bg-secondary border border-border-secondary rounded-lg overflow-hidden">
         {file.type.startsWith('image/') ? (
-          <img src={file.url} alt={file.name} className="message-image-preview" />
+          <img src={file.url} alt={file.name} className="w-full h-auto max-w-xs max-h-48 object-cover" />
         ) : (
-          <a href={file.url} target="_blank" rel="noopener noreferrer" className="file-link">
-            <FaFileAlt className="file-icon" />
-            <div className="file-details">
-              <span className="file-name">{file.name}</span>
-              <span className="file-size">{fileService.formatFileSize(file.size)}</span>
+          <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 text-text-primary hover:bg-bg-tertiary transition-colors duration-150">
+            <FaFileAlt className="text-accent-primary text-lg flex-shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-medium truncate">{file.name}</span>
+              <span className="text-xs text-text-tertiary">{fileService.formatFileSize(file.size)}</span>
             </div>
           </a>
         )}
@@ -305,13 +279,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
 
   return (
     <div 
-      className={`message-item ${sender} ${isEditing ? 'editing' : ''}`} 
+      className={`group flex flex-col px-4 py-2 max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${sender === 'user' ? 'self-end items-end' : 'self-start items-start'} ${isEditing ? 'editing w-[85%] max-w-[85%]' : ''}`}
       data-is-complete={isComplete !== false}
     >
-      <div className="message-content">
+      <div className={`relative px-4 py-3 rounded-lg max-w-full w-fit break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${
+        sender === 'user' 
+          ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
+          : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
+      }`}>
         {/* Render user's file attachments */}
         {files && files.length > 0 && (
-          <div className="file-attachments-wrapper">
+          <div className="flex flex-wrap gap-2 mb-3">
             {files.map((file) => (
               <FileAttachment key={file.id} file={file} />
             ))}
@@ -320,16 +298,16 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         
         {/* Render AI's image if present */}
         {imageUrl && sender === 'ai' && (
-          <div className="ai-image-wrapper">
+          <div className="mb-3">
             {/* Track this image URL to prevent revocation */}
             {(() => { fileService.trackActiveImageUrl(imageUrl); return null; })()}
-            <img src={imageUrl} alt="AI generated" className="message-image-preview" />
+            <img src={imageUrl} alt="AI generated" className="w-full h-auto max-w-xs max-h-48 object-cover rounded-lg" />
           </div>
         )}
         
         {/* Render text content */}
         {text && !isEditing && (
-          <div className="message-text">
+          <div className="prose prose-sm max-w-none text-current">
             <ReactMarkdown
               children={text}
               remarkPlugins={[remarkGfm]}
@@ -363,20 +341,20 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         
         {/* Edit mode text area */}
         {isEditing && (
-          <div className="message-edit-container">
+          <div className="w-full">
             <textarea
               ref={textareaRef}
-              className="message-edit-textarea"
+              className="w-full min-h-[80px] p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-lg font-sans text-sm leading-normal resize-none transition-all duration-150 focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)]"
               value={editText}
               onChange={handleTextareaChange}
               placeholder="Edit your message..."
               autoFocus
             />
-            <div className="message-edit-actions">
-              <button className="message-edit-cancel" onClick={handleCancelEdit}>
+            <div className="flex gap-2 mt-3 justify-end">
+              <button className="flex items-center gap-2 px-3 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary" onClick={handleCancelEdit}>
                 <FaTimes /> Cancel
               </button>
-              <button className="message-edit-save" onClick={handleSaveEdit}>
+              <button className="flex items-center gap-2 px-3 py-2 bg-accent-primary text-text-inverse border-none rounded-md text-sm cursor-pointer transition-all duration-150 hover:bg-accent-hover" onClick={handleSaveEdit}>
                 <FaCheck /> Save
               </button>
             </div>
@@ -390,31 +368,31 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       </div>
       
       {/* Actions footer - only show when hovering (moved outside message-content) */}
-      <div className="message-footer">
-        <div className="message-timestamp">{formatTime(timestamp)}</div>
+      <div className="flex items-center mt-1 px-1 opacity-0 transition-opacity duration-150 text-xs text-text-tertiary gap-2 group-hover:opacity-100">
+        <div className="mr-auto">{formatTime(timestamp)}</div>
         
-        <div className="message-actions">
+        <div className="flex gap-1 items-center">
           {/* Branch navigation - show when message has multiple branches */}
           {hasBranches && totalBranches > 1 && (
-            <div className="branch-navigation">
+            <div className="flex items-center gap-1 bg-bg-secondary border border-border-secondary rounded-md p-1">
               <button 
-                className="message-action-button branch-nav-button" 
+                className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
                 onClick={handlePreviousBranch}
                 disabled={actualCurrentBranchIndex <= 0}
                 title="Previous branch"
               >
-                <FaChevronLeft />
+                <FaChevronLeft className="text-[10px]" />
               </button>
-              <span className="branch-counter">
+              <span className="text-xs text-text-secondary font-medium min-w-[24px] text-center px-1">
                 {actualCurrentBranchIndex + 1}/{totalBranches}
               </span>
               <button 
-                className="message-action-button branch-nav-button" 
+                className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
                 onClick={handleNextBranch}
                 disabled={actualCurrentBranchIndex >= totalBranches - 1}
                 title="Next branch"
               >
-                <FaChevronRight />
+                <FaChevronRight className="text-[10px]" />
               </button>
             </div>
           )}
@@ -422,33 +400,33 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
           {/* Copy button for all messages with text */}
           {text && (
             <button 
-              className={`message-action-button copy-button ${copied ? 'copied' : ''}`} 
+              className={`flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90 ${copied ? 'text-success' : ''}`}
               onClick={handleCopyMessage}
               title={copied ? "Copied" : "Copy text"}
             >
-              <FaCopy />
+              {copied ? <span className="absolute inset-0 flex items-center justify-center text-base animate-check-mark">✓</span> : <FaCopy className="relative z-10 text-sm" />}
             </button>
           )}
           
           {/* For user messages: Create Branch button (replacing edit) */}
           {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
             <button 
-              className="message-action-button edit-button" 
+              className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
               onClick={() => setIsEditing(true)}
               title="Create new branch"
             >
-              <FaEdit />
+              <FaEdit className="relative z-10 text-sm" />
             </button>
           )}
           
           {/* Regenerate button for user messages */}
           {sender === 'user' && isComplete !== false && onRegenerateResponse && (
             <button 
-              className="message-action-button regenerate-button" 
+              className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
               onClick={onRegenerateResponse}
               title="Regenerate response"
             >
-              <FaRedo />
+              <FaRedo className="relative z-10 text-sm" />
             </button>
           )}
         </div>

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaUser, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { useAgentStore } from '../stores';
-import './AgentSelector.css';
 
 const AgentSelector: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -51,14 +50,14 @@ const AgentSelector: React.FC = () => {
   }, [isOpen]);
 
   return (
-    <div className="agent-selector" ref={dropdownRef}>
+    <div className="relative inline-block" ref={dropdownRef}>
       <button
         ref={buttonRef}
-        className="agent-selector-button"
+        className="flex items-center justify-between p-0 bg-bg-primary border border-border-secondary rounded-full cursor-pointer transition-all duration-200 text-xs w-[70px] gap-0.5 h-2 hover:bg-bg-secondary hover:border-border-hover focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_var(--color-accent-light)]"
         onClick={toggleDropdown}
         type="button"
       >
-        <span className="agent-name">
+        <span className="font-medium text-text-primary whitespace-nowrap overflow-hidden text-ellipsis text-xs flex-1 min-w-0 leading-none">
           {selectedAgent?.name || 'Select Agent'}
         </span>
         {isOpen ? <FaChevronUp size={7} /> : <FaChevronDown size={7} />}
@@ -66,29 +65,44 @@ const AgentSelector: React.FC = () => {
 
       {isOpen && (
         <div 
-          className="agent-dropdown"
+          className="fixed min-w-[180px] bg-bg-primary border border-border-secondary rounded-lg shadow-lg z-[9999] max-h-[300px] overflow-y-auto"
           style={{
             top: dropdownPosition.top,
-            left: dropdownPosition.left
+            left: dropdownPosition.left,
+            transform: 'translate(-10%, -110%)'
           }}
         >
-          {agents.filter(agent => agent.isActive !== false).map((agent) => (
+          {agents.filter(agent => agent.isActive !== false).map((agent, index, array) => (
             <div
               key={agent.id}
-              className={`agent-option ${selectedAgentId === agent.id ? 'selected' : ''}`}
+              className={`flex items-center p-2 cursor-pointer transition-colors duration-200 gap-2 ${
+                selectedAgentId === agent.id 
+                  ? 'bg-accent-light text-accent-primary' 
+                  : 'hover:bg-bg-secondary'
+              } ${
+                index === 0 ? 'rounded-t-lg' : ''
+              } ${
+                index === array.length - 1 ? 'rounded-b-lg' : ''
+              }`}
               onClick={() => handleAgentSelect(agent.id)}
             >
-              <div className="agent-avatar">
+              <div className="w-4 h-4 rounded-full bg-accent-primary flex items-center justify-center text-text-inverse text-xs overflow-hidden flex-shrink-0">
                 {agent.avatar ? (
-                  <img src={agent.avatar} alt={agent.name} />
+                  <img src={agent.avatar} alt={agent.name} className="w-full h-full object-cover" />
                 ) : (
-                  <FaUser />
+                  <FaUser size={8} />
                 )}
               </div>
-              <div className="agent-details">
-                <div className="agent-name">{agent.name}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium mb-0.5 text-xs">{agent.name}</div>
                 {agent.description && (
-                  <div className="agent-description">{agent.description}</div>
+                  <div className={`text-xs leading-snug ${
+                    selectedAgentId === agent.id 
+                      ? 'text-accent-primary opacity-80' 
+                      : 'text-text-secondary'
+                  }`}>
+                    {agent.description}
+                  </div>
                 )}
               </div>
             </div>
