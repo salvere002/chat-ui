@@ -3,7 +3,6 @@ import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane } from 'react-icons/fa'; /
 import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
 import AgentSelector from './AgentSelector';
-import './MessageInput.css';
 
 interface MessageInputProps {
   value: string;
@@ -163,7 +162,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div 
-      className={`message-input-container ${isDragging ? 'drag-active' : ''}`}
+      className={`flex flex-col p-4 bg-bg-primary border-t border-border-secondary max-w-[800px] w-full mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
       ref={dropAreaRef}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
@@ -172,42 +171,42 @@ const MessageInput: React.FC<MessageInputProps> = ({
     >
       {/* Drag overlay when dragging files */}
       {isDragging && (
-        <div className="drag-overlay">
-          <div className="drag-prompt">
+        <div className="absolute inset-0 bg-bg-primary/95 flex items-center justify-center rounded-lg z-10 animate-fade-in">
+          <div className="flex flex-col items-center gap-3 p-5 text-accent-primary text-center border-2 border-dashed border-accent-primary rounded-lg bg-accent-light">
             <FaUpload size={32} />
-            <p>Drop files to upload</p>
+            <p className="text-base font-medium m-0">Drop files to upload</p>
           </div>
         </div>
       )}
       
       {/* File Preview Area */}
       {selectedFiles.length > 0 && (
-        <div className="file-preview-area">
+        <div className="flex flex-wrap gap-2 mb-3 p-3 bg-bg-secondary border border-border-secondary rounded-md max-h-[120px] overflow-y-auto transition-all duration-150">
           {selectedFiles.map((pf) => (
-            <div key={pf.id} className={`file-preview-item status-${pf.status}`}>
+            <div key={pf.id} className={`flex items-center gap-2 bg-bg-primary border border-border-secondary rounded-md px-3 py-2 max-w-[200px] relative transition-all duration-150 hover:border-accent-primary hover:-translate-y-px hover:shadow-sm ${pf.status === 'error' ? 'bg-error text-text-inverse border-error' : ''}`}>
               {/* Image or Icon */}
               {fileService.isImage(pf.file) ? (
-                <img src={pf.previewUrl} alt={pf.file.name} className="file-preview-image" />
+                <img src={pf.previewUrl} alt={pf.file.name} className="w-8 h-8 object-cover rounded flex-shrink-0" />
               ) : (
-                <div className="file-preview-icon">📄</div>
+                <div className="w-8 h-8 flex items-center justify-center text-xl flex-shrink-0">📄</div>
               )}
               {/* Name and Progress/Status */}
-              <div className="file-preview-details">
-                <span className="file-preview-name" title={pf.file.name}>{pf.file.name}</span>
+              <div className="flex-1 min-w-0">
+                <span className="block text-xs font-medium text-text-primary truncate" title={pf.file.name}>{pf.file.name}</span>
                 {pf.status === 'uploading' && (
-                  <div className="progress-bar-container">
-                    <div className="progress-bar" style={{ width: `${pf.progress}%` }}></div>
+                  <div className="w-full bg-bg-tertiary rounded-full h-1 mt-1 overflow-hidden">
+                    <div className="h-full bg-accent-primary transition-all duration-300 rounded-full" style={{ width: `${pf.progress}%` }}></div>
                   </div>
                 )}
                 {pf.status === 'complete' && pf.finalFileData && (
-                  <span className="status-text complete">Sent: {pf.finalFileData.name}</span>
+                  <span className="block text-xs text-success mt-0.5">Sent: {pf.finalFileData.name}</span>
                 )}
-                {pf.status === 'complete' && !pf.finalFileData && <span className="status-text complete">Sent</span>}
+                {pf.status === 'complete' && !pf.finalFileData && <span className="block text-xs text-success mt-0.5">Sent</span>}
               </div>
               {/* Remove Button (only if pending) */}
               {pf.status === 'pending' && (
-                <button onClick={() => handleRemoveFile(pf.id)} className="remove-file-button" aria-label="Remove file">
-                  <FaTimes size={12} />
+                <button onClick={() => handleRemoveFile(pf.id)} className="absolute -top-1 -right-1 w-4 h-4 bg-error text-text-inverse rounded-full flex items-center justify-center text-xs cursor-pointer transition-all duration-150 hover:bg-error/80" aria-label="Remove file">
+                  <FaTimes size={8} />
                 </button>
               )}
             </div>
@@ -216,17 +215,17 @@ const MessageInput: React.FC<MessageInputProps> = ({
       )}
 
       {/* Input Area */}
-      <div className="message-input-area">
-        <div className="input-controls">
+      <div className="flex items-end gap-2 bg-bg-secondary border border-border-secondary rounded-lg p-2 transition-all duration-150 relative focus-within:border-border-focus focus-within:shadow-[0_0_0_3px_var(--color-accent-light)] focus-within:bg-bg-primary">
+        <div className="flex flex-col gap-1.5 flex-shrink-0 items-center">
           <AgentSelector />
-          <button 
+          <button
           onClick={handleUploadClick} 
-          className="upload-button" 
+          className="flex items-center justify-center w-9 h-9 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 flex-shrink-0 hover:bg-bg-tertiary hover:text-accent-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" 
           aria-label="Attach file" 
           title="Attach file" 
           disabled={isProcessing}
         >
-          <FaPaperclip size={8} />
+          <FaPaperclip className="w-[18px] h-[18px]" />
         </button>
         <input
           type="file"
@@ -245,17 +244,21 @@ const MessageInput: React.FC<MessageInputProps> = ({
           placeholder="Type your message or drop files..."
           rows={1}
           disabled={isProcessing}
-          className="message-textarea"
+          className="flex-1 min-h-[40px] max-h-[120px] px-3 py-2 bg-transparent text-text-primary border-none font-sans text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
         />
         <button
           onClick={handleSendClick}
           disabled={isProcessing || (!value.trim() && selectedFiles.filter(f => f.status === 'pending').length === 0)}
-          className={`send-button ${isProcessing ? 'is-processing' : ''}`}
+          className={`flex items-center justify-center w-9 h-9 p-0 bg-accent-primary text-text-inverse border-none rounded-md cursor-pointer transition-all duration-150 flex-shrink-0 relative overflow-hidden hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-95 disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed ${isProcessing ? 'is-processing' : ''}`}
           aria-label="Send message"
         >
           {isProcessing ? 
-            <span className="loading-dots"></span> : 
-            <FaPaperPlane size={16} />
+            <span className="flex items-center justify-center gap-0.5">
+              <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" />
+              <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.16s'}} />
+              <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.32s'}} />
+            </span> : 
+            <FaPaperPlane size={16} className="relative z-10" />
           }
         </button>
       </div>
