@@ -29,25 +29,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     setSelectedFiles(initialFiles);
   }, [initialFiles]);
 
-  // Effect to auto-resize textarea on mount and when value changes
-  useEffect(() => {
-    if (textAreaRef.current) {
-      adjustTextareaHeight();
-    }
-  }, [value]);
 
-  // Function to adjust textarea height
-  const adjustTextareaHeight = () => {
-    const textarea = textAreaRef.current;
-    if (!textarea) return;
-    
-    // Reset height to auto so we can get the right scrollHeight
-    textarea.style.height = 'auto';
-    
-    // Set height based on content
-    const newHeight = Math.min(textarea.scrollHeight, 150); // Cap at max-height
-    textarea.style.height = `${newHeight}px`;
-  };
 
   // Function to handle Send button click
   const handleSendClick = () => {
@@ -66,10 +48,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     // Clear text input locally
     onChange('');
 
-    // Reset textarea height
-    if (textAreaRef.current) {
-      textAreaRef.current.style.height = 'auto';
-    }
   };
 
   // Function to handle Enter key press
@@ -80,10 +58,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  // Function to auto-resize textarea
+  // Function to handle textarea input
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(event.target.value);
-    adjustTextareaHeight();
   };
 
   // Function to trigger file input click
@@ -239,9 +216,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
           onChange={handleInput}
           onKeyDown={handleKeyDown}
           placeholder="Type your message or drop files..."
-          rows={1}
+          rows={3}
           disabled={isProcessing}
-          className="flex-1 min-h-[40px] max-h-[120px] px-3 py-2 bg-transparent text-text-primary border-none font-sans text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
+          className="flex-1 h-[72px] px-3 py-2 bg-transparent text-text-primary border-none font-sans text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
         />
         <button
           onClick={handleSendClick}
