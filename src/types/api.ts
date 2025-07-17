@@ -19,9 +19,16 @@ export class ApiError extends Error {
 // Request Types
 // =========================================
 
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: Date;
+}
+
 export interface MessageRequest {
   text: string;
   files?: MessageFile[];
+  history?: ConversationMessage[];
 }
 
 export interface UploadRequest {
