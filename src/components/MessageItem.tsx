@@ -11,6 +11,7 @@ import useChatStore from '../stores/chatStore';
 import { ChatService } from '../services/chatService';
 import { useResponseModeStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
+import { ConversationMessage } from '../types/api';
 
 interface MessageItemProps {
   message: Message;
@@ -30,7 +31,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     createBranchFromMessage,
     addMessageToChat,
     updateMessageInChat,
-    setProcessing
+    setProcessing,
+    getCurrentBranchMessages
   } = useChatStore();
   
   // Get response mode selection for AI responses
@@ -126,6 +128,19 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       // Add initial empty AI message to the chat
       addMessageToChat(chatId, aiMessage);
       
+      // Get conversation history for the current branch (up to the current message)
+      const allBranchMessages = getCurrentBranchMessages(chatId);
+      const currentMessageIndex = allBranchMessages.findIndex(msg => msg.id === message.id);
+      
+      // Include history up to the current message
+      const historyMessages = currentMessageIndex >= 0 ? allBranchMessages.slice(0, currentMessageIndex + 1) : allBranchMessages;
+      const history: ConversationMessage[] = historyMessages
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.text,
+          timestamp: msg.timestamp
+        }));
+      
       // Use the ChatService based on selected response mode
       if (selectedResponseMode === 'stream') {
         // Reset accumulated text
@@ -168,11 +183,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
               // Reset accumulated text
               accumulatedTextRef.current = '';
             }
-          }
+          },
+          history
         );
       } else {
         // Non-streaming API call
-        const response = await ChatService.sendMessage(userText, userFiles);
+        const response = await ChatService.sendMessage(userText, userFiles, history);
         // Update AI message with complete response
         updateMessageInChat(chatId, aiMessageId, {
           text: response.text,

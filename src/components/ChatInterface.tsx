@@ -5,6 +5,7 @@ import LoadingIndicator from './LoadingIndicator';
 import { useChatStore, useToastStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
+import { ConversationMessage } from '../types/api';
 import { ChatService } from '../services/chatService';
 
 interface ChatInterfaceProps {
@@ -90,6 +91,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       // Create a unique message ID
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       
+      // Get conversation history for the current branch BEFORE adding current messages
+      const history: ConversationMessage[] = getCurrentBranchMessages(currentChatId)
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.text,
+          timestamp: msg.timestamp
+        }));
+
       // Create and add user message to the chat
       const userMessage: Message = {
         id: messageId,
@@ -161,12 +170,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
               // Clear processing state
               setProcessing(false);
             }
-          }
+          },
+          history
         );
       } else {
         // Non-streaming API call
         try {
-          const response = await ChatService.sendMessage(messageText, uploadedFiles);
+          const response = await ChatService.sendMessage(messageText, uploadedFiles, history);
           // Update AI message with complete response
           updateMessageInChat(currentChatId, aiMessageId, {
             text: response.text,

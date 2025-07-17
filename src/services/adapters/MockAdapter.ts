@@ -64,14 +64,18 @@ export class MockAdapter extends AbstractBaseAdapter {
   async sendMessage(request: MessageRequest): Promise<MessageResponse> {
     await this.simulateNetworkDelay();
     
-    const { text } = request;
+    const { text, history } = request;
+    console.log('MockAdapter.sendMessage', request);
     let response: MessageResponse;
     
-    // Generate different responses based on the request
+    // Generate different responses based on the request and history
     if (text.toLowerCase().includes('hello') || text.toLowerCase().includes('hi')) {
       response = { text: MOCK_RESPONSES.greeting };
     } else if (text.toLowerCase().includes('image')) {
       response = MOCK_RESPONSES.imageResponse;
+    } else if (history && history.length > 0) {
+      // Show that we have access to conversation history
+      response = { text: `${MOCK_RESPONSES.echo(text)} (I can see our conversation has ${history.length} previous messages)` };
     } else {
       response = { text: MOCK_RESPONSES.echo(text) };
     }
@@ -90,7 +94,9 @@ export class MockAdapter extends AbstractBaseAdapter {
     const { onChunk, onComplete, onError } = callbacks;
     
     try {
-      const { text } = request;
+      const { text, history } = request;
+      console.log('MockAdapter.sendStreamingMessage', request);
+
       let responseText = '';
       
       // Determine which mock response to use
@@ -98,6 +104,9 @@ export class MockAdapter extends AbstractBaseAdapter {
         responseText = MOCK_RESPONSES.greeting;
       } else if (text.toLowerCase().includes('image')) {
         responseText = MOCK_RESPONSES.imageResponse.text;
+      } else if (history && history.length > 0) {
+        // Show that we have access to conversation history
+        responseText = `${MOCK_RESPONSES.echo(text)} (I can see our conversation has ${history.length} previous messages)`;
       } else {
         responseText = MOCK_RESPONSES.echo(text);
       }
