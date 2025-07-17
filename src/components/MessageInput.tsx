@@ -169,7 +169,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div 
-      className={`flex flex-col p-4 bg-bg-primary border-t border-border-secondary max-w-[800px] w-full mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
+      className={`flex flex-col p-3 sm:p-4 bg-bg-primary border-t border-border-secondary max-w-[800px] w-full mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
       ref={dropAreaRef}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
@@ -248,7 +248,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           placeholder="Type your message or drop files..."
           rows={3}
           disabled={isProcessing}
-          className="flex-1 h-[72px] px-3 py-2 bg-transparent text-text-primary border-none font-sans text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
+          className="flex-1 h-[72px] px-2 sm:px-3 py-2 bg-transparent text-text-primary border-none font-sans text-sm sm:text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
         />
         <button
           onClick={handleSendClick}

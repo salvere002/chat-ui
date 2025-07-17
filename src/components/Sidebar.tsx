@@ -109,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
   
   return (
-    <div className="flex flex-col w-[280px] h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 overflow-hidden transition-all duration-200">
+    <div className="flex flex-col w-[280px] sm:w-[300px] lg:w-[280px] h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 overflow-hidden transition-all duration-200">
       <div className="flex items-center justify-between p-4 bg-bg-secondary border-b border-border-primary">
         <h2 className="text-lg font-semibold text-text-primary m-0">Conversations</h2>
         <button 
