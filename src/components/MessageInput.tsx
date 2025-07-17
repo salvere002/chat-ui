@@ -2,6 +2,7 @@ import React, { useState, useRef, KeyboardEvent, ChangeEvent, useEffect, DragEve
 import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane } from 'react-icons/fa'; // Added FaPaperPlane
 import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
+import { backend } from '../utils/config';
 import AgentSelector from './AgentSelector';
 
 interface MessageInputProps {
@@ -11,6 +12,35 @@ interface MessageInputProps {
   isProcessing: boolean;
   initialFiles?: PreviewFile[];
 }
+
+// Convert allowed extensions from config to accept attribute format
+const createAcceptAttribute = (): string => {
+  const allowedExtensions = backend.uploads.allowedExtensions || [];
+  
+  // Create MIME type mappings for common extensions
+  const mimeTypeMappings: Record<string, string> = {
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'pdf': 'application/pdf',
+    'txt': 'text/plain',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  };
+  
+  // Convert extensions to accept format
+  const acceptTypes = allowedExtensions.map(ext => {
+    // First try to use MIME type if available
+    if (mimeTypeMappings[ext]) {
+      return mimeTypeMappings[ext];
+    }
+    // Fallback to extension format
+    return `.${ext}`;
+  });
+  
+  return acceptTypes.join(',');
+};
 
 const MessageInput: React.FC<MessageInputProps> = ({
   value,
@@ -212,7 +242,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           ref={fileInputRef}
           onChange={handleFileChange}
           style={{ display: 'none' }}
-          accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"
+          accept={createAcceptAttribute()}
         />
         </div>
         <textarea
