@@ -97,9 +97,9 @@
 
 /* Keep only CSS variables for theming */
 :root {
-  /* Core Design Tokens */
-  --font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  /* Core Design Tokens - Modern system fonts */
+  --font-primary: system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
   
   /* Light Theme Colors */
   --color-bg-primary: #FFFFFF;
@@ -154,7 +154,14 @@
   --color-info: #4DABF7;
 }
 
-/* Custom scrollbar styles - keep these as Tailwind doesn't handle them well */
+/* Cross-browser scrollbar styles */
+/* Modern browsers (Firefox 64+) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-primary) transparent;
+}
+
+/* Webkit browsers (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -172,6 +179,20 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-tertiary);
+}
+
+/* Chrome/Edge native overlay scrollbars */
+html {
+  overflow-overlay: auto;
+}
+
+/* Optimize for Windows ClearType rendering */
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  body {
+    font-smoothing: auto;
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+  }
 }
 
 /* Loading dots animation helper */
