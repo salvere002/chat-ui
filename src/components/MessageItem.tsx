@@ -295,10 +295,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
 
   return (
     <div 
-      className={`group flex flex-col px-4 py-2 max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${sender === 'user' ? 'self-end items-end' : 'self-start items-start'} ${isEditing ? 'editing w-[85%] max-w-[85%]' : ''}`}
+      className={`group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${sender === 'user' ? 'self-end items-end' : 'self-start items-start'} ${isEditing ? 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]' : ''}`}
       data-is-complete={isComplete !== false}
     >
-      <div className={`relative px-4 py-3 rounded-lg max-w-full w-fit break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${
+      <div className={`relative px-3 sm:px-4 py-3 rounded-lg max-w-full w-fit break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${
         sender === 'user' 
           ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
           : 'bg-bg-tertiary text-text-primary rounded-bl-sm'

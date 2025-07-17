@@ -65,7 +65,6 @@ export class MockAdapter extends AbstractBaseAdapter {
     await this.simulateNetworkDelay();
     
     const { text, history } = request;
-    console.log('MockAdapter.sendMessage', request);
     let response: MessageResponse;
     
     // Generate different responses based on the request and history
@@ -95,7 +94,6 @@ export class MockAdapter extends AbstractBaseAdapter {
     
     try {
       const { text, history } = request;
-      console.log('MockAdapter.sendStreamingMessage', request);
 
       let responseText = '';
       
