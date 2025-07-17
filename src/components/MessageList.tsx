@@ -4,6 +4,7 @@ import { Message } from '../types/chat';
 import { useChatStore } from '../stores';
 import { ChatService } from '../services/chatService';
 import { useResponseModeStore } from '../stores';
+import { ConversationMessage } from '../types/api';
 
 interface MessageListProps {
   messages: Message[];
@@ -15,7 +16,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const accumulatedTextRef = useRef<string>("");
-  const { activeChatId, updateMessageInChat, setProcessing } = useChatStore();
+  const { activeChatId, updateMessageInChat, setProcessing, getCurrentBranchMessages } = useChatStore();
   const { selectedResponseMode } = useResponseModeStore();
   const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
   const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
@@ -123,6 +124,19 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
       // Reset accumulated text
       accumulatedTextRef.current = "";
       
+      // Get conversation history for the current branch (excluding the message being regenerated)
+      const allBranchMessages = getCurrentBranchMessages(activeChatId);
+      const aiMessageIndex = allBranchMessages.findIndex(msg => msg.id === aiMessageId);
+      
+      // Include history up to the user message before the AI message being regenerated
+      const historyMessages = aiMessageIndex > 0 ? allBranchMessages.slice(0, aiMessageIndex) : allBranchMessages;
+      const history: ConversationMessage[] = historyMessages
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.text,
+          timestamp: msg.timestamp
+        }));
+      
       // Use the ChatService based on selected response mode
       if (selectedResponseMode === 'stream') {
         // Streaming API call
@@ -165,11 +179,12 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
               // Reset accumulated text
               accumulatedTextRef.current = "";
             }
-          }
+          },
+          history
         );
       } else {
         // Non-streaming API call
-        const response = await ChatService.sendMessage(userMessageText, userMessageFiles);
+        const response = await ChatService.sendMessage(userMessageText, userMessageFiles, history);
         // Update AI message with complete response
         updateMessageInChat(activeChatId, aiMessageId, {
           text: response.text,

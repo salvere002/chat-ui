@@ -1,6 +1,6 @@
 import { serviceFactory, AdapterType } from './serviceFactory';
 import { StreamCallbacks, ProgressCallback } from './adapters/BaseAdapter';
-import { MessageRequest, MessageResponse, FileUploadResponse } from '../types/api';
+import { MessageRequest, MessageResponse, FileUploadResponse, ConversationMessage } from '../types/api';
 import { MessageFile } from '../types/chat';
 
 /**
@@ -30,8 +30,8 @@ export class ChatService {
   /**
    * Send a message and get a complete response
    */
-  static async sendMessage(text: string, files: MessageFile[] = []): Promise<MessageResponse> {
-    const request: MessageRequest = { text, files };
+  static async sendMessage(text: string, files: MessageFile[] = [], history: ConversationMessage[] = []): Promise<MessageResponse> {
+    const request: MessageRequest = { text, files, history };
     return this.adapter.sendMessage(request);
   }
   
@@ -41,9 +41,10 @@ export class ChatService {
   static async sendStreamingMessage(
     text: string,
     files: MessageFile[] = [],
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    history: ConversationMessage[] = []
   ): Promise<void> {
-    const request: MessageRequest = { text, files };
+    const request: MessageRequest = { text, files, history };
     return this.adapter.sendStreamingMessage(request, callbacks);
   }
   
