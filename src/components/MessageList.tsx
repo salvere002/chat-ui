@@ -263,7 +263,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden p-0 bg-bg-primary relative scroll-smooth" ref={messageContainerRef}>
-      <div className="flex flex-col max-w-[800px] mx-auto w-full py-4 relative">
+      <div className="flex flex-col max-w-[800px] mx-auto w-full py-2 sm:py-4 px-2 sm:px-4 relative">
         {messages.map((msg, index) => (
           <MessageItem 
             key={msg.id} 
@@ -284,7 +284,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
       
       {showScrollButton && (
         <button 
-          className="fixed bottom-[100px] right-5 w-10 h-10 bg-bg-elevated text-text-secondary border border-border-secondary rounded-full shadow-md flex items-center justify-center cursor-pointer z-sticky opacity-90 transition-all duration-150 animate-fade-in hover:opacity-100 hover:-translate-y-0.5 hover:shadow-lg hover:bg-accent-primary hover:text-text-inverse hover:border-accent-primary active:translate-y-0 active:scale-95" 
+          className="fixed bottom-[100px] sm:bottom-[120px] right-3 sm:right-5 w-10 h-10 bg-bg-elevated text-text-secondary border border-border-secondary rounded-full shadow-md flex items-center justify-center cursor-pointer z-sticky opacity-90 transition-all duration-150 animate-fade-in hover:opacity-100 hover:-translate-y-0.5 hover:shadow-lg hover:bg-accent-primary hover:text-text-inverse hover:border-accent-primary active:translate-y-0 active:scale-95" 
           onClick={scrollToBottom}
           aria-label="Scroll to bottom"
         >
