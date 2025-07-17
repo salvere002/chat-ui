@@ -34,8 +34,8 @@ export default {
         'info': 'var(--color-info)',
       },
       fontFamily: {
-        'sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        'mono': ['SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'monospace'],
+        'sans': ['system-ui', 'sans-serif'],
+        'mono': ['ui-monospace', 'monospace'],
       },
       spacing: {
         '18': '72px',
