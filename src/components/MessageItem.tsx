@@ -3,6 +3,8 @@ import { Message, MessageFile } from '../types/chat'; // Import the Message and 
 import { FaFileAlt, FaRedo, FaEdit, FaCheck, FaTimes, FaCopy, FaChevronLeft, FaChevronRight } from 'react-icons/fa'; // Import required icons
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
 import remarkGfm from 'remark-gfm'; // Import GFM plugin
+import remarkMath from 'remark-math'; // Import math plugin
+import rehypeKatex from 'rehype-katex'; // Import KaTeX plugin
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'; // Import syntax highlighter
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Import a theme (adjust path as needed)
 import type { Components } from 'react-markdown'; // Import CodeProps directly from react-markdown
@@ -326,7 +328,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
           <div className="prose prose-sm max-w-none text-current">
             <ReactMarkdown
               children={text}
-              remarkPlugins={[remarkGfm]}
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex]}
               components={{
                 code({ node, inline, className, children, ...props }: any) {
                   const match = /language-(\w+)/.exec(className || '');
