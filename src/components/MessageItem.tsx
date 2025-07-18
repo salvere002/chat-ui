@@ -62,7 +62,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   const currentBranchIndex = branchOptions.findIndex(option => option.id === message.branchId);
   const actualCurrentBranchIndex = currentBranchIndex >= 0 ? currentBranchIndex : 0;
   
-  const switcherCondition = hasBranches && totalBranches > 1;
   
   // Auto-resize the textarea based on content
   const autoResizeTextarea = () => {
@@ -386,35 +385,38 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         )}
       </div>
       
+      {/* Branch indicator - always visible when branches exist */}
+      {hasBranches && totalBranches > 1 && (
+        <div className="flex items-center mt-1 px-1 text-xs gap-2">
+          <div className="flex items-center gap-1 bg-bg-secondary border border-border-secondary rounded-md p-1">
+            <button 
+              className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
+              onClick={handlePreviousBranch}
+              disabled={actualCurrentBranchIndex <= 0}
+              title="Previous branch"
+            >
+              <FaChevronLeft className="text-[10px]" />
+            </button>
+            <span className="text-xs text-text-secondary font-medium min-w-[24px] text-center px-1">
+              {actualCurrentBranchIndex + 1}/{totalBranches}
+            </span>
+            <button 
+              className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
+              onClick={handleNextBranch}
+              disabled={actualCurrentBranchIndex >= totalBranches - 1}
+              title="Next branch"
+            >
+              <FaChevronRight className="text-[10px]" />
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Actions footer - only show when hovering (moved outside message-content) */}
       <div className="flex items-center mt-1 px-1 opacity-0 transition-opacity duration-150 text-xs text-text-tertiary gap-2 group-hover:opacity-100">
         <div className="mr-auto">{formatTime(timestamp)}</div>
         
         <div className="flex gap-1 items-center">
-          {/* Branch navigation - show when message has multiple branches */}
-          {hasBranches && totalBranches > 1 && (
-            <div className="flex items-center gap-1 bg-bg-secondary border border-border-secondary rounded-md p-1">
-              <button 
-                className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
-                onClick={handlePreviousBranch}
-                disabled={actualCurrentBranchIndex <= 0}
-                title="Previous branch"
-              >
-                <FaChevronLeft className="text-[10px]" />
-              </button>
-              <span className="text-xs text-text-secondary font-medium min-w-[24px] text-center px-1">
-                {actualCurrentBranchIndex + 1}/{totalBranches}
-              </span>
-              <button 
-                className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
-                onClick={handleNextBranch}
-                disabled={actualCurrentBranchIndex >= totalBranches - 1}
-                title="Next branch"
-              >
-                <FaChevronRight className="text-[10px]" />
-              </button>
-            </div>
-          )}
           
           {/* Copy button for all messages with text */}
           {text && (
