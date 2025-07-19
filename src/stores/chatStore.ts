@@ -200,22 +200,26 @@ const useChatStore = create<ChatStore>((set, get) => ({
     const state = get();
     const newBranchId = `branch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     
+    // Fix: Find the source message to get its parent relationship
+    const sourceMessage = state.chatSessions.find(c => c.id === chatId)?.messages.find(m => m.id === messageId);
+    const parentMessageId = sourceMessage?.parentId || messageId;
     
-    // Create new branch node
+    // Create new branch node - should reference the parent message, not the source message
     const branchNode: BranchNode = {
       id: newBranchId,
-      messageId,
+      messageId: parentMessageId, // This should be the common parent where branches diverge
       depth: (state.activeBranchPath.get(chatId)?.length || 1),
       childBranches: []
     };
     
-    // Create message with branch info
+    // Create message with branch info - make it a SIBLING, not a child
     const messageWithBranch: Message = {
       ...newMessage,
       branchId: newBranchId,
-      parentId: messageId,
+      parentId: parentMessageId, // Use source's parent, not source's ID
       children: []
     };
+    
     
     const now = new Date();
     set((state) => {
@@ -225,11 +229,11 @@ const useChatStore = create<ChatStore>((set, get) => ({
       chatBranchTree.set(newBranchId, branchNode);
       newBranchTree.set(chatId, chatBranchTree);
       
-      // Update message branches
+      // Update message branches - add to the parent message's branches, not the source message
       const newMessageBranches = new Map(state.messageBranches);
       const chatMessageBranches = new Map(newMessageBranches.get(chatId) || new Map());
-      const messageBranches = chatMessageBranches.get(messageId) || [];
-      chatMessageBranches.set(messageId, [...messageBranches, newBranchId]);
+      const messageBranches = chatMessageBranches.get(parentMessageId) || [];
+      chatMessageBranches.set(parentMessageId, [...messageBranches, newBranchId]);
       newMessageBranches.set(chatId, chatMessageBranches);
       
 
@@ -241,8 +245,8 @@ const useChatStore = create<ChatStore>((set, get) => ({
                 ...chat, 
                 messages: [
                   ...chat.messages.map(msg => {
-                    if (msg.id === messageId) {
-                      // Setting branchPoint=true for message
+                    if (msg.id === parentMessageId) {
+                      // Setting branchPoint=true for PARENT message, not source message
                       return { ...msg, branchPoint: true, children: [...msg.children, messageWithBranch.id] };
                     }
                     return msg;
