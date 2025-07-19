@@ -9,10 +9,10 @@ The chat UI application uses Zustand for efficient state management, replacing t
 ### Store Structure
 The application uses multiple specialized stores, each handling a specific domain:
 
-- **Chat Store** (`chatStore.ts`) - Manages chat sessions, messages, and related operations
+- **Chat Store** (`chatStore.ts`) - Manages chat sessions, messages, and branching operations
 - **Theme Store** (`themeStore.ts`) - Handles theme preferences and switching
 - **Toast Store** (`toastStore.ts`) - Manages toast notifications  
-- **Agent Store** (`agentStore.ts`) - Controls agent selection and configuration
+- **Response Mode Store** (`responseModeStore.ts`) - Controls response delivery mode (stream/fetch)
 - **Service Config Store** (`serviceConfigStore.ts`) - Manages service configurations per adapter type
 
 ### Benefits Over Context API
@@ -26,7 +26,7 @@ The application uses multiple specialized stores, each handling a specific domai
 ### 1. Basic Store Usage
 
 ```typescript
-import { useChatStore, useThemeStore } from '../stores';
+import { useChatStore, useThemeStore, useResponseModeStore } from '../stores';
 
 function MyComponent() {
   // Access chat store
@@ -35,10 +35,20 @@ function MyComponent() {
   // Access theme store
   const { theme, toggleTheme } = useThemeStore();
   
+  // Access response mode store
+  const { selectedResponseMode, setSelectedResponseMode } = useResponseModeStore();
+  
   return (
     <div className={`container ${theme}-theme`}>
       <button onClick={() => createChat('New Chat')}>Create Chat</button>
       <button onClick={toggleTheme}>Toggle Theme</button>
+      <select 
+        value={selectedResponseMode} 
+        onChange={(e) => setSelectedResponseMode(e.target.value as ResponseMode)}
+      >
+        <option value="stream">Stream</option>
+        <option value="fetch">Fetch</option>
+      </select>
     </div>
   );
 }
@@ -92,23 +102,57 @@ function NotificationComponent() {
 }
 ```
 
-### 4. Monitoring Store Changes
+### 4. Message Branching Management
+
+```typescript
+import { useChatStore } from '../stores';
+
+function BranchingComponent() {
+  const { 
+    getCurrentBranchMessages, 
+    createBranchFromMessage, 
+    switchToBranch,
+    getBranchOptionsAtMessage 
+  } = useChatStore();
+  
+  const handleCreateBranch = (messageId: string, newMessage: Message) => {
+    const branchId = createBranchFromMessage('chat-id', messageId, newMessage);
+    // Automatically switches to the new branch
+  };
+  
+  const handleSwitchBranch = (branchId: string) => {
+    switchToBranch('chat-id', branchId);
+  };
+  
+  return (
+    <div>
+      <button onClick={() => handleCreateBranch('msg-1', newMessage)}>
+        Create Branch
+      </button>
+    </div>
+  );
+}
+```
+
+### 5. Monitoring Store Changes
 
 ```typescript
 import { useEffect } from 'react';
 import { useChatStore } from '../stores';
 
 function ChatMonitor() {
-  const { activeChatId, getChatById } = useChatStore();
+  const { activeChatId, getChatById, getCurrentBranchMessages } = useChatStore();
   const activeChat = activeChatId ? getChatById(activeChatId) : null;
+  const branchMessages = activeChatId ? getCurrentBranchMessages(activeChatId) : [];
   
   useEffect(() => {
     if (activeChat) {
       console.log('Active chat changed:', activeChat.name);
+      console.log('Current branch messages:', branchMessages.length);
     }
-  }, [activeChat]);
+  }, [activeChat, branchMessages]);
   
-  return <div>Monitoring chat changes...</div>;
+  return <div>Monitoring chat and branch changes...</div>;
 }
 ```
 
@@ -116,25 +160,33 @@ function ChatMonitor() {
 
 ### Chat Store Features
 - Create, delete, and rename chat sessions
-- Add and update messages
-- Manage active chat selection
-- Handle processing states and errors
+- Add and update messages with branching support
+- Manage message branching and tree navigation
+- Handle active chat selection and branch paths
+- Process streaming and batch responses
+- Error handling and processing states
 
 ### Theme Store Features
 - Toggle between light and dark themes
 - Persist theme preference to localStorage
-- Apply theme classes to DOM elements
+- Apply theme classes dynamically to DOM
+
+### Response Mode Store Features
+- Toggle between streaming and fetch response modes
+- Persist response mode preference
+- Control message delivery behavior
 
 ### Service Config Store Features
-- Manage configurations per adapter type
-- Automatic configuration switching
-- Persist settings to localStorage
-- Support for REST, Session, and Mock adapters
+- Manage configurations per adapter type (REST, Session, Mock)
+- Automatic configuration switching when changing adapters
+- Persist adapter-specific settings to localStorage
+- Dynamic service reconfiguration
 
 ### Toast Store Features
-- Display success, error, info, and warning messages
+- Display success, error, info, and warning notifications
 - Auto-dismiss with configurable duration
-- Queue multiple notifications
+- Queue and stack multiple notifications
+- Animated show/hide transitions
 
 ## File Structure
 
@@ -142,15 +194,17 @@ function ChatMonitor() {
 src/
 ├── stores/                     # All Zustand stores
 │   ├── index.ts               # Convenient export of all stores
-│   ├── chatStore.ts           # Chat management store
+│   ├── chatStore.ts           # Chat management and branching store
 │   ├── themeStore.ts          # Theme management store
 │   ├── toastStore.ts          # Toast notifications store
-│   ├── agentStore.ts          # Agent selection store
+│   ├── responseModeStore.ts   # Response mode selection store
 │   └── serviceConfigStore.ts  # Service configuration store
 ├── types/
-│   └── store.ts               # TypeScript interfaces for all stores
+│   ├── store.ts               # TypeScript interfaces for all stores
+│   ├── chat.ts                # Chat and message type definitions
+│   └── api.ts                 # API-related type definitions
 ├── hooks/
-│   └── useServiceConfig.ts    # Custom hooks for service config
+│   └── useFileUpload.ts       # Custom hooks for file upload
 └── components/
     └── Settings.tsx           # Settings UI using stores
 ```
