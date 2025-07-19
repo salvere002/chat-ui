@@ -1,22 +1,60 @@
 # Chat UI
 
-A modern chat application featuring a React frontend with a Flask backend that supports AI text messaging, file uploads, and image generation.
+A modern chat application featuring a React frontend with a Flask backend that supports AI text messaging, file uploads, and advanced conversation branching.
 
 ## Features
 
-- Real-time streaming responses using Server-Sent Events
-- File upload and download capabilities
-- Dynamic UI with typing indicators
-- Theme switching (light/dark mode)
-- Multiple chat sessions
-- Message editing and regeneration
-- Centralized configuration management
+### **Core Chat Features**
+- **Real-time streaming responses** using Server-Sent Events
+- **Message branching system** - Create and explore different conversation paths from any point
+- **Multiple chat sessions** with persistent history
+- **Response mode selection** - Toggle between streaming and batch responses
+- **File upload and download** capabilities with progress tracking
+- **Rich message support** - Markdown, math equations (KaTeX), code highlighting
+
+### **UI/UX Features**
+- **Dynamic theme system** - Light and dark mode with smooth transitions
+- **Toast notifications** - Success, error, warning, and info messages
+- **Responsive design** - Mobile-first responsive layout
+- **Loading indicators** and typing animations
+- **Error boundaries** for graceful error handling
+
+### **Advanced Features**
+- **Service adapter pattern** - Support for REST, Mock, and Session-based APIs
+- **Centralized configuration management** with environment-specific settings
+- **State management** using Zustand for optimal performance
+- **TypeScript support** throughout the application
 
 ## Project Structure
 
-- `src/` - Frontend React application
-- `backend/` - Flask backend server
-- `config.json` - Centralized configuration file
+```
+chat-ui/
+├── src/                          # Frontend React application
+│   ├── components/               # React components
+│   │   ├── ChatInterface.tsx     # Main chat interface
+│   │   ├── MessageList.tsx       # Message display with branching
+│   │   ├── MessageInput.tsx      # User input with file upload
+│   │   ├── Sidebar.tsx          # Chat navigation
+│   │   └── Settings.tsx         # Configuration modal
+│   ├── stores/                   # Zustand state management
+│   │   ├── chatStore.ts         # Chat sessions and messages
+│   │   ├── themeStore.ts        # Theme management
+│   │   ├── toastStore.ts        # Notifications
+│   │   └── serviceConfigStore.ts # Service configuration
+│   ├── services/                 # API communication layer
+│   │   ├── adapters/            # Service adapter implementations
+│   │   ├── chatService.ts       # Main chat service
+│   │   └── serviceFactory.ts    # Service factory pattern
+│   ├── types/                   # TypeScript type definitions
+│   └── utils/                   # Utility functions
+├── backend/                     # Flask backend server
+│   ├── app.py                   # Main Flask application
+│   ├── streaming.py            # SSE streaming implementation
+│   ├── config_loader.py        # Configuration management
+│   └── uploads/                # File upload storage
+├── docs/                       # Documentation
+└── config.json                # Centralized configuration file
+```
 
 ## Configuration
 
@@ -65,53 +103,58 @@ Modify this file to change application settings.
 
 ### Prerequisites
 
-- Node.js (v14 or newer)
-- Python 3.8+
-- npm or yarn
+- **Node.js** (v18 or newer) - Required for React 19
+- **Python** 3.8+ - For backend Flask server
+- **npm** or **yarn** - Package management
 
 ### Frontend Setup
 
-1. Install dependencies:
+1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-2. Build the frontend:
+2. **Development mode:**
+   ```bash
+   npm run dev
+   ```
+   The frontend will run on `http://localhost:5173` (Vite default)
+
+3. **Production build:**
    ```bash
    npm run build
    ```
 
-3. Note: The frontend will typically run on `http://localhost:5173` or `http://localhost:3000` depending on your Vite configuration. If it uses port 3000, make sure to update the `API_BASE_URL` in `src/services/api.ts` to match.
+4. **Type checking:**
+   ```bash
+   npm run typecheck
+   ```
 
 ### Backend Setup
 
-#### Option 1: Using the setup script
-1. Run the setup script:
+#### **Quick Start (Recommended)**
+```bash
+# Run both frontend and backend simultaneously
+npm run start
+```
+
+#### **Manual Setup**
+
+1. **Using the setup script:**
    ```bash
    ./setup_backend.sh
    ```
-   This will create a virtual environment, install dependencies and start the server.
 
-#### Option 2: Manual setup
-1. Create a virtual environment (optional but recommended):
+2. **Manual installation:**
    ```bash
    cd backend
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-2. Install backend dependencies:
-   ```bash
    pip install -r requirements.txt
-   pip install flask-cors
-   ```
-
-3. Run the backend server:
-   ```bash
    python app.py
    ```
-   
-   The server will start on http://localhost:5001 by default (as specified in config.json).
+
+The backend server will start on `http://localhost:5001` by default.
 
 ## Configuration Changes
 
@@ -122,24 +165,79 @@ If you need to modify the application configuration:
 
 For production deployment, make sure to update the API base URL and other settings in the configuration file.
 
-## Message Branching and Versioning
+## Advanced Features
 
-This application supports message branching, allowing users to explore different conversational paths from any user message.
+### **Message Branching System**
 
-### How it Works
+The application features a sophisticated conversation branching system that allows users to explore different conversational paths from any point in the chat.
 
--   **Creating a Branch**: To create a new branch, simply edit any of your previous messages. Instead of overwriting the original message, the application will preserve the original and create a new "branch" with your edited message and the subsequent AI response.
--   **Switching Branches**: When a message has multiple branches, a branch switcher will appear below the message. You can use the arrow buttons to navigate between the different versions of the conversation.
--   **Branch Indicator**: The switcher displays the current branch number and the total number of available branches (e.g., "1/3").
+#### **How Branching Works**
+- **Create Branches**: Edit any previous message to create a new conversation branch
+- **Navigate Branches**: Use branch controls to switch between different conversation paths  
+- **Visual Indicators**: Branch points are clearly marked with navigation controls
+- **Preserve History**: All conversation paths are preserved and accessible
 
-### Data Structure
+#### **Branch Management**
+- **Tree Structure**: Messages are organized in a tree-like hierarchy
+- **Active Path Tracking**: The system tracks your current path through the conversation tree
+- **Branch Operations**: Create, switch between, and delete branches as needed
+- **Persistent State**: Branch structure is maintained across sessions
 
-The branching feature is managed within the `chatStore` using a few key data structures:
+#### **Technical Implementation**
+The branching system uses several key data structures in `chatStore`:
 
--   **`Message`**: The `Message` object in `src/types/chat.ts` has been extended to support branching:
-    -   `branchId`: Identifies which branch the message belongs to.
-    -   `parentId`: The ID of the message from which this message was branched.
-    -   `branchPoint`: A boolean flag that is `true` if a message is the starting point for one or more branches.
--   **`branchTree`**: A `Map` that stores the relationships between branches, forming a tree-like structure for each chat session.
--   **`messageBranches`**: A `Map` that links a message ID to the different branch IDs that originate from it.
--   **`activeBranchPath`**: A `Map` that keeps track of the currently active branch path for each chat, from the 'main' branch to the current tip.
+- **`branchTree`**: Maps branch relationships for each chat session
+- **`messageBranches`**: Links message IDs to their originating branches  
+- **`activeBranchPath`**: Tracks the current active path through the tree
+- **Message Properties**: Each message includes `branchId`, `parentId`, and `branchPoint` flags
+
+### **Response Mode Selection**
+
+Choose between different response delivery methods:
+- **Stream Mode**: Real-time streaming responses using Server-Sent Events
+- **Fetch Mode**: Traditional request-response for complete messages
+
+### **Service Adapter System**
+
+Flexible backend communication through adapter pattern:
+- **REST Adapter**: Standard HTTP API communication
+- **Session Adapter**: Session-based API calls
+- **Mock Adapter**: Development and testing mock responses
+
+### **File Upload System**
+
+Comprehensive file handling with progress tracking:
+- **Supported Formats**: Images, PDFs, documents, text files
+- **Progress Tracking**: Real-time upload progress indicators
+- **Preview System**: File previews before sending messages
+- **Error Recovery**: Robust error handling for failed uploads
+
+### **State Management**
+
+Efficient state management using Zustand:
+- **Multiple Stores**: Specialized stores for different domains (chat, theme, config)
+- **Performance Optimized**: Minimal re-renders and efficient updates
+- **Persistent Storage**: Local storage integration where needed
+- **Type Safety**: Full TypeScript support throughout
+
+## Technology Stack
+
+### **Frontend**
+- **React 19.1.0** - Latest React with improved performance
+- **TypeScript 5.8.3** - Type safety and developer experience
+- **Vite 6.2.6** - Fast build tool with HMR
+- **Tailwind CSS 4.1.11** - Utility-first CSS framework
+- **Zustand 5.0.3** - Lightweight state management
+- **React Markdown** - Markdown rendering with KaTeX math support
+- **React Icons** - Comprehensive icon library
+
+### **Backend** 
+- **Flask 2.0.1** - Python web framework
+- **Flask-CORS** - Cross-origin resource sharing
+- **Werkzeug** - WSGI utilities for secure file handling
+- **Server-Sent Events** - Real-time streaming implementation
+
+### **Development Tools**
+- **ESLint & Prettier** - Code quality and formatting
+- **PostCSS & Autoprefixer** - CSS processing
+- **Concurrently** - Run multiple processes simultaneously
