@@ -9,6 +9,7 @@ A modern chat application featuring a React frontend with a Flask backend that s
 - **Message branching system** - Create and explore different conversation paths from any point
 - **Multiple chat sessions** with persistent history
 - **Response mode selection** - Toggle between streaming and batch responses
+- **AI thinking display** - UI support for showing AI reasoning process when provided by backend
 - **File upload and download** capabilities with progress tracking
 - **Rich message support** - Markdown, math equations (KaTeX), code highlighting
 
@@ -197,12 +198,33 @@ Choose between different response delivery methods:
 - **Stream Mode**: Real-time streaming responses using Server-Sent Events
 - **Fetch Mode**: Traditional request-response for complete messages
 
+### **AI Thinking Display**
+
+The UI provides built-in support for displaying AI reasoning processes when backends provide thinking content:
+
+#### **UI Features**
+- **Collapsible Section**: Thinking content appears in an expandable section labeled "Thoughts"
+- **Stream Support**: Works with both streaming and fetch response modes
+- **Auto-scroll**: Thinking content auto-scrolls during streaming for easy reading
+- **State Persistence**: Thinking section expand/collapse state is preserved
+
+#### **Backend Integration**
+- **API Support**: Any backend can include thinking data in MessageResponse or StreamMessageChunk
+- **Automatic Display**: UI automatically shows thinking section when thinking content is provided
+- **Format Flexibility**: Supports both complete thinking text and incremental streaming
+
+#### **Mock Adapter Testing**
+For development and testing purposes, the Mock adapter includes a special feature:
+- **Test Trigger**: Include `/think` in your message to simulate thinking responses
+- **Example**: `"/think How does photosynthesis work?"` triggers mock thinking content
+- **Note**: This is purely for testing the thinking UI - real backends don't need special triggers
+
 ### **Service Adapter System**
 
 Flexible backend communication through adapter pattern:
 - **REST Adapter**: Standard HTTP API communication
 - **Session Adapter**: Session-based API calls
-- **Mock Adapter**: Development and testing mock responses
+- **Mock Adapter**: Development and testing mock responses with thinking simulation support
 
 ### **File Upload System**
 
