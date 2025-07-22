@@ -13,6 +13,7 @@ import useChatStore from '../stores/chatStore';
 import { ChatService } from '../services/chatService';
 import { useResponseModeStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
+import ThinkingSection from './ThinkingSection';
 import { ConversationMessage } from '../types/api';
 
 interface MessageItemProps {
@@ -24,7 +25,7 @@ interface MessageItemProps {
 
 const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, chatId }) => {
   // Destructure files array instead of single file
-  const { text, sender, timestamp, files, imageUrl, isComplete, id } = message;
+  const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed } = message;
   
   // Get store methods for branch management
   const { 
@@ -46,6 +47,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
 
   // State for copy button feedback
   const [copied, setCopied] = useState(false);
+
+  // Handle thinking section toggle
+  const handleThinkingToggle = (collapsed: boolean) => {
+    updateMessageInChat(chatId, id, {
+      thinkingCollapsed: collapsed
+    });
+  };
 
   // Ref for textarea auto-resizing
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -304,6 +312,19 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
           ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
           : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
       }`}>
+        {/* Render thinking section for AI messages */}
+        {sender === 'ai' && (thinkingContent || (thinkingContent !== undefined && !isThinkingComplete)) && (
+          <div className="mb-3">
+            <ThinkingSection
+              thinkingContent={thinkingContent}
+              isThinkingComplete={isThinkingComplete}
+              isStreaming={!isComplete}
+              initialCollapsed={thinkingCollapsed !== false}
+              onToggle={handleThinkingToggle}
+            />
+          </div>
+        )}
+
         {/* Render user's file attachments */}
         {files && files.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">

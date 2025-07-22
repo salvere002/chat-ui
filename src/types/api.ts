@@ -42,12 +42,27 @@ export interface UploadRequest {
 export interface MessageResponse {
   text: string;
   imageUrl?: string;
+  // Thinking content support for non-streaming
+  thinking?: string;
+  thinkingMetadata?: {
+    backend?: string;
+    format?: string;
+    step?: number;
+  };
 }
 
 export interface StreamMessageChunk {
   text?: string;
   imageUrl?: string;
   complete?: boolean;
+  // Thinking content support
+  thinking?: string;
+  thinkingComplete?: boolean;
+  thinkingMetadata?: {
+    backend?: string;
+    format?: string;
+    step?: number;
+  };
 }
 
 export interface FileUploadResponse {

@@ -148,7 +148,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           uploadedFiles,
           {
             onChunk: (chunk) => {
-              // Update the AI message with each chunk
+              // Handle thinking content streaming
+              if (chunk.thinking) {
+                const currentMessage = getChatById(currentChatId)?.messages.find(m => m.id === aiMessageId);
+                updateMessageInChat(currentChatId, aiMessageId, {
+                  thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
+                  isThinkingComplete: chunk.thinkingComplete,
+                  thinkingCollapsed: currentMessage?.thinkingCollapsed ?? true // Default to collapsed
+                });
+              }
+              
+              // Handle regular response content streaming
               if (chunk.text) {
                 updateMessageInChat(currentChatId, aiMessageId, {
                   text: `${getChatById(currentChatId)?.messages.find(m => m.id === aiMessageId)?.text || ''}${chunk.text}`,
@@ -159,7 +169,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
             onComplete: () => {
               // Mark as complete when done
               updateMessageInChat(currentChatId, aiMessageId, {
-                isComplete: true
+                isComplete: true,
+                isThinkingComplete: true // Ensure thinking is also marked complete
               });
               // Clear processing state
               setProcessing(false);
@@ -184,7 +195,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           // Update AI message with complete response
           updateMessageInChat(currentChatId, aiMessageId, {
             text: response.text,
-            isComplete: true
+            imageUrl: response.imageUrl,
+            isComplete: true,
+            thinkingContent: response.thinking,
+            isThinkingComplete: true
           });
         } catch (error) {
           // Show error and mark message as complete
