@@ -67,6 +67,9 @@ export class MockAdapter extends AbstractBaseAdapter {
     const { text, history } = request;
     let response: MessageResponse;
     
+    // Check if thinking mode should be enabled
+    const enableThinking = text.includes('/think');
+    
     // Generate different responses based on the request and history
     if (text.toLowerCase().includes('hello') || text.toLowerCase().includes('hi')) {
       response = { text: MOCK_RESPONSES.greeting };
@@ -77,6 +80,15 @@ export class MockAdapter extends AbstractBaseAdapter {
       response = { text: `${MOCK_RESPONSES.echo(text)} (I can see our conversation has ${history.length} previous messages)` };
     } else {
       response = { text: MOCK_RESPONSES.echo(text) };
+    }
+    
+    // Add thinking content if enabled
+    if (enableThinking) {
+      response.thinking = "Let me think about this question... I need to consider multiple aspects here. First, let me analyze the user's intent. They seem to be asking about... Based on my understanding, I should provide... Let me structure my response carefully. I'll make sure to cover all important points.";
+      response.thinkingMetadata = {
+        backend: 'mock',
+        format: 'complete'
+      };
     }
     
     // We can use our transformer for consistency, though it's not needed in this mock implementation
@@ -96,6 +108,9 @@ export class MockAdapter extends AbstractBaseAdapter {
       const { text, history } = request;
       let responseText = '';
       
+      // Check if thinking mode should be enabled
+      const enableThinking = text.includes('/think');
+      
       // Determine which mock response to use
       if (text.toLowerCase().includes('hello') || text.toLowerCase().includes('hi')) {
         responseText = MOCK_RESPONSES.greeting;
@@ -106,6 +121,46 @@ export class MockAdapter extends AbstractBaseAdapter {
         responseText = `${MOCK_RESPONSES.echo(text)} (I can see our conversation has ${history.length} previous messages)`;
       } else {
         responseText = MOCK_RESPONSES.echo(text);
+      }
+      
+      
+      // Stream thinking content first if thinking mode is enabled
+      if (enableThinking) {
+        const thinkingSteps = [
+          "Let me think about this question...",
+          " I need to consider multiple aspects here.",
+          " First, let me analyze the user's intent.",
+          " They seem to be asking about...",
+          " Based on my understanding, I should provide...",
+          " Let me structure my response carefully.",
+          " I'll make sure to cover all important points."
+        ];
+
+        // Stream thinking content
+        for (let i = 0; i < thinkingSteps.length; i++) {
+          await this.simulateNetworkDelay(200, 400);
+          
+          onChunk({
+            thinking: thinkingSteps[i],
+            thinkingComplete: false,
+            thinkingMetadata: {
+              backend: 'mock',
+              format: 'streaming',
+              step: i + 1
+            }
+          });
+        }
+
+        // Mark thinking complete
+        await this.simulateNetworkDelay(200);
+        onChunk({
+          thinking: "",
+          thinkingComplete: true,
+          thinkingMetadata: {
+            backend: 'mock',
+            format: 'streaming'
+          }
+        });
       }
       
       // Split the response into words to simulate streaming

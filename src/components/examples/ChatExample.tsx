@@ -85,6 +85,8 @@ const ChatExample: React.FC = () => {
         text: inputText,
         sender: 'user',
         timestamp: new Date(),
+        branchId: 'main',
+        children: []
       };
       
       // Add the user message to the chat
@@ -115,6 +117,8 @@ const ChatExample: React.FC = () => {
         sender: 'ai',
         timestamp: new Date(),
         isComplete: false,
+        branchId: 'main',
+        children: []
       };
       
       // Add the initial AI message
@@ -194,6 +198,8 @@ const ChatExample: React.FC = () => {
           sender: 'ai',
           timestamp: new Date(),
           isComplete: true,
+          branchId: 'main',
+          children: []
         });
       }
       
