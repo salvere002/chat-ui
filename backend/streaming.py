@@ -50,6 +50,46 @@ def stream_response_generator(text, uploaded_files, image_url=None):
     Returns:
         Generator that yields response chunks
     """
+    # Check if thinking mode should be enabled
+    enable_thinking = '/think' in text
+    
+    # Stream thinking content first if thinking mode is enabled
+    if enable_thinking:
+        thinking_steps = [
+            "Let me think about this question...",
+            " I need to consider multiple aspects here.",
+            " First, let me analyze the user's intent.",
+            " They seem to be asking about...",
+            " Based on my understanding, I should provide...",
+            " Let me structure my response carefully.",
+            " I'll make sure to cover all important points."
+        ]
+
+        # Stream thinking content
+        for i, thinking_step in enumerate(thinking_steps):
+            time.sleep(0.3)  # Simulate thinking delay
+            
+            yield {
+                "thinking": thinking_step,
+                "thinkingComplete": False,
+                "thinkingMetadata": {
+                    "backend": "python",
+                    "format": "streaming",
+                    "step": i + 1
+                }
+            }
+
+        # Mark thinking complete
+        time.sleep(0.2)
+        yield {
+            "thinking": "",
+            "thinkingComplete": True,
+            "thinkingMetadata": {
+                "backend": "python",
+                "format": "streaming"
+            }
+        }
+    
     # Create the full response text
     full_response_text = f"AI stream response to: \"{text}\". Files received: {', '.join([f['name'] for f in uploaded_files]) if uploaded_files else 'None'}. This response streams in chunks."
     
