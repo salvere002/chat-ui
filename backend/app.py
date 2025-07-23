@@ -131,6 +131,9 @@ def fetch_message():
     text = data.get('text', '')
     uploaded_files = data.get('files', [])
     
+    # Check if thinking mode should be enabled
+    enable_thinking = '/think' in text
+    
     # Determine if we should include an image in the response
     include_image = any(f.get('type', '').startswith('image/') for f in uploaded_files) or (random.random() < 0.3)
     
@@ -143,10 +146,20 @@ def fetch_message():
     # Simulate response generation
     response_text = f"AI fetch response to: \"{text}\". Files received: {', '.join([f['name'] for f in uploaded_files]) if uploaded_files else 'None'}. This is a complete response."
     
-    response = jsonify({
+    response_data = {
         'text': response_text,
         'imageUrl': image_url
-    })
+    }
+    
+    # Add thinking content if enabled
+    if enable_thinking:
+        response_data['thinking'] = "Let me think about this question... I need to consider multiple aspects here. First, let me analyze the user's intent. They seem to be asking about... Based on my understanding, I should provide... Let me structure my response carefully. I'll make sure to cover all important points."
+        response_data['thinkingMetadata'] = {
+            'backend': 'python',
+            'format': 'complete'
+        }
+    
+    response = jsonify(response_data)
     
     # Add test cookies to response
     response = set_test_cookies(response)
