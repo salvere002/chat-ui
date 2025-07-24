@@ -1,5 +1,5 @@
 import { AbstractBaseAdapter, StreamCallbacks, ProgressCallback } from './BaseAdapter';
-import { ApiError, MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
+import { ApiError, MessageRequest, MessageResponse, FileUploadResponse, StreamMessageChunk } from '../../types/api';
 import { ApiClient, DataTransformer } from '../apiClient';
 
 /**
@@ -23,6 +23,64 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
     this.apiKey = config.apiKey;
     this.model = config.model || 'gpt-4-turbo';
     this.baseUrl = config.baseUrl || 'https://api.openai.com/v1';
+  }
+
+  /**
+   * Setup OpenAI-specific stream interceptors
+   */
+  protected setupInterceptors(): void {
+    // Add OpenAI-specific chunk interceptor for custom parsing
+    this.addStreamChunkInterceptor((rawChunk, _accumulated, callbacks) => {
+      // Handle OpenAI's Server-Sent Events format
+      try {
+        // Check for OpenAI completion marker
+        if (rawChunk.includes('[DONE]')) {
+          return { shouldContinue: false, customHandling: false };
+        }
+
+        // Try to parse OpenAI streaming format directly
+        // OpenAI sends: data: {"choices":[{"delta":{"content":"text"}}]}
+        const lines = rawChunk.split('\n');
+        let hasProcessedChunk = false;
+
+        for (const line of lines) {
+          if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+            try {
+              const jsonStr = line.substring(6); // Remove 'data: ' prefix
+              const data = JSON.parse(jsonStr);
+              
+              // Extract content from OpenAI response format
+              const content = data.choices?.[0]?.delta?.content || '';
+              const finishReason = data.choices?.[0]?.finish_reason;
+              
+              if (content || finishReason) {
+                const chunk: StreamMessageChunk = {
+                  text: content,
+                  complete: finishReason !== null && finishReason !== undefined
+                };
+                
+                callbacks.onChunk(chunk);
+                hasProcessedChunk = true;
+              }
+            } catch (parseError) {
+              // If JSON parsing fails, let default SSE parser handle it
+              continue;
+            }
+          }
+        }
+
+        if (hasProcessedChunk) {
+          // We handled the chunk, don't let default parser process it
+          return { shouldContinue: true, customHandling: true };
+        }
+        
+        // Let default SSE parser handle it
+        return { shouldContinue: true, customHandling: false };
+      } catch (error) {
+        // On any error, fall back to default parsing
+        return { shouldContinue: true, customHandling: false };
+      }
+    });
   }
 
   /**

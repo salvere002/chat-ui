@@ -1,4 +1,4 @@
-import { ApiClient } from '../apiClient';
+import { ApiClient, StreamChunkInterceptor, StreamResponseInterceptor, RequestInterceptor, ErrorInterceptor } from '../apiClient';
 import { MessageFile } from '../../types/chat';
 import { 
   MessageRequest, 
@@ -68,6 +68,35 @@ export abstract class AbstractBaseAdapter implements BaseAdapter {
   
   constructor(apiClient: ApiClient) {
     this.apiClient = apiClient;
+    this.setupInterceptors();
+  }
+  
+  /**
+   * Setup adapter-specific interceptors
+   * Override this method in concrete adapters to register custom interceptors
+   */
+  protected setupInterceptors(): void {
+    // Default implementation - no interceptors
+    // Concrete adapters can override this to add their own interceptors
+  }
+  
+  /**
+   * Helper methods for registering interceptors
+   */
+  protected addStreamChunkInterceptor(interceptor: StreamChunkInterceptor): void {
+    this.apiClient.addStreamChunkInterceptor(interceptor);
+  }
+  
+  protected addStreamRequestInterceptor(interceptor: RequestInterceptor): void {
+    this.apiClient.addStreamRequestInterceptor(interceptor);
+  }
+  
+  protected addStreamResponseInterceptor(interceptor: StreamResponseInterceptor): void {
+    this.apiClient.addStreamResponseInterceptor(interceptor);
+  }
+  
+  protected addStreamErrorInterceptor(interceptor: ErrorInterceptor): void {
+    this.apiClient.addStreamErrorInterceptor(interceptor);
   }
   
   abstract sendMessage(request: MessageRequest): Promise<MessageResponse>;

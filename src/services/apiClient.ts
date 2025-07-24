@@ -42,6 +42,29 @@ export type ErrorInterceptor = (
 export type DataTransformer<R, T> = (rawData: R) => T;
 
 /**
+ * Stream chunk interceptor function type
+ * Processes individual chunks during streaming
+ */
+export type StreamChunkInterceptor = (
+  rawChunk: string,
+  accumulated: string,
+  callbacks: StreamCallbacks
+) => {
+  processedChunk?: string;
+  shouldContinue: boolean;
+  customHandling?: boolean; // If true, interceptor handles callbacks itself
+};
+
+/**
+ * Stream response interceptor function type
+ * Similar to ResponseInterceptor but specifically for streaming responses
+ */
+export type StreamResponseInterceptor = (
+  response: Response,
+  requestOptions: RequestInit & { url: string }
+) => Promise<Response>;
+
+/**
  * API Client with interceptor support
  */
 export class ApiClient {
@@ -51,6 +74,12 @@ export class ApiClient {
   private requestInterceptors: RequestInterceptor[] = [];
   private responseInterceptors: ResponseInterceptor[] = [];
   private errorInterceptors: ErrorInterceptor[] = [];
+  
+  // Stream-specific interceptors
+  private streamRequestInterceptors: RequestInterceptor[] = [];
+  private streamResponseInterceptors: StreamResponseInterceptor[] = [];
+  private streamErrorInterceptors: ErrorInterceptor[] = [];
+  private streamChunkInterceptors: StreamChunkInterceptor[] = [];
 
   constructor(config: ApiClientConfig) {
     this.baseUrl = config.baseUrl;
@@ -84,6 +113,34 @@ export class ApiClient {
    */
   addErrorInterceptor(interceptor: ErrorInterceptor): void {
     this.errorInterceptors.push(interceptor);
+  }
+
+  /**
+   * Add a stream request interceptor
+   */
+  addStreamRequestInterceptor(interceptor: RequestInterceptor): void {
+    this.streamRequestInterceptors.push(interceptor);
+  }
+
+  /**
+   * Add a stream response interceptor
+   */
+  addStreamResponseInterceptor(interceptor: StreamResponseInterceptor): void {
+    this.streamResponseInterceptors.push(interceptor);
+  }
+
+  /**
+   * Add a stream error interceptor
+   */
+  addStreamErrorInterceptor(interceptor: ErrorInterceptor): void {
+    this.streamErrorInterceptors.push(interceptor);
+  }
+
+  /**
+   * Add a stream chunk interceptor
+   */
+  addStreamChunkInterceptor(interceptor: StreamChunkInterceptor): void {
+    this.streamChunkInterceptors.push(interceptor);
   }
 
   /**
@@ -128,6 +185,83 @@ export class ApiClient {
       }
     }
     throw error;
+  }
+
+  /**
+   * Execute all stream request interceptors
+   */
+  private applyStreamRequestInterceptors(requestOptions: RequestInit & { url: string }): RequestInit & { url: string } {
+    return this.streamRequestInterceptors.reduce(
+      (options, interceptor) => interceptor(options),
+      requestOptions
+    );
+  }
+
+  /**
+   * Execute all stream response interceptors
+   */
+  private async applyStreamResponseInterceptors(
+    response: Response,
+    requestOptions: RequestInit & { url: string }
+  ): Promise<Response> {
+    let processedResponse = response;
+    
+    for (const interceptor of this.streamResponseInterceptors) {
+      processedResponse = await interceptor(processedResponse, requestOptions);
+    }
+    
+    return processedResponse;
+  }
+
+  /**
+   * Execute all stream error interceptors
+   */
+  private async applyStreamErrorInterceptors(
+    error: any,
+    requestOptions: RequestInit & { url: string }
+  ): Promise<Response | void> {
+    for (const interceptor of this.streamErrorInterceptors) {
+      try {
+        const result = await interceptor(error, requestOptions);
+        if (result) return result;
+      } catch (e) {
+        console.error('Error in stream error interceptor:', e);
+      }
+    }
+    throw error;
+  }
+
+  /**
+   * Execute all stream chunk interceptors
+   */
+  private applyStreamChunkInterceptors(
+    rawChunk: string,
+    accumulated: string,
+    callbacks: StreamCallbacks
+  ): { processedChunk: string; shouldContinue: boolean; customHandling: boolean } {
+    let processedChunk = rawChunk;
+    let shouldContinue = true;
+    let customHandling = false;
+
+    for (const interceptor of this.streamChunkInterceptors) {
+      const result = interceptor(processedChunk, accumulated, callbacks);
+      
+      if (result.customHandling) {
+        customHandling = true;
+        break;
+      }
+      
+      if (result.processedChunk !== undefined) {
+        processedChunk = result.processedChunk;
+      }
+      
+      if (!result.shouldContinue) {
+        shouldContinue = false;
+        break;
+      }
+    }
+
+    return { processedChunk, shouldContinue, customHandling };
   }
 
   /**
@@ -275,7 +409,7 @@ export class ApiClient {
     };
 
     try {
-      processedRequest = this.applyRequestInterceptors(requestOptions);
+      processedRequest = this.applyStreamRequestInterceptors(requestOptions);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -286,7 +420,7 @@ export class ApiClient {
       });
       clearTimeout(timeoutId);
 
-      response = await this.applyResponseInterceptors(response, processedRequest);
+      response = await this.applyStreamResponseInterceptors(response, processedRequest);
 
       if (!response.ok) {
         let errorData;
@@ -305,7 +439,7 @@ export class ApiClient {
           errorData
         );
         
-        const errorHandledByInterceptor = await this.applyErrorInterceptors(apiError, processedRequest);
+        const errorHandledByInterceptor = await this.applyStreamErrorInterceptors(apiError, processedRequest);
         if (errorHandledByInterceptor instanceof Response) {
           // If an error interceptor returns a Response, we can't stream from it.
           // This indicates the interceptor handled the error and "short-circuited".
@@ -325,7 +459,7 @@ export class ApiClient {
       const decoder = new TextDecoder();
       let buffer = '';
       let field = '';
-      let eventName = 'message'; // Default SSE event type
+      let _eventName = 'message'; // Default SSE event type
       let dataBuffer: string[] = [];
 
       while (true) {
@@ -346,7 +480,23 @@ export class ApiClient {
           break;
         }
 
-        buffer += decoder.decode(value, { stream: true });
+        const rawChunk = decoder.decode(value, { stream: true });
+        
+        // Apply stream chunk interceptors first
+        const interceptorResult = this.applyStreamChunkInterceptors(rawChunk, buffer, callbacks);
+        
+        if (interceptorResult.customHandling) {
+          // Interceptor handled everything, continue to next chunk
+          continue;
+        }
+        
+        if (!interceptorResult.shouldContinue) {
+          // Interceptor wants to stop processing
+          break;
+        }
+        
+        // Use processed chunk from interceptors or default parsing
+        buffer += interceptorResult.processedChunk;
         
         let eolIndex;
         // Process buffer line by line (\n is the standard field separator)
@@ -371,7 +521,7 @@ export class ApiClient {
               }
               dataBuffer = []; // Reset for next event
             }
-            eventName = 'message'; // Reset event name for next event
+            _eventName = 'message'; // Reset event name for next event
             continue;
           }
 
@@ -385,7 +535,7 @@ export class ApiClient {
             if (field === 'data') {
               dataBuffer.push(fieldValue);
             } else if (field === 'event') {
-              eventName = fieldValue;
+              _eventName = fieldValue;
             } else if (field === 'id') {
               // lastEventId = fieldValue; // Store if you need to re-establish connection with Last-Event-ID
             } else if (field === 'retry') {
@@ -400,7 +550,7 @@ export class ApiClient {
       try {
         // Ensure processedRequest is defined for error interceptors, fallback to requestOptions
         const reqOptsForError = processedRequest! ?? requestOptions;
-        await this.applyErrorInterceptors(finalError, reqOptsForError);
+        await this.applyStreamErrorInterceptors(finalError, reqOptsForError);
         callbacks.onError(finalError); 
       } catch (interceptedError) {
         callbacks.onError(interceptedError instanceof Error ? interceptedError : new Error(String(interceptedError)));
