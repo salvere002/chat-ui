@@ -145,7 +145,17 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
           userMessageFiles,
           {
             onChunk: (chunk) => {
-              // Update the AI message with each chunk
+              // Handle thinking content streaming
+              if (chunk.thinking) {
+                const currentMessage = getCurrentBranchMessages(activeChatId).find(m => m.id === aiMessageId);
+                updateMessageInChat(activeChatId, aiMessageId, {
+                  thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
+                  isThinkingComplete: chunk.thinkingComplete,
+                  thinkingCollapsed: currentMessage?.thinkingCollapsed ?? true
+                });
+              }
+              
+              // Handle regular response content streaming
               if (chunk.text) {
                 // Append the new chunk to our accumulated text
                 accumulatedTextRef.current += chunk.text;
@@ -160,7 +170,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
             onComplete: () => {
               // Mark as complete when done
               updateMessageInChat(activeChatId, aiMessageId, {
-                isComplete: true
+                isComplete: true,
+                isThinkingComplete: true // Ensure thinking is also marked complete
               });
               // Clear processing state
               setProcessing(false);
@@ -188,7 +199,9 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
         // Update AI message with complete response
         updateMessageInChat(activeChatId, aiMessageId, {
           text: response.text,
-          isComplete: true
+          isComplete: true,
+          thinkingContent: response.thinking,
+          isThinkingComplete: true
         });
         // Clear processing state
         setProcessing(false);
@@ -221,10 +234,13 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     // Set processing state
     setProcessing(true);
     
-    // Mark the AI message as regenerating
+    // Mark the AI message as regenerating and reset thinking content
     updateMessageInChat(activeChatId, aiMessage.id, { 
-      text: "Regenerating response...",
-      isComplete: false 
+      text: "",
+      isComplete: false,
+      thinkingContent: undefined,
+      isThinkingComplete: false,
+      thinkingCollapsed: true
     });
     
     // Generate new response using our shared function
@@ -249,10 +265,13 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
       // Set processing state
       setProcessing(true);
       
-      // Mark the AI message as regenerating
+      // Mark the AI message as regenerating and reset thinking content
       updateMessageInChat(activeChatId, aiMessage.id, { 
-        text: "Regenerating response based on edited message...",
-        isComplete: false 
+        text: "",
+        isComplete: false,
+        thinkingContent: undefined,
+        isThinkingComplete: false,
+        thinkingCollapsed: true
       });
       
       // Use the shared function to generate the response with the edited message
