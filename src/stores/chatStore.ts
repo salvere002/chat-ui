@@ -145,7 +145,6 @@ const useChatStore = create<ChatStore>((set, get) => ({
     // We should only show messages that are EXACTLY on this path
     
     // Start from the deepest branch and work backwards
-    const currentBranchId = currentBranchPath[currentBranchPath.length - 1];
     
     // Get all messages and organize by branch
     const messagesByBranch = new Map<string, Message[]>();

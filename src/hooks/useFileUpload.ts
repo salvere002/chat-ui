@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { FileUploadState, MessageFile, PreviewFile } from '../types/chat';
 import { ChatService } from '../services/chatService';
 import { fileService } from '../services/fileService';

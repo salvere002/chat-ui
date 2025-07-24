@@ -1,4 +1,3 @@
-import type { ProxyOptions } from 'vite';
 
 // Configurable cookie security
 const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true'; // Set this env var to 'true' to enable Secure flag
@@ -66,7 +65,7 @@ export function createProxyConfig(): Record<string, any> {
           }
         });
 
-        proxy.on('proxyRes', (proxyRes: any, req: any, res: any) => {
+        proxy.on('proxyRes', (proxyRes: any, req: any) => {
           if (proxyRes.headers['set-cookie']) {
             // Get the host from the request headers to use for the cookie domain
             const host = req.headers.host || 'localhost';
@@ -93,7 +92,7 @@ export function createProxyConfig(): Record<string, any> {
           }
         });
 
-        proxy.on('error', (err: Error, req: any, res: any) => {
+        proxy.on('error', (err: Error, _req: any, res: any) => {
           console.error('Proxy error:', err);
           if (!res.headersSent) {
               // Ensure 'res' is the HttpServerResponse and has writeHead

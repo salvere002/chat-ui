@@ -12,7 +12,7 @@ interface ToastProps {
   isVisible: boolean;
 }
 
-const Toast: React.FC<ToastProps> = ({ id, message, type, duration = 3000, onClose, isVisible }) => {
+const Toast: React.FC<ToastProps> = ({ message, type, duration = 3000, onClose, isVisible }) => {
   // Handle auto-closing of toast after duration
   useEffect(() => {
     if (isVisible && duration > 0) {

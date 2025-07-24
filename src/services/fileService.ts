@@ -101,7 +101,7 @@ class FileService {
    * Only revokes URLs that aren't being used in active messages
    */
   cleanup(): void {
-    this.previewUrls.forEach((url, id) => {
+    this.previewUrls.forEach((url) => {
       if (!this.activeImageUrls.has(url)) {
         URL.revokeObjectURL(url);
       }

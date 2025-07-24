@@ -1,5 +1,4 @@
 import { ApiClient, StreamChunkInterceptor, StreamResponseInterceptor, RequestInterceptor, ErrorInterceptor } from '../apiClient';
-import { MessageFile } from '../../types/chat';
 import { 
   MessageRequest, 
   MessageResponse, 
