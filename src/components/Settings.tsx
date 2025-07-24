@@ -65,7 +65,7 @@ const Settings: React.FC<SettingsProps> = ({
   };
   
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-modal p-4 animate-fade-in" onClick={handleOverlayClick}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in" onClick={handleOverlayClick}>
       <div className="bg-bg-primary rounded-lg w-full max-w-[600px] max-h-[85vh] overflow-hidden shadow-lg flex flex-col animate-slide-up">
         <div className="flex items-center justify-between px-6 py-5 bg-bg-secondary border-b border-border-primary">
           <h2 className="text-xl font-semibold text-text-primary m-0">Settings</h2>
