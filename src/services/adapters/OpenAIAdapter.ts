@@ -1,5 +1,5 @@
 import { AbstractBaseAdapter, StreamCallbacks, ProgressCallback } from './BaseAdapter';
-import { ApiError, MessageRequest, MessageResponse, FileUploadResponse, StreamMessageChunk } from '../../types/api';
+import { MessageRequest, MessageResponse, FileUploadResponse, StreamMessageChunk } from '../../types/api';
 import { ApiClient, DataTransformer } from '../apiClient';
 
 /**
@@ -160,7 +160,7 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
    * Format request message into OpenAI's expected format
    */
   private formatMessages(request: MessageRequest) {
-    const { text, files = [] } = request;
+    const { text } = request;
     
     const messages = [
       { role: 'system', content: 'You are a helpful assistant.' },

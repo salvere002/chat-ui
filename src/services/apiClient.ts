@@ -459,7 +459,6 @@ export class ApiClient {
       const decoder = new TextDecoder();
       let buffer = '';
       let field = '';
-      let _eventName = 'message'; // Default SSE event type
       let dataBuffer: string[] = [];
 
       while (true) {
@@ -521,7 +520,7 @@ export class ApiClient {
               }
               dataBuffer = []; // Reset for next event
             }
-            _eventName = 'message'; // Reset event name for next event
+            // Reset event name for next event
             continue;
           }
 
@@ -535,11 +534,11 @@ export class ApiClient {
             if (field === 'data') {
               dataBuffer.push(fieldValue);
             } else if (field === 'event') {
-              _eventName = fieldValue;
+              // Event type handled by caller if needed
             } else if (field === 'id') {
-              // lastEventId = fieldValue; // Store if you need to re-establish connection with Last-Event-ID
+              // Field handled by caller if needed
             } else if (field === 'retry') {
-              // retryInterval = parseInt(fieldValue, 10); // Store if you need to adjust retry logic
+              // Field handled by caller if needed
             }
             // Ignore unknown fields and comments (lines starting with a colon)
           }

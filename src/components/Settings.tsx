@@ -9,7 +9,6 @@ interface SettingsProps {
   onResponseModeChange: (responseMode: ResponseMode) => void;
 }
 
-type SettingsTab = 'general';
 
 const Settings: React.FC<SettingsProps> = ({ 
   onClose, 
@@ -26,8 +25,6 @@ const Settings: React.FC<SettingsProps> = ({
   // Get current configuration
   const currentConfig = getCurrentConfig();
   
-  // Tab state
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   
   // Form state
   const [backendUrl, setBackendUrl] = useState(currentConfig.baseUrl);

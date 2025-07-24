@@ -181,7 +181,6 @@ export class ServiceFactory {
   }
 }
 
-// Create and export a default service factory instance
 export const serviceFactory = ServiceFactory.getInstance();
 
 // Export a default adapter instance for convenience

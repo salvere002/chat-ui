@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { FileUploadState, MessageFile, PreviewFile } from '../types/chat';
 import { ChatService } from '../services/chatService';
 import { fileService } from '../services/fileService';
@@ -171,7 +171,6 @@ export function useFileUpload(): UseFileUploadReturn {
     }
   }, [fileUploads, handleUploadProgress, updateUploadStatus]);
   
-  // Reset file uploads
   const resetFileUploads = useCallback(() => {
     // Clean up preview URLs for files that aren't active in messages
     fileUploads.forEach(fu => {

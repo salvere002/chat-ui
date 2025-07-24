@@ -110,7 +110,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     // Add to existing files
     setSelectedFiles(prev => [...prev, ...newPreviewFiles]);
     
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

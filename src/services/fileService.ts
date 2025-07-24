@@ -101,7 +101,7 @@ class FileService {
    * Only revokes URLs that aren't being used in active messages
    */
   cleanup(): void {
-    this.previewUrls.forEach((url, id) => {
+    this.previewUrls.forEach((url) => {
       if (!this.activeImageUrls.has(url)) {
         URL.revokeObjectURL(url);
       }
@@ -110,8 +110,5 @@ class FileService {
   }
 }
 
-// Create and export a singleton instance
 export const fileService = new FileService();
-
-// Also export the class for testing purposes
 export default FileService; 
