@@ -6,12 +6,13 @@ import remarkGfm from 'remark-gfm'; // Import GFM plugin
 import remarkMath from 'remark-math'; // Import math plugin
 import rehypeKatex from 'rehype-katex'; // Import KaTeX plugin
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'; // Import syntax highlighter
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Import a theme (adjust path as needed)
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Dark theme
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Light theme
 import type { Components } from 'react-markdown'; // Import CodeProps directly from react-markdown
 import { fileService } from '../services/fileService';
 import useChatStore from '../stores/chatStore';
 import { ChatService } from '../services/chatService';
-import { useResponseModeStore } from '../stores';
+import { useResponseModeStore, useThemeStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
 import ThinkingSection from './ThinkingSection';
 import { ConversationMessage } from '../types/api';
@@ -22,6 +23,64 @@ interface MessageItemProps {
   onEditMessage?: (messageId: string, newText: string) => void;
   chatId: string;
 }
+
+// CodeBlock component with copy functionality
+const CodeBlock: React.FC<{ children: string; language: string; className?: string }> = ({ 
+  children, 
+  language, 
+  className,
+  ...props 
+}) => {
+  const [copied, setCopied] = useState(false);
+  const { theme } = useThemeStore();
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(children);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 500); // Show checkmark for 0.5s
+    } catch (err) {
+      console.error('Failed to copy code:', err);
+    }
+  };
+
+  // Use theme-appropriate syntax highlighting
+  const syntaxTheme = theme === 'dark' ? vscDarkPlus : oneLight;
+
+  return (
+    <div className="relative group">
+      <SyntaxHighlighter
+        style={syntaxTheme}
+        language={language}
+        PreTag="div"
+        className={className}
+        customStyle={{
+          margin: 0,
+          borderRadius: '0.5rem',
+          backgroundColor: theme === 'dark' ? 'var(--color-bg-secondary)' : '#f8f9fa',
+          border: `1px solid var(--color-border-secondary)`,
+          fontSize: '0.875rem', // 14px - smaller font size
+          lineHeight: '1.5',
+          padding: '1rem',
+        }}
+        {...props}
+      >
+        {children}
+      </SyntaxHighlighter>
+      <button
+        onClick={handleCopy}
+        className="absolute top-2 right-2 flex items-center justify-center w-7 h-7 bg-bg-tertiary hover:bg-bg-secondary text-text-tertiary hover:text-text-primary border border-border-secondary rounded opacity-0 group-hover:opacity-100 transition-all duration-200"
+        title={copied ? "Copied!" : "Copy code"}
+      >
+        {copied ? (
+          <FaCheck className="text-accent-primary text-xs" />
+        ) : (
+          <FaCopy className="text-xs" />
+        )}
+      </button>
+    </div>
+  );
+};
 
 const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, chatId }) => {
   // Destructure files array instead of single file
@@ -354,14 +413,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                 code({ node, inline, className, children, ...props }: any) {
                   const match = /language-(\w+)/.exec(className || '');
                   return !inline && match ? (
-                    <SyntaxHighlighter
-                      style={vscDarkPlus}
+                    <CodeBlock
                       language={match[1]}
-                      PreTag="div"
+                      className={className}
                       {...props}
                     >
                       {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
+                    </CodeBlock>
                   ) : (
                     <code className={className} {...props}>
                       {children}
