@@ -10,6 +10,29 @@ export class RestApiAdapter extends AbstractBaseAdapter {
   constructor(apiClient: ApiClient) {
     super(apiClient);
   }
+
+  /**
+   * Setup REST API-specific stream interceptors
+   */
+  protected setupInterceptors(): void {
+    // Add logging interceptor for debugging
+    this.addStreamChunkInterceptor((rawChunk, _accumulated, _callbacks) => {
+      // For REST API, we can add logging or basic preprocessing
+      console.debug('REST API Stream chunk received:', rawChunk.substring(0, 100) + '...');
+      
+      // Let default SSE parser handle the chunk
+      return { shouldContinue: true, customHandling: false };
+    });
+
+    // Add error handling for REST API specific errors
+    this.addStreamErrorInterceptor(async (error, _requestOptions) => {
+      console.error('REST API Stream error:', error);
+      
+      // Add any REST API specific error handling here
+      // For now, just re-throw the error
+      throw error;
+    });
+  }
   
   /**
    * Send a message and get a complete response
