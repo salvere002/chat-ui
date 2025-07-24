@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { FaSun, FaMoon, FaCog, FaBars, FaTimes } from 'react-icons/fa';
 import { ToastContainer } from './components/Toast';
 import { useThemeStore, useChatStore, useResponseModeStore } from './stores';
+import useServiceConfigStore from './stores/serviceConfigStore';
 import Settings from './components/Settings';
 
 const App: React.FC = () => {
   // Use the theme store
   const { theme, toggleTheme } = useThemeStore();
   
+  // Use the service config store and ensure initialization
+  const { getCurrentConfig } = useServiceConfigStore();
   
   // Use the chat store for chat state management
   const {
@@ -29,6 +32,25 @@ const App: React.FC = () => {
   
   // State for mobile sidebar visibility
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Initialize the service on app load
+  useEffect(() => {
+    const initializeService = async () => {
+      try {
+        const config = getCurrentConfig();
+        const { ChatService } = await import('./services/chatService');
+        ChatService.configure({
+          adapterType: config.adapterType,
+          baseUrl: config.baseUrl,
+          sessionEndpoint: config.sessionEndpoint
+        });
+      } catch (error) {
+        console.error('Failed to initialize chat service:', error);
+      }
+    };
+
+    initializeService();
+  }, [getCurrentConfig]);
   
   // Handler for creating a new chat
   const handleNewChat = () => {

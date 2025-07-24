@@ -58,6 +58,18 @@ const configureChatService = (config: ServiceConfig) => {
   });
 };
 
+// Function to configure ChatService synchronously
+const configureChatServiceSync = (config: ServiceConfig) => {
+  // Use dynamic import but return the promise for awaiting
+  return import('../services/chatService').then(({ ChatService }) => {
+    ChatService.configure({
+      adapterType: config.adapterType,
+      baseUrl: config.baseUrl,
+      sessionEndpoint: config.sessionEndpoint
+    });
+  });
+};
+
 const useServiceConfigStore = create<ServiceConfigStore>()(
   persist(
     (set, get) => ({
@@ -117,7 +129,7 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
 if (typeof window !== 'undefined') {
   const state = useServiceConfigStore.getState();
   const currentConfig = state.getCurrentConfig();
-  configureChatService(currentConfig);
+  configureChatServiceSync(currentConfig).catch(console.error);
 }
 
 export default useServiceConfigStore; 
