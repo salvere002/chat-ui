@@ -537,9 +537,9 @@ export class ApiClient {
             } else if (field === 'event') {
               _eventName = fieldValue;
             } else if (field === 'id') {
-              // lastEventId = fieldValue; // Store if you need to re-establish connection with Last-Event-ID
+              // Field handled by caller if needed
             } else if (field === 'retry') {
-              // retryInterval = parseInt(fieldValue, 10); // Store if you need to adjust retry logic
+              // Field handled by caller if needed
             }
             // Ignore unknown fields and comments (lines starting with a colon)
           }

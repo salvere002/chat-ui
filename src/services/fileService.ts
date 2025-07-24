@@ -110,8 +110,5 @@ class FileService {
   }
 }
 
-// Create and export a singleton instance
 export const fileService = new FileService();
-
-// Also export the class for testing purposes
 export default FileService; 

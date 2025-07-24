@@ -113,10 +113,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       // Add to chat state
       addMessageToChat(currentChatId, userMessage);
       
-      // Clear input
       setInputValue('');
       
-      // Reset file uploads
       resetFileUploads();
       
       // Create a unique message ID for AI response

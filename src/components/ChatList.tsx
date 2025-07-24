@@ -16,9 +16,7 @@ const ChatList: React.FC = () => {
   ) => {
     e.stopPropagation(); // Prevent the click from selecting the chat
     // Optional: Add a confirmation dialog here
-    // if (window.confirm("Are you sure you want to delete this chat?")) {
-       deleteChat(chatId);
-    // }
+    deleteChat(chatId);
   };
 
   return (

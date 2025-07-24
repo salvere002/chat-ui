@@ -171,7 +171,6 @@ export function useFileUpload(): UseFileUploadReturn {
     }
   }, [fileUploads, handleUploadProgress, updateUploadStatus]);
   
-  // Reset file uploads
   const resetFileUploads = useCallback(() => {
     // Clean up preview URLs for files that aren't active in messages
     fileUploads.forEach(fu => {

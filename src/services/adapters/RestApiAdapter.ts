@@ -94,7 +94,6 @@ export class RestApiAdapter extends AbstractBaseAdapter {
       // So, this catch block might only be for truly unexpected errors or can be simplified/removed
       // if ApiClient.streamMessages guarantees onError is called.
       // For now, let ApiClient handle it, RestApiAdapter just calls it.
-      // console.error('Error in RestApiAdapter stream request wrapper:', error);
       // callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     }
   }
