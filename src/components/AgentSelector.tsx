@@ -4,11 +4,9 @@ import { useAgentStore } from '../stores';
 
 const AgentSelector: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const { agents, selectedAgentId, setSelectedAgent, getSelectedAgent } = useAgentStore();
   const selectedAgent = getSelectedAgent();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleAgentSelect = (agentId: string) => {
     setSelectedAgent(agentId);
@@ -16,19 +14,6 @@ const AgentSelector: React.FC = () => {
   };
 
   const toggleDropdown = () => {
-    if (!isOpen && buttonRef.current) {
-      // Find the input area container (the div with bg-bg-secondary)
-      const inputArea = buttonRef.current.closest('div[class*="bg-bg-secondary"]');
-      if (inputArea) {
-        const inputRect = inputArea.getBoundingClientRect();
-        const buttonRect = buttonRef.current.getBoundingClientRect();
-        
-        setDropdownPosition({
-          top: inputRect.top - 8, // Position just above the input area
-          left: buttonRect.left
-        });
-      }
-    }
     setIsOpen(!isOpen);
   };
 
@@ -52,7 +37,6 @@ const AgentSelector: React.FC = () => {
   return (
     <div className="relative inline-block" ref={dropdownRef}>
       <button
-        ref={buttonRef}
         className="flex items-center justify-between px-2 py-1 bg-bg-primary border border-border-secondary rounded-full cursor-pointer transition-all duration-200 text-xs w-[110px] gap-0.5 min-h-[24px] hover:bg-bg-secondary hover:border-border-hover focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_var(--color-accent-light)]"
         onClick={toggleDropdown}
         type="button"
@@ -65,12 +49,7 @@ const AgentSelector: React.FC = () => {
 
       {isOpen && (
         <div 
-          className="fixed min-w-[180px] bg-bg-primary border border-border-secondary rounded-lg shadow-lg z-[9999] max-h-[300px] overflow-y-auto"
-          style={{
-            top: dropdownPosition.top,
-            left: dropdownPosition.left,
-            transform: 'translate(-10%, -110%)'
-          }}
+          className="absolute bottom-full left-0 mb-1 min-w-[180px] bg-bg-primary border border-border-secondary rounded-lg shadow-lg z-[9999] max-h-[300px] overflow-y-auto"
         >
           {agents.filter(agent => agent.isActive !== false).map((agent, index, array) => (
             <div
