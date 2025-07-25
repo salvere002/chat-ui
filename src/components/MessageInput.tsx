@@ -55,11 +55,31 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const dropAreaRef = useRef<HTMLDivElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>(initialFiles);
   const [isDragging, setIsDragging] = useState(false);
+  const [textareaHeight, setTextareaHeight] = useState(48); // Initial height in pixels
 
   // Effect to sync with initialFiles prop when it changes
   useEffect(() => {
     setSelectedFiles(initialFiles);
   }, [initialFiles]);
+
+  // Auto-resize textarea
+  const adjustTextareaHeight = () => {
+    if (textAreaRef.current) {
+      const textarea = textAreaRef.current;
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      const minHeight = 48; // 2 lines approximately
+      const maxHeight = 400; // 6 lines approximately (triple the initial)
+      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+      setTextareaHeight(newHeight);
+      textarea.style.height = `${newHeight}px`;
+    }
+  };
+
+  // Effect to adjust height when value changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [value]);
 
 
 
@@ -79,6 +99,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     // Clear text input locally
     onChange('');
+    
+    // Reset textarea height after clearing
+    setTimeout(() => {
+      adjustTextareaHeight();
+    }, 0);
 
   };
 
@@ -93,6 +118,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   // Function to handle textarea input
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(event.target.value);
+    adjustTextareaHeight();
   };
 
   // Function to trigger file input click
@@ -224,20 +250,55 @@ const MessageInput: React.FC<MessageInputProps> = ({
       )}
 
       {/* Input Area */}
-      <div className="flex items-end gap-2 bg-bg-secondary border border-border-secondary rounded-lg p-2 transition-all duration-150 relative focus-within:border-border-focus focus-within:shadow-[0_0_0_3px_var(--color-accent-light)] focus-within:bg-bg-primary">
-        <div className="flex flex-col gap-1.5 flex-shrink-0 items-center">
-          <AgentSelector />
-          <ModelSelector />
-          <button
-          onClick={handleUploadClick} 
-          className="flex items-center justify-center w-9 h-9 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 flex-shrink-0 hover:bg-bg-tertiary hover:text-accent-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" 
-          aria-label="Attach file" 
-          title="Attach file" 
+      <div className="bg-bg-secondary border border-border-secondary rounded-lg p-2 transition-all duration-150 relative focus-within:border-border-focus focus-within:shadow-[0_0_0_3px_var(--color-accent-light)] focus-within:bg-bg-primary">
+        {/* Textarea */}
+        <textarea
+          ref={textAreaRef}
+          value={value}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          placeholder="Type your message or drop files..."
           disabled={isProcessing}
-        >
-          <FaPaperclip className="w-[18px] h-[18px]" />
-        </button>
+          style={{ height: `${textareaHeight}px` }}
+          className="w-full px-2 sm:px-3 py-2 mb-2 bg-transparent text-text-primary border-none font-sans text-sm sm:text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
+        />
+        
+        {/* Bottom Controls Row */}
+        <div className="flex items-center justify-between">
+          {/* Left side controls: Upload, Model, Agent */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleUploadClick} 
+              className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 flex-shrink-0 hover:bg-bg-tertiary hover:text-accent-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" 
+              aria-label="Attach file" 
+              title="Attach file" 
+              disabled={isProcessing}
+            >
+              <FaPaperclip className="w-[16px] h-[16px]" />
+            </button>
+            <ModelSelector />
+            <AgentSelector />
+          </div>
+          
+          {/* Right side: Send button */}
+          <button
+            onClick={handleSendClick}
+            disabled={isProcessing || (!value.trim() && selectedFiles.filter(f => f.status === 'pending').length === 0)}
+            className={`flex items-center justify-center w-9 h-9 p-0 bg-accent-primary text-text-inverse border-none rounded-md cursor-pointer transition-all duration-150 flex-shrink-0 relative overflow-hidden hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-95 disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed ${isProcessing ? 'is-processing' : ''}`}
+            aria-label="Send message"
+          >
+            {isProcessing ? 
+              <span className="flex items-center justify-center gap-0.5">
+                <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" />
+                <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.16s'}} />
+                <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.32s'}} />
+              </span> : 
+              <FaPaperPlane size={16} className="relative z-10" />
+            }
+          </button>
         </div>
+        
+        {/* Hidden file input */}
         <input
           type="file"
           multiple
@@ -246,31 +307,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
           style={{ display: 'none' }}
           accept={createAcceptAttribute()}
         />
-        <textarea
-          ref={textAreaRef}
-          value={value}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder="Type your message or drop files..."
-          rows={3}
-          disabled={isProcessing}
-          className="flex-1 h-[72px] px-2 sm:px-3 py-2 bg-transparent text-text-primary border-none font-sans text-sm sm:text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
-        />
-        <button
-          onClick={handleSendClick}
-          disabled={isProcessing || (!value.trim() && selectedFiles.filter(f => f.status === 'pending').length === 0)}
-          className={`flex items-center justify-center w-9 h-9 p-0 bg-accent-primary text-text-inverse border-none rounded-md cursor-pointer transition-all duration-150 flex-shrink-0 relative overflow-hidden hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-95 disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed ${isProcessing ? 'is-processing' : ''}`}
-          aria-label="Send message"
-        >
-          {isProcessing ? 
-            <span className="flex items-center justify-center gap-0.5">
-              <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" />
-              <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.16s'}} />
-              <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.32s'}} />
-            </span> : 
-            <FaPaperPlane size={16} className="relative z-10" />
-          }
-        </button>
       </div>
     </div>
   );

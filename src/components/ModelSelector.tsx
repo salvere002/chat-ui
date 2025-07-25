@@ -53,12 +53,12 @@ const ModelSelector: React.FC = () => {
     <div className="relative inline-block" ref={dropdownRef}>
       <button
         ref={buttonRef}
-        className="flex items-center justify-between px-2 py-1 bg-bg-primary border border-border-secondary rounded-full cursor-pointer transition-all duration-200 text-xs w-[70px] gap-0.5 min-h-[24px] hover:bg-bg-secondary hover:border-border-hover focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_var(--color-accent-light)]"
+        className="flex items-center justify-between px-2 py-1 bg-bg-primary border border-border-secondary rounded-full cursor-pointer transition-all duration-200 text-xs w-[110px] gap-0.5 min-h-[24px] hover:bg-bg-secondary hover:border-border-hover focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_var(--color-accent-light)]"
         onClick={toggleDropdown}
         type="button"
       >
         <span className="font-medium text-text-primary whitespace-nowrap overflow-hidden text-ellipsis text-xs flex-1 min-w-0 leading-none">
-          {selectedModel?.name || 'Select Model'}
+          {selectedModel?.name || (models.filter(model => model.isActive !== false).length > 0 ? 'No Model' : 'No Models')}
         </span>
         {isOpen ? <FaChevronUp size={7} /> : <FaChevronDown size={7} />}
       </button>

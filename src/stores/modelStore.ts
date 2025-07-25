@@ -94,14 +94,35 @@ const useModelStore = create<ModelStore>((set, get) => ({
   // Actions
   setModels: (models: Model[]) => {
     const sanitizedModels = models.map(model => sanitizeModel(model));
-    set({ models: sanitizedModels });
+    const activeModels = sanitizedModels.filter(model => model.isActive !== false);
+    const currentState = get();
+    
+    // Auto-select first active model if no current selection or current selection not in new list
+    let newSelectedModelId = currentState.selectedModelId;
+    if (!newSelectedModelId || !activeModels.find(model => model.id === newSelectedModelId)) {
+      newSelectedModelId = activeModels.length > 0 ? activeModels[0].id : null;
+    }
+    
+    set({ 
+      models: sanitizedModels,
+      selectedModelId: newSelectedModelId
+    });
   },
 
   addModel: (model: Model) => {
     const sanitizedModel = sanitizeModel(model);
-    set((state) => ({
-      models: [...state.models, sanitizedModel]
-    }));
+    set((state) => {
+      const newModels = [...state.models, sanitizedModel];
+      // Auto-select this model if no model is currently selected and this model is active
+      const newSelectedModelId = !state.selectedModelId && sanitizedModel.isActive !== false
+        ? sanitizedModel.id
+        : state.selectedModelId;
+      
+      return {
+        models: newModels,
+        selectedModelId: newSelectedModelId
+      };
+    });
   },
 
   updateModel: (modelId: string, updates: Partial<Model>) => {

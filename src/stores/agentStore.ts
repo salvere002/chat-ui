@@ -64,14 +64,35 @@ const useAgentStore = create<AgentStore>((set, get) => ({
   // Actions
   setAgents: (agents: Agent[]) => {
     const sanitizedAgents = agents.map(agent => sanitizeAgent(agent));
-    set({ agents: sanitizedAgents });
+    const activeAgents = sanitizedAgents.filter(agent => agent.isActive !== false);
+    const currentState = get();
+    
+    // Auto-select first active agent if no current selection or current selection not in new list
+    let newSelectedAgentId = currentState.selectedAgentId;
+    if (!newSelectedAgentId || !activeAgents.find(agent => agent.id === newSelectedAgentId)) {
+      newSelectedAgentId = activeAgents.length > 0 ? activeAgents[0].id : null;
+    }
+    
+    set({ 
+      agents: sanitizedAgents,
+      selectedAgentId: newSelectedAgentId
+    });
   },
 
   addAgent: (agent: Agent) => {
     const sanitizedAgent = sanitizeAgent(agent);
-    set((state) => ({
-      agents: [...state.agents, sanitizedAgent]
-    }));
+    set((state) => {
+      const newAgents = [...state.agents, sanitizedAgent];
+      // Auto-select this agent if no agent is currently selected and this agent is active
+      const newSelectedAgentId = !state.selectedAgentId && sanitizedAgent.isActive !== false
+        ? sanitizedAgent.id
+        : state.selectedAgentId;
+      
+      return {
+        agents: newAgents,
+        selectedAgentId: newSelectedAgentId
+      };
+    });
   },
 
   updateAgent: (agentId: string, updates: Partial<Agent>) => {
