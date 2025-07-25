@@ -73,4 +73,16 @@ export interface Agent {
   systemPrompt?: string;
   avatar?: string;
   isActive?: boolean;
+}
+
+// Model configuration interface
+export interface Model {
+  id: string;
+  name: string;
+  description?: string;
+  provider: string;
+  contextLength?: number;
+  inputCost?: number;
+  outputCost?: number;
+  isActive?: boolean;
 } 

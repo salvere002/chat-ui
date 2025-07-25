@@ -4,6 +4,7 @@ import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
 import { backend } from '../utils/config';
 import AgentSelector from './AgentSelector';
+import ModelSelector from './ModelSelector';
 
 interface MessageInputProps {
   value: string;
@@ -226,6 +227,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       <div className="flex items-end gap-2 bg-bg-secondary border border-border-secondary rounded-lg p-2 transition-all duration-150 relative focus-within:border-border-focus focus-within:shadow-[0_0_0_3px_var(--color-accent-light)] focus-within:bg-bg-primary">
         <div className="flex flex-col gap-1.5 flex-shrink-0 items-center">
           <AgentSelector />
+          <ModelSelector />
           <button
           onClick={handleUploadClick} 
           className="flex items-center justify-center w-9 h-9 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 flex-shrink-0 hover:bg-bg-tertiary hover:text-accent-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" 

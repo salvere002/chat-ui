@@ -1,4 +1,4 @@
-import { Message, Chat, ResponseMode, BranchNode, Agent } from './chat';
+import { Message, Chat, ResponseMode, BranchNode, Agent, Model } from './chat';
 
 // Define interface for the chat store state
 export interface ChatStore {
@@ -66,4 +66,16 @@ export interface AgentStore {
   removeAgent: (agentId: string) => void;
   setSelectedAgent: (agentId: string | null) => void;
   getSelectedAgent: () => Agent | null;
+}
+
+// Define interface for the model store state
+export interface ModelStore {
+  models: Model[];
+  selectedModelId: string | null;
+  setModels: (models: Model[]) => void;
+  addModel: (model: Model) => void;
+  updateModel: (modelId: string, updates: Partial<Model>) => void;
+  removeModel: (modelId: string) => void;
+  setSelectedModel: (modelId: string | null) => void;
+  getSelectedModel: () => Model | null;
 } 
