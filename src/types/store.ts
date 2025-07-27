@@ -60,12 +60,17 @@ export interface ResponseModeStore {
 export interface AgentStore {
   agents: Agent[];
   selectedAgentId: string | null;
+  deepResearchEnabled: boolean;
   setAgents: (agents: Agent[]) => void;
   addAgent: (agent: Agent) => void;
   updateAgent: (agentId: string, updates: Partial<Agent>) => void;
   removeAgent: (agentId: string) => void;
   setSelectedAgent: (agentId: string | null) => void;
   getSelectedAgent: () => Agent | null;
+  setDeepResearchEnabled: (enabled: boolean) => void;
+  getSelectableAgents: () => Agent[];
+  getDisplayAgent: () => Agent | null;
+  getActiveAgent: () => Agent | null;
 }
 
 // Define interface for the model store state

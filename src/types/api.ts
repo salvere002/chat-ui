@@ -29,6 +29,7 @@ export interface MessageRequest {
   text: string;
   files?: MessageFile[];
   history?: ConversationMessage[];
+  deepResearch?: boolean;
 }
 
 export interface UploadRequest {

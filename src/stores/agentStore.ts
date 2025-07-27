@@ -52,6 +52,17 @@ const defaultAgents: Agent[] = [
     maxTokens: 2000,
     systemPrompt: 'You are a data analyst and technical assistant. Provide precise, analytical responses with a focus on accuracy and technical detail.',
     isActive: true
+  },
+  {
+    id: 'deepresearch',
+    name: 'Deep Research',
+    description: 'AI specialized in comprehensive research and analysis',
+    model: 'gpt-4-turbo',
+    temperature: 0.5,
+    maxTokens: 4000,
+    systemPrompt: 'You are a deep research assistant. Provide thorough, well-researched responses with detailed analysis and comprehensive coverage of topics.',
+    isActive: true,
+    isDeepResearch: true
   }
 ];
 
@@ -60,6 +71,7 @@ const useAgentStore = create<AgentStore>((set, get) => ({
   // State
   agents: defaultAgents,
   selectedAgentId: 'assistant', // Default to assistant
+  deepResearchEnabled: false,
 
   // Actions
   setAgents: (agents: Agent[]) => {
@@ -129,6 +141,38 @@ const useAgentStore = create<AgentStore>((set, get) => ({
   getSelectedAgent: () => {
     const state = get();
     return state.agents.find(agent => agent.id === state.selectedAgentId) || null;
+  },
+
+  // Deep research functionality
+  setDeepResearchEnabled: (enabled: boolean) => {
+    set({ deepResearchEnabled: enabled });
+  },
+
+  getSelectableAgents: () => {
+    const state = get();
+    return state.agents.filter(agent => 
+      agent.isActive !== false && (
+        state.deepResearchEnabled 
+          ? agent.isDeepResearch === true
+          : agent.isDeepResearch !== true
+      )
+    );
+  },
+
+  getDisplayAgent: () => {
+    const state = get();
+    if (state.deepResearchEnabled) {
+      return state.agents.find(agent => agent.isDeepResearch === true && agent.isActive !== false) || null;
+    }
+    return state.getSelectedAgent();
+  },
+
+  getActiveAgent: () => {
+    const state = get();
+    if (state.deepResearchEnabled) {
+      return state.agents.find(agent => agent.isDeepResearch === true && agent.isActive !== false) || null;
+    }
+    return state.getSelectedAgent();
   }
 }));
 

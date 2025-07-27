@@ -5,6 +5,7 @@ import { fileService } from '../services/fileService';
 import { backend } from '../utils/config';
 import AgentSelector from './AgentSelector';
 import ModelSelector from './ModelSelector';
+import DeepResearchToggle from './DeepResearchToggle';
 
 interface MessageInputProps {
   value: string;
@@ -265,7 +266,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         
         {/* Bottom Controls Row */}
         <div className="flex items-center justify-between">
-          {/* Left side controls: Upload, Model, Agent */}
+          {/* Left side controls: Upload, Model, Agent, Deep Research */}
           <div className="flex items-center gap-2">
             <button
               onClick={handleUploadClick} 
@@ -278,6 +279,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             </button>
             <ModelSelector />
             <AgentSelector />
+            <DeepResearchToggle />
           </div>
           
           {/* Right side: Send button */}

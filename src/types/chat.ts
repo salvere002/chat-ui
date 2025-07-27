@@ -73,6 +73,7 @@ export interface Agent {
   systemPrompt?: string;
   avatar?: string;
   isActive?: boolean;
+  isDeepResearch?: boolean;
 }
 
 // Model configuration interface

@@ -2,6 +2,7 @@ import { serviceFactory, AdapterType } from './serviceFactory';
 import { StreamCallbacks, ProgressCallback } from './adapters/BaseAdapter';
 import { MessageRequest, MessageResponse, FileUploadResponse, ConversationMessage } from '../types/api';
 import { MessageFile } from '../types/chat';
+import { useAgentStore } from '../stores';
 
 /**
  * Chat Service - Unified API for chat functionality
@@ -31,7 +32,8 @@ export class ChatService {
    * Send a message and get a complete response
    */
   static async sendMessage(text: string, files: MessageFile[] = [], history: ConversationMessage[] = []): Promise<MessageResponse> {
-    const request: MessageRequest = { text, files, history };
+    const { deepResearchEnabled } = useAgentStore.getState();
+    const request: MessageRequest = { text, files, history, deepResearch: deepResearchEnabled };
     return this.adapter.sendMessage(request);
   }
   
@@ -44,7 +46,8 @@ export class ChatService {
     callbacks: StreamCallbacks,
     history: ConversationMessage[] = []
   ): Promise<void> {
-    const request: MessageRequest = { text, files, history };
+    const { deepResearchEnabled } = useAgentStore.getState();
+    const request: MessageRequest = { text, files, history, deepResearch: deepResearchEnabled };
     return this.adapter.sendStreamingMessage(request, callbacks);
   }
   
