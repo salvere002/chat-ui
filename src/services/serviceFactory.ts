@@ -88,7 +88,8 @@ export class ServiceFactory {
         baseUrl,
         defaultHeaders: {
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: configManager.getApiConfig().timeout
       }));
     }
     
@@ -169,7 +170,8 @@ export class ServiceFactory {
       baseUrl,
       defaultHeaders: {
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: configManager.getApiConfig().timeout
     });
     
     this.apiClients.set('default', apiClient);
