@@ -53,11 +53,31 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const dropAreaRef = useRef<HTMLDivElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>(initialFiles);
   const [isDragging, setIsDragging] = useState(false);
+  const [textareaHeight, setTextareaHeight] = useState(48); // Initial height in pixels
 
   // Effect to sync with initialFiles prop when it changes
   useEffect(() => {
     setSelectedFiles(initialFiles);
   }, [initialFiles]);
+
+  // Auto-resize textarea
+  const adjustTextareaHeight = () => {
+    if (textAreaRef.current) {
+      const textarea = textAreaRef.current;
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      const minHeight = 48; // 2 lines approximately
+      const maxHeight = 400; // 6 lines approximately (triple the initial)
+      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+      setTextareaHeight(newHeight);
+      textarea.style.height = `${newHeight}px`;
+    }
+  };
+
+  // Effect to adjust height when value changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [value]);
 
 
 
@@ -77,6 +97,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     // Clear text input locally
     onChange('');
+    
+    // Reset textarea height after clearing
+    setTimeout(() => {
+      adjustTextareaHeight();
+    }, 0);
 
   };
 
@@ -91,6 +116,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   // Function to handle textarea input
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(event.target.value);
+    adjustTextareaHeight();
   };
 
   // Function to trigger file input click
@@ -245,9 +271,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
           onChange={handleInput}
           onKeyDown={handleKeyDown}
           placeholder="Type your message or drop files..."
-          rows={3}
           disabled={isProcessing}
-          className="flex-1 h-[72px] px-2 sm:px-3 py-2 bg-transparent text-text-primary border-none font-sans text-sm sm:text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
+          style={{ height: `${textareaHeight}px` }}
+          className="flex-1 px-2 sm:px-3 py-2 bg-transparent text-text-primary border-none font-sans text-sm sm:text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
         />
         <button
           onClick={handleSendClick}
