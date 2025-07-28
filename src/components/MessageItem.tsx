@@ -84,7 +84,7 @@ const CodeBlock: React.FC<{ children: string; language: string; className?: stri
 
 const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, chatId }) => {
   // Destructure files array instead of single file
-  const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed } = message;
+  const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed, wasPaused } = message;
   
   // Get store methods for branch management
   const { 
@@ -477,6 +477,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         {!text && isIncomplete && (
           <LoadingIndicator type="dots" size="small" />
         )}
+
+        {/* If no text and was paused, show placeholder */}
+        {!text && wasPaused && sender === 'ai' && (
+          <div className="text-text-tertiary italic text-sm opacity-70">
+            Response was paused before any content was generated.
+          </div>
+        )}
       </div>
       
       {/* Branch indicator - always visible when branches exist */}
@@ -508,7 +515,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       
       {/* Actions footer - only show when hovering (moved outside message-content) */}
       <div className="flex items-center mt-1 px-1 opacity-0 transition-opacity duration-150 text-xs text-text-tertiary gap-2 group-hover:opacity-100">
-        <div className="mr-auto">{formatTime(timestamp)}</div>
+        <div className="mr-auto flex items-center gap-2">
+          {formatTime(timestamp)}
+          {wasPaused && sender === 'ai' && (
+            <span className="text-orange-500 text-xs opacity-70" title="Response was paused">
+              ⏸
+            </span>
+          )}
+        </div>
         
         <div className="flex gap-1 items-center">
           

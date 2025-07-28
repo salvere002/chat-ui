@@ -16,6 +16,7 @@ export interface Message {
   // AI specific fields
   imageUrl?: string; // URL of an image sent by the AI
   isComplete?: boolean; // Flag for streaming responses (true/undefined if complete)
+  wasPaused?: boolean; // Flag to indicate if this message was paused before completion
   // Thinking content support
   thinkingContent?: string; // Complete thinking text
   isThinkingComplete?: boolean; // Thinking phase finished

@@ -86,7 +86,7 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
   /**
    * Send a message and get a complete response
    */
-  async sendMessage(request: MessageRequest): Promise<MessageResponse> {
+  async sendMessage(request: MessageRequest, abortSignal?: AbortSignal): Promise<MessageResponse> {
     try {
       return await this.apiClient.request<MessageResponse, any>(
         `${this.baseUrl}/chat/completions`,
@@ -103,7 +103,8 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
             max_tokens: 1000
           })
         },
-        this.transformOpenAIMessageResponse
+        this.transformOpenAIMessageResponse,
+        abortSignal
       );
     } catch (error) {
       console.error('Error in OpenAI request:', error);
@@ -127,7 +128,8 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
    */
   async sendStreamingMessage(
     request: MessageRequest,
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    abortSignal?: AbortSignal
   ): Promise<void> {
     try {
       await this.apiClient.streamMessages(
@@ -146,7 +148,8 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
             stream: true
           })
         },
-        callbacks // Pass original callbacks, ApiClient.streamMessages will handle onChunk with parsed data
+        callbacks, // Pass original callbacks, ApiClient.streamMessages will handle onChunk with parsed data
+        abortSignal
       );
     } catch (error) {
       // ApiClient.streamMessages calls callbacks.onError internally

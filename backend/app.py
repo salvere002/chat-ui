@@ -105,6 +105,9 @@ def stream_message():
     text = data.get('text', '')
     uploaded_files = data.get('files', [])
     
+    # Add delay before processing to test pause functionality
+    time.sleep(3)  # 3 second delay
+    
     # Determine if we should include an image in the response
     include_image = any(f.get('type', '').startswith('image/') for f in uploaded_files) or (random.random() < 0.3)
     
@@ -130,6 +133,9 @@ def fetch_message():
     data = request.json
     text = data.get('text', '')
     uploaded_files = data.get('files', [])
+    
+    # Add delay before processing to test pause functionality
+    time.sleep(3)  # 3 second delay
     
     # Check if thinking mode should be enabled
     enable_thinking = '/think' in text

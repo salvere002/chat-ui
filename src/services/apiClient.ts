@@ -270,7 +270,8 @@ export class ApiClient {
   public async request<T, R = any>(
     url: string, 
     options: RequestInit = {}, 
-    transformer?: DataTransformer<R, T>
+    transformer?: DataTransformer<R, T>,
+    abortSignal?: AbortSignal
   ): Promise<T> {
     const actualTargetBaseUrl = this.baseUrl; // This is the e.g., https://actual-backend.com
     const endpointPath = url.startsWith('/') ? url : `/${url}`; // Ensure endpoint starts with a slash
@@ -301,14 +302,32 @@ export class ApiClient {
       // Apply request interceptors
       processedRequest = this.applyRequestInterceptors(requestOptions);
       
-      // Create AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+      // Create a combined abort controller that responds to both timeout and user cancellation
+      const timeoutController = new AbortController();
+      const timeoutId = setTimeout(() => timeoutController.abort(), this.timeout);
       
-      // Execute the fetch with timeout
+      // Create a combined signal that responds to both user abort and timeout
+      let combinedSignal = timeoutController.signal;
+      
+      if (abortSignal) {
+        // If AbortSignal.any is supported, use it
+        if (typeof AbortSignal.any === 'function') {
+          combinedSignal = AbortSignal.any([abortSignal, timeoutController.signal]);
+        } else {
+          // Fallback: create a new controller and listen to both signals
+          const combinedController = new AbortController();
+          combinedSignal = combinedController.signal;
+          
+          const abortHandler = () => combinedController.abort();
+          abortSignal.addEventListener('abort', abortHandler);
+          timeoutController.signal.addEventListener('abort', abortHandler);
+        }
+      }
+      
+      // Execute the fetch with combined signal
       const fetchPromise = fetch(processedRequest.url, {
         ...processedRequest,
-        signal: controller.signal,
+        signal: combinedSignal,
       });
       
       // Execute the request
@@ -390,7 +409,8 @@ export class ApiClient {
   public async streamMessages(
     url: string,
     streamSetupOptions: RequestInit,
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    abortSignal?: AbortSignal
   ): Promise<void> {
     const actualTargetBaseUrl = this.baseUrl;
     const endpointPath = url.startsWith('/') ? url : `/${url}`;
@@ -400,6 +420,7 @@ export class ApiClient {
     let processedRequest: RequestInit & { url: string }; // For broader scope
     const requestOptions: RequestInit & { url: string } = {
       ...streamSetupOptions,
+      signal: abortSignal || streamSetupOptions.signal,
       headers: {
         ...this.defaultHeaders,
         ...(streamSetupOptions.headers || {}),
@@ -411,12 +432,31 @@ export class ApiClient {
     try {
       processedRequest = this.applyStreamRequestInterceptors(requestOptions);
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+      // Create a combined abort controller that responds to both timeout and user cancellation
+      const timeoutController = new AbortController();
+      const timeoutId = setTimeout(() => timeoutController.abort(), this.timeout);
+      
+      // Create a combined signal that responds to both user abort and timeout
+      let combinedSignal = timeoutController.signal;
+      
+      if (abortSignal) {
+        // If AbortSignal.any is supported, use it
+        if (typeof AbortSignal.any === 'function') {
+          combinedSignal = AbortSignal.any([abortSignal, timeoutController.signal]);
+        } else {
+          // Fallback: create a new controller and listen to both signals
+          const combinedController = new AbortController();
+          combinedSignal = combinedController.signal;
+          
+          const abortHandler = () => combinedController.abort();
+          abortSignal.addEventListener('abort', abortHandler);
+          timeoutController.signal.addEventListener('abort', abortHandler);
+        }
+      }
 
       let response = await fetch(processedRequest.url, {
         ...processedRequest,
-        signal: controller.signal,
+        signal: combinedSignal,
       });
       clearTimeout(timeoutId);
 
@@ -462,6 +502,12 @@ export class ApiClient {
       let dataBuffer: string[] = [];
 
       while (true) {
+        // Check if the request has been aborted
+        if (combinedSignal.aborted) {
+          reader.cancel();
+          return; // Exit silently, abort error will be handled by fetch promise rejection
+        }
+        
         const { done, value } = await reader.read();
         if (done) {
           if (dataBuffer.length > 0) { // Process any remaining buffered data as a final event
