@@ -39,7 +39,7 @@ export class SessionAdapter extends AbstractBaseAdapter {
     this.apiClient.addResponseInterceptor(responseInterceptor);
   }
 
-  async sendMessage(request: MessageRequest): Promise<MessageResponse> {
+  async sendMessage(request: MessageRequest, abortSignal?: AbortSignal): Promise<MessageResponse> {
     return this.apiClient.request<MessageResponse>(
       this.endpoint, 
       {
@@ -47,7 +47,8 @@ export class SessionAdapter extends AbstractBaseAdapter {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       },
-      this.transformMessageResponse
+      this.transformMessageResponse,
+      abortSignal
     );
   }
 
@@ -59,7 +60,7 @@ export class SessionAdapter extends AbstractBaseAdapter {
     return rawData as MessageResponse;
   };
 
-  async sendStreamingMessage(request: MessageRequest, callbacks: StreamCallbacks): Promise<void> {
+  async sendStreamingMessage(request: MessageRequest, callbacks: StreamCallbacks, abortSignal?: AbortSignal): Promise<void> {
     await this.apiClient.streamMessages(
       this.endpoint, 
       {
@@ -70,7 +71,8 @@ export class SessionAdapter extends AbstractBaseAdapter {
         },
         body: JSON.stringify(request),
       },
-      callbacks
+      callbacks,
+      abortSignal
     );
   }
 

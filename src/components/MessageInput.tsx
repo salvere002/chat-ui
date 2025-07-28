@@ -1,5 +1,5 @@
 import React, { useState, useRef, KeyboardEvent, ChangeEvent, useEffect, DragEvent } from 'react';
-import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane } from 'react-icons/fa'; // Added FaPaperPlane
+import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane, FaPause } from 'react-icons/fa';
 import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
 import { backend } from '../utils/config';
@@ -8,7 +8,9 @@ interface MessageInputProps {
   value: string;
   onChange: (value: string) => void;
   onSendMessage: (text: string, files?: { id: string; file: File }[]) => void;
+  onPauseRequest: () => void;
   isProcessing: boolean;
+  isFileProcessing?: boolean;
   initialFiles?: PreviewFile[];
 }
 
@@ -45,7 +47,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   value,
   onChange,
   onSendMessage,
+  onPauseRequest,
   isProcessing,
+  isFileProcessing = false,
   initialFiles = []
 }) => {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -81,16 +85,23 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
 
 
-  // Function to handle Send button click
-  const handleSendClick = () => {
+  // Function to handle Send/Pause button click
+  const handleButtonClick = () => {
+    // If currently processing messages (not files), pause the request
+    if (isProcessing && !isFileProcessing) {
+      onPauseRequest();
+      return;
+    }
+
+    // Otherwise, send the message
     const filesToSend = selectedFiles
       .filter(pf => pf.status === 'pending')
       .map(pf => ({ id: pf.id, file: pf.file }));
 
     const textToSend = value.trim();
 
-    // If nothing to send or if processing, exit
-    if ((!textToSend && filesToSend.length === 0) || isProcessing) return;
+    // If nothing to send or if file processing, exit
+    if ((!textToSend && filesToSend.length === 0) || isFileProcessing) return;
 
     // Call parent's handler
     onSendMessage(textToSend, filesToSend.length > 0 ? filesToSend : undefined);
@@ -109,7 +120,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      handleSendClick();
+      // Only send if not currently processing - don't allow pause via Enter key
+      if (!isProcessing) {
+        handleButtonClick();
+      }
     }
   };
 
@@ -276,18 +290,24 @@ const MessageInput: React.FC<MessageInputProps> = ({
           className="flex-1 px-2 sm:px-3 py-2 bg-transparent text-text-primary border-none font-sans text-sm sm:text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
         />
         <button
-          onClick={handleSendClick}
-          disabled={isProcessing || (!value.trim() && selectedFiles.filter(f => f.status === 'pending').length === 0)}
-          className={`flex items-center justify-center w-9 h-9 p-0 bg-accent-primary text-text-inverse border-none rounded-md cursor-pointer transition-all duration-150 flex-shrink-0 relative overflow-hidden hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-95 disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed ${isProcessing ? 'is-processing' : ''}`}
-          aria-label="Send message"
+          onClick={handleButtonClick}
+          disabled={isFileProcessing || (!isProcessing && !value.trim() && selectedFiles.filter(f => f.status === 'pending').length === 0)}
+          className={`flex items-center justify-center w-9 h-9 p-0 border-none rounded-md cursor-pointer transition-all duration-150 flex-shrink-0 relative overflow-hidden hover:-translate-y-px hover:shadow-sm active:scale-95 disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed ${
+            isProcessing && !isFileProcessing 
+              ? 'bg-orange-500 text-text-inverse hover:bg-orange-600' 
+              : 'bg-accent-primary text-text-inverse hover:bg-accent-hover'
+          }`}
+          aria-label={isProcessing && !isFileProcessing ? "Pause response" : "Send message"}
         >
-          {isProcessing ? 
+          {isFileProcessing ? 
             <span className="flex items-center justify-center gap-0.5">
               <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" />
               <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.16s'}} />
               <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.32s'}} />
             </span> : 
-            <FaPaperPlane size={16} className="relative z-10" />
+            isProcessing && !isFileProcessing ?
+              <FaPause size={16} className="relative z-10" /> :
+              <FaPaperPlane size={16} className="relative z-10" />
           }
         </button>
       </div>

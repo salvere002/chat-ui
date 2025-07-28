@@ -28,14 +28,15 @@ export interface BaseAdapter {
   /**
    * Send a message and get a complete response
    */
-  sendMessage(request: MessageRequest): Promise<MessageResponse>;
+  sendMessage(request: MessageRequest, abortSignal?: AbortSignal): Promise<MessageResponse>;
   
   /**
    * Send a message and get a streaming response
    */
   sendStreamingMessage(
     request: MessageRequest, 
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    abortSignal?: AbortSignal
   ): Promise<void>;
   
   /**
@@ -98,8 +99,8 @@ export abstract class AbstractBaseAdapter implements BaseAdapter {
     this.apiClient.addStreamErrorInterceptor(interceptor);
   }
   
-  abstract sendMessage(request: MessageRequest): Promise<MessageResponse>;
-  abstract sendStreamingMessage(request: MessageRequest, callbacks: StreamCallbacks): Promise<void>;
+  abstract sendMessage(request: MessageRequest, abortSignal?: AbortSignal): Promise<MessageResponse>;
+  abstract sendStreamingMessage(request: MessageRequest, callbacks: StreamCallbacks, abortSignal?: AbortSignal): Promise<void>;
   abstract uploadFile(fileId: string, file: File, onProgress: ProgressCallback): Promise<FileUploadResponse>;
   abstract getFiles(): Promise<FileUploadResponse[]>;
   abstract getFile(fileId: string): Promise<FileUploadResponse>;

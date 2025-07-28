@@ -46,11 +46,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   // Local state for input value
   const [inputValue, setInputValue] = useState<string>('');
   
+  // State for managing message cancellation
+  const [activeRequestController, setActiveRequestController] = useState<AbortController | null>(null);
+  
   // Combined processing state
   const combinedIsProcessing = storeIsProcessing || isFileProcessing;
 
   // Clear error (local state for now)
   const clearError = () => setError(null);
+
+  // Handle pausing/aborting current request
+  const handlePauseRequest = () => {
+    if (activeRequestController) {
+      activeRequestController.abort();
+      setActiveRequestController(null);
+      setProcessing(false);
+    }
+  };
 
   // Handle sending a new message
   const handleSendMessage = async (messageText: string, filesToUpload?: { id: string; file: File }[]) => {
@@ -73,8 +85,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     }
     
     try {
-      // Set processing state
+      // Set processing state and create abort controller
       setProcessing(true);
+      const abortController = new AbortController();
+      setActiveRequestController(abortController);
       
       // Process file uploads if needed
       let uploadedFiles: MessageFile[] = [];
@@ -166,26 +180,38 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
                 isComplete: true,
                 isThinkingComplete: true // Ensure thinking is also marked complete
               });
-              // Clear processing state
+              // Clear processing state and abort controller
               setProcessing(false);
+              setActiveRequestController(null);
             },
             onError: (error) => {
-              // Show error and mark message as complete
-              setError(error.message);
-              updateMessageInChat(currentChatId, aiMessageId, {
-                text: 'Sorry, there was an error processing your request.',
-                isComplete: true
-              });
-              // Clear processing state
+              // Don't show error for aborted requests
+              if (error.name !== 'AbortError') {
+                setError(error.message);
+                updateMessageInChat(currentChatId, aiMessageId, {
+                  text: 'Sorry, there was an error processing your request.',
+                  isComplete: true
+                });
+              } else {
+                // For aborted requests, mark current message as complete with existing content
+                updateMessageInChat(currentChatId, aiMessageId, {
+                  isComplete: true,
+                  isThinkingComplete: true,
+                  wasPaused: true
+                });
+              }
+              // Clear processing state and abort controller
               setProcessing(false);
+              setActiveRequestController(null);
             }
           },
-          history
+          history,
+          abortController.signal
         );
       } else {
         // Non-streaming API call
         try {
-          const response = await ChatService.sendMessage(messageText, uploadedFiles, history);
+          const response = await ChatService.sendMessage(messageText, uploadedFiles, history, abortController.signal);
           // Update AI message with complete response
           updateMessageInChat(currentChatId, aiMessageId, {
             text: response.text,
@@ -195,15 +221,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
             isThinkingComplete: true
           });
         } catch (error) {
-          // Show error and mark message as complete
-          setError(error instanceof Error ? error.message : 'Unknown error occurred');
-          updateMessageInChat(currentChatId, aiMessageId, {
-            text: 'Sorry, there was an error processing your request.',
-            isComplete: true
-          });
+          // Handle abort vs other errors for fetch mode
+          if (error instanceof Error && error.name === 'AbortError') {
+            // For aborted requests, mark current message as complete with existing content
+            updateMessageInChat(currentChatId, aiMessageId, {
+              isComplete: true,
+              wasPaused: true
+            });
+          } else {
+            // Show error and mark message as complete
+            setError(error instanceof Error ? error.message : 'Unknown error occurred');
+            updateMessageInChat(currentChatId, aiMessageId, {
+              text: 'Sorry, there was an error processing your request.',
+              isComplete: true
+            });
+          }
         } finally {
-          // Clear processing state
+          // Clear processing state and abort controller
           setProcessing(false);
+          setActiveRequestController(null);
         }
       }
     } catch (err) {
@@ -212,6 +248,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       setError(errorMessage);
       showToast(errorMessage, 'error');
       setProcessing(false);
+      setActiveRequestController(null);
     }
   };
   
@@ -234,12 +271,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
         <MessageList messages={activeChatMessages} chatId={activeChatId} />
       )}
       
-      {/* Display loading state */}
-      {combinedIsProcessing && (
+      {/* Display file upload loading state only */}
+      {isFileProcessing && (
         <div className="absolute bottom-[90px] left-1/2 -translate-x-1/2 bg-bg-elevated border border-border-secondary rounded-lg px-4 py-3 shadow-md flex items-center gap-3 z-dropdown animate-slide-up">
           <LoadingIndicator 
             type="dots"
-            text={isFileProcessing ? "Uploading files..." : "Processing message..."}
+            text="Uploading files..."
           />
         </div>
       )}
@@ -258,7 +295,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
         value={inputValue}
         onChange={setInputValue}
         onSendMessage={handleSendMessage}
+        onPauseRequest={handlePauseRequest}
         isProcessing={combinedIsProcessing}
+        isFileProcessing={isFileProcessing}
         initialFiles={fileUploads}
       />
     </div>

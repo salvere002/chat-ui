@@ -37,7 +37,7 @@ export class RestApiAdapter extends AbstractBaseAdapter {
   /**
    * Send a message and get a complete response
    */
-  async sendMessage(request: MessageRequest): Promise<MessageResponse> {
+  async sendMessage(request: MessageRequest, abortSignal?: AbortSignal): Promise<MessageResponse> {
     try {
       return await this.apiClient.request<MessageResponse>(
         '/message/fetch', 
@@ -46,7 +46,8 @@ export class RestApiAdapter extends AbstractBaseAdapter {
           body: JSON.stringify(request), 
           headers: { 'Content-Type': 'application/json' } 
         },
-        this.transformMessageResponse
+        this.transformMessageResponse,
+        abortSignal
       );
     } catch (error) {
       console.error('Error sending message:', error);
@@ -75,7 +76,8 @@ export class RestApiAdapter extends AbstractBaseAdapter {
    */
   async sendStreamingMessage(
     request: MessageRequest,
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    abortSignal?: AbortSignal
   ): Promise<void> {
     try {
       await this.apiClient.streamMessages(
@@ -87,7 +89,8 @@ export class RestApiAdapter extends AbstractBaseAdapter {
           },
           body: JSON.stringify(request),
         },
-        callbacks
+        callbacks,
+        abortSignal
       );
     } catch (error) {
       // The streamMessages method in ApiClient should handle calling callbacks.onError

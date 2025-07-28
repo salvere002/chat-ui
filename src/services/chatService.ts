@@ -30,9 +30,9 @@ export class ChatService {
   /**
    * Send a message and get a complete response
    */
-  static async sendMessage(text: string, files: MessageFile[] = [], history: ConversationMessage[] = []): Promise<MessageResponse> {
+  static async sendMessage(text: string, files: MessageFile[] = [], history: ConversationMessage[] = [], abortSignal?: AbortSignal): Promise<MessageResponse> {
     const request: MessageRequest = { text, files, history };
-    return this.adapter.sendMessage(request);
+    return this.adapter.sendMessage(request, abortSignal);
   }
   
   /**
@@ -42,10 +42,11 @@ export class ChatService {
     text: string,
     files: MessageFile[] = [],
     callbacks: StreamCallbacks,
-    history: ConversationMessage[] = []
+    history: ConversationMessage[] = [],
+    abortSignal?: AbortSignal
   ): Promise<void> {
     const request: MessageRequest = { text, files, history };
-    return this.adapter.sendStreamingMessage(request, callbacks);
+    return this.adapter.sendStreamingMessage(request, callbacks, abortSignal);
   }
   
   /**

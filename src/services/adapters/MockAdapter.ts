@@ -61,8 +61,13 @@ export class MockAdapter extends AbstractBaseAdapter {
   /**
    * Send a message and get a complete response
    */
-  async sendMessage(request: MessageRequest): Promise<MessageResponse> {
+  async sendMessage(request: MessageRequest, abortSignal?: AbortSignal): Promise<MessageResponse> {
     await this.simulateNetworkDelay();
+    
+    // Check if aborted after network delay
+    if (abortSignal?.aborted) {
+      throw new Error('Request was aborted');
+    }
     
     const { text, history } = request;
     let response: MessageResponse;
@@ -100,7 +105,8 @@ export class MockAdapter extends AbstractBaseAdapter {
    */
   async sendStreamingMessage(
     request: MessageRequest,
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    abortSignal?: AbortSignal
   ): Promise<void> {
     const { onChunk, onComplete, onError } = callbacks;
     
@@ -138,6 +144,10 @@ export class MockAdapter extends AbstractBaseAdapter {
 
         // Stream thinking content
         for (let i = 0; i < thinkingSteps.length; i++) {
+          if (abortSignal?.aborted) {
+            return; // Exit silently if aborted
+          }
+          
           await this.simulateNetworkDelay(200, 400);
           
           onChunk({
@@ -168,6 +178,10 @@ export class MockAdapter extends AbstractBaseAdapter {
       
       // Stream the response word by word
       for (let i = 0; i < words.length; i++) {
+        if (abortSignal?.aborted) {
+          return; // Exit silently if aborted
+        }
+        
         await this.simulateNetworkDelay(50, 150);
         
         // Add a space after each word except the last one
