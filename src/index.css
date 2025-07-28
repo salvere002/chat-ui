@@ -102,57 +102,57 @@
   --font-primary: system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
   
-  /* Light Theme Colors */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F8F9FA;
-  --color-bg-tertiary: #F1F3F5;
+  /* Light Theme Colors - Elegant & Light */
+  --color-bg-primary: #FEFEFE;
+  --color-bg-secondary: #FAFAFC;
+  --color-bg-tertiary: #F6F7FB;
   --color-bg-elevated: #FFFFFF;
   
-  --color-text-primary: #212529;
-  --color-text-secondary: #495057;
-  --color-text-tertiary: #868E96;
+  --color-text-primary: #2D3748;
+  --color-text-secondary: #4A5568;
+  --color-text-tertiary: #718096;
   --color-text-inverse: #FFFFFF;
   
-  --color-border-primary: #DEE2E6;
-  --color-border-secondary: #E9ECEF;
-  --color-border-focus: #4263EB;
+  --color-border-primary: #E2E8F0;
+  --color-border-secondary: #EDF2F7;
+  --color-border-focus: #9F7AEA;
   
-  --color-accent-primary: #4263EB;
-  --color-accent-hover: #364FC7;
-  --color-accent-active: #2C41A3;
-  --color-accent-light: #E7F5FF;
+  --color-accent-primary: #9F7AEA;
+  --color-accent-hover: #805AD5;
+  --color-accent-active: #6B46C1;
+  --color-accent-light: #FAF5FF;
   
-  --color-success: #51CF66;
-  --color-warning: #FFD43B;
-  --color-error: #FF6B6B;
-  --color-info: #4DABF7;
+  --color-success: #48BB78;
+  --color-warning: #ED8936;
+  --color-error: #F56565;
+  --color-info: #4299E1;
 }
 
-/* Dark Theme */
+/* Dark Theme - Elegant & Refined */
 .dark-theme {
-  --color-bg-primary: #1A1B1E;
-  --color-bg-secondary: #25262B;
-  --color-bg-tertiary: #2C2E33;
-  --color-bg-elevated: #2C2E33;
+  --color-bg-primary: #1A1B23;
+  --color-bg-secondary: #21222C;
+  --color-bg-tertiary: #282A36;
+  --color-bg-elevated: #2A2D3A;
   
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #C1C2C5;
-  --color-text-tertiary: #909296;
-  --color-text-inverse: #1A1B1E;
+  --color-text-primary: #F8F8F2;
+  --color-text-secondary: #CAD3F5;
+  --color-text-tertiary: #A6ADC8;
+  --color-text-inverse: #1A1B23;
   
-  --color-border-primary: #373A40;
-  --color-border-secondary: #2C2E33;
-  --color-border-focus: #5C7CFA;
+  --color-border-primary: #363A4F;
+  --color-border-secondary: #2A2D3A;
+  --color-border-focus: #C6A0F6;
   
-  --color-accent-primary: #5C7CFA;
-  --color-accent-hover: #4C6EF5;
-  --color-accent-active: #3B5BDB;
-  --color-accent-light: rgba(92, 124, 250, 0.1);
+  --color-accent-primary: #C6A0F6;
+  --color-accent-hover: #B7A0E8;
+  --color-accent-active: #A78BFA;
+  --color-accent-light: rgba(198, 160, 246, 0.1);
   
-  --color-success: #51CF66;
-  --color-warning: #FFD43B;
-  --color-error: #FA5252;
-  --color-info: #4DABF7;
+  --color-success: #68D391;
+  --color-warning: #F6AD55;
+  --color-error: #FC8181;
+  --color-info: #63B3ED;
 }
 
 /* Cross-browser scrollbar styles */
