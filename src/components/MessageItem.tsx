@@ -94,7 +94,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     addMessageToChat,
     updateMessageInChat,
     setProcessing,
-    getCurrentBranchMessages
+    getCurrentBranchMessages,
+    getChatById
   } = useChatStore();
   
   // Get response mode selection for AI responses
@@ -220,7 +221,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
           userFiles,
           {
             onChunk: (chunk) => {
-              // Update the AI message with each chunk
+              // Handle thinking content streaming
+              if (chunk.thinking) {
+                const currentMessage = getChatById(chatId)?.messages.find(m => m.id === aiMessageId);
+                updateMessageInChat(chatId, aiMessageId, {
+                  thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
+                  isThinkingComplete: chunk.thinkingComplete,
+                  thinkingCollapsed: currentMessage?.thinkingCollapsed ?? true // Default to collapsed
+                });
+              }
+              
+              // Handle regular response content streaming
               if (chunk.text) {
                 accumulatedTextRef.current += chunk.text;
                 updateMessageInChat(chatId, aiMessageId, {
@@ -232,7 +243,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
             onComplete: () => {
               // Mark as complete when done
               updateMessageInChat(chatId, aiMessageId, {
-                isComplete: true
+                isComplete: true,
+                isThinkingComplete: true // Ensure thinking is also marked complete
               });
               // Clear processing state
               setProcessing(false);
@@ -260,7 +272,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         // Update AI message with complete response
         updateMessageInChat(chatId, aiMessageId, {
           text: response.text,
-          isComplete: true
+          imageUrl: response.imageUrl,
+          isComplete: true,
+          thinkingContent: response.thinking,
+          isThinkingComplete: true
         });
         // Clear processing state
         setProcessing(false);
