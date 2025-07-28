@@ -7,10 +7,10 @@ const AgentSelector: React.FC = () => {
   const { 
     deepResearchEnabled, 
     setSelectedAgent, 
-    getDisplayAgent, 
+    getEffectiveAgent, 
     getSelectableAgents 
   } = useAgentStore();
-  const displayAgent = getDisplayAgent();
+  const displayAgent = getEffectiveAgent();
   const selectableAgents = getSelectableAgents();
   const dropdownRef = useRef<HTMLDivElement>(null);
 

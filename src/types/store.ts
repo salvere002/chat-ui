@@ -66,11 +66,10 @@ export interface AgentStore {
   updateAgent: (agentId: string, updates: Partial<Agent>) => void;
   removeAgent: (agentId: string) => void;
   setSelectedAgent: (agentId: string | null) => void;
-  getSelectedAgent: () => Agent | null;
+  getUserSelectedAgent: () => Agent | null;
   setDeepResearchEnabled: (enabled: boolean) => void;
   getSelectableAgents: () => Agent[];
-  getDisplayAgent: () => Agent | null;
-  getActiveAgent: () => Agent | null;
+  getEffectiveAgent: () => Agent | null;
 }
 
 // Define interface for the model store state

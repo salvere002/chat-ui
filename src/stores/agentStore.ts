@@ -138,7 +138,7 @@ const useAgentStore = create<AgentStore>((set, get) => ({
     set({ selectedAgentId: agentId });
   },
 
-  getSelectedAgent: () => {
+  getUserSelectedAgent: () => {
     const state = get();
     return state.agents.find(agent => agent.id === state.selectedAgentId) || null;
   },
@@ -159,20 +159,12 @@ const useAgentStore = create<AgentStore>((set, get) => ({
     );
   },
 
-  getDisplayAgent: () => {
+  getEffectiveAgent: () => {
     const state = get();
     if (state.deepResearchEnabled) {
       return state.agents.find(agent => agent.isDeepResearch === true && agent.isActive !== false) || null;
     }
-    return state.getSelectedAgent();
-  },
-
-  getActiveAgent: () => {
-    const state = get();
-    if (state.deepResearchEnabled) {
-      return state.agents.find(agent => agent.isDeepResearch === true && agent.isActive !== false) || null;
-    }
-    return state.getSelectedAgent();
+    return state.getUserSelectedAgent();
   }
 }));
 
