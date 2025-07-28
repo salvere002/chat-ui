@@ -48,7 +48,7 @@ const CodeBlock: React.FC<{ children: string; language: string; className?: stri
   const syntaxTheme = theme === 'dark' ? vscDarkPlus : oneLight;
 
   return (
-    <div className="relative group">
+    <div className="relative group/codeblock">
       <SyntaxHighlighter
         style={syntaxTheme}
         language={language}
@@ -69,7 +69,7 @@ const CodeBlock: React.FC<{ children: string; language: string; className?: stri
       </SyntaxHighlighter>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 flex items-center justify-center w-7 h-7 bg-bg-tertiary hover:bg-bg-secondary text-text-tertiary hover:text-text-primary border border-border-secondary rounded opacity-0 group-hover:opacity-100 transition-all duration-200"
+        className="absolute top-2 right-2 flex items-center justify-center w-7 h-7 bg-bg-tertiary hover:bg-bg-secondary text-text-tertiary hover:text-text-primary border border-border-secondary rounded opacity-0 group-hover/codeblock:opacity-100 transition-all duration-200"
         title={copied ? "Copied!" : "Copy code"}
       >
         {copied ? (
