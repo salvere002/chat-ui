@@ -417,7 +417,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       className={`group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${sender === 'user' ? 'self-end items-end' : 'self-start items-start'} ${isEditing ? 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]' : ''}`}
       data-is-complete={isComplete !== false}
     >
-      <div className={`relative px-3 sm:px-4 py-3 rounded-lg max-w-full w-fit break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${
+      <div className={`relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${isEditing ? 'w-full' : 'w-fit'} ${
         sender === 'user' 
           ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
           : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
@@ -498,12 +498,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
               placeholder="Edit your message..."
               autoFocus
             />
-            <div className="flex gap-2 mt-3 justify-end">
-              <button className="flex items-center gap-2 px-3 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary" onClick={handleCancelEdit}>
-                <FaTimes /> Cancel
+            <div className="flex gap-1 mt-2 justify-end">
+              <button className="flex items-center gap-1 px-2 py-1 bg-transparent text-text-secondary border border-border-primary rounded text-xs cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary" onClick={handleCancelEdit}>
+                <FaTimes size={10} /> Cancel
               </button>
-              <button className="flex items-center gap-2 px-3 py-2 bg-accent-primary text-text-inverse border-none rounded-md text-sm cursor-pointer transition-all duration-150 hover:bg-accent-hover" onClick={handleSaveEdit}>
-                <FaCheck /> Save
+              <button className="flex items-center gap-1 px-2 py-1 bg-accent-primary text-text-inverse border-none rounded text-xs cursor-pointer transition-all duration-150 hover:bg-accent-hover" onClick={handleSaveEdit}>
+                <FaCheck size={10} /> Save
               </button>
             </div>
           </div>
