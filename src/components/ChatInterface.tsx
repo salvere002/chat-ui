@@ -23,7 +23,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     setProcessing,
     createChat,
     setActiveChat,
-    getCurrentBranchMessages
+    getCurrentBranchMessages,
+    setActiveRequestController,
+    pauseCurrentRequest
   } = useChatStore();
 
   // Get toast functions from Zustand store
@@ -46,8 +48,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   // Local state for input value
   const [inputValue, setInputValue] = useState<string>('');
   
-  // State for managing message cancellation
-  const [activeRequestController, setActiveRequestController] = useState<AbortController | null>(null);
   
   // Combined processing state
   const combinedIsProcessing = storeIsProcessing || isFileProcessing;
@@ -57,11 +57,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
 
   // Handle pausing/aborting current request
   const handlePauseRequest = () => {
-    if (activeRequestController) {
-      activeRequestController.abort();
-      setActiveRequestController(null);
-      setProcessing(false);
-    }
+    pauseCurrentRequest();
   };
 
   // Handle sending a new message

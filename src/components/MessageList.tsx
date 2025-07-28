@@ -16,7 +16,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const accumulatedTextRef = useRef<string>("");
-  const { activeChatId, updateMessageInChat, setProcessing, getCurrentBranchMessages } = useChatStore();
+  const { activeChatId, updateMessageInChat, setProcessing, getCurrentBranchMessages, setActiveRequestController } = useChatStore();
   const { selectedResponseMode } = useResponseModeStore();
   const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
   const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
@@ -121,6 +121,11 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     if (!activeChatId) return;
     
     try {
+      // Set processing state and create abort controller
+      setProcessing(true);
+      const abortController = new AbortController();
+      setActiveRequestController(abortController);
+      
       // Reset accumulated text
       accumulatedTextRef.current = "";
       
@@ -173,38 +178,70 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
                 isComplete: true,
                 isThinkingComplete: true // Ensure thinking is also marked complete
               });
-              // Clear processing state
+              // Clear processing state and abort controller
               setProcessing(false);
+              setActiveRequestController(null);
               // Reset accumulated text
               accumulatedTextRef.current = "";
             },
             onError: (error) => {
-              // Show error and mark message as complete
-              console.error('Regeneration error:', error.message);
-              updateMessageInChat(activeChatId, aiMessageId, {
-                text: 'Sorry, there was an error processing your request.',
-                isComplete: true
-              });
-              // Clear processing state
+              // Don't show error for aborted requests
+              if (error.name !== 'AbortError') {
+                console.error('Regeneration error:', error.message);
+                updateMessageInChat(activeChatId, aiMessageId, {
+                  text: 'Sorry, there was an error processing your request.',
+                  isComplete: true
+                });
+              } else {
+                // For aborted requests, mark current message as complete with existing content
+                updateMessageInChat(activeChatId, aiMessageId, {
+                  isComplete: true,
+                  isThinkingComplete: true,
+                  wasPaused: true
+                });
+              }
+              // Clear processing state and abort controller
               setProcessing(false);
+              setActiveRequestController(null);
               // Reset accumulated text
               accumulatedTextRef.current = "";
             }
           },
-          history
+          history,
+          abortController.signal
         );
       } else {
         // Non-streaming API call
-        const response = await ChatService.sendMessage(userMessageText, userMessageFiles, history);
-        // Update AI message with complete response
-        updateMessageInChat(activeChatId, aiMessageId, {
-          text: response.text,
-          isComplete: true,
-          thinkingContent: response.thinking,
-          isThinkingComplete: true
-        });
-        // Clear processing state
-        setProcessing(false);
+        try {
+          const response = await ChatService.sendMessage(userMessageText, userMessageFiles, history, abortController.signal);
+          // Update AI message with complete response
+          updateMessageInChat(activeChatId, aiMessageId, {
+            text: response.text,
+            isComplete: true,
+            thinkingContent: response.thinking,
+            isThinkingComplete: true
+          });
+        } catch (error) {
+          // Handle abort vs other errors
+          if (error instanceof Error && error.name === 'AbortError') {
+            // For aborted requests, mark current message as complete with existing content
+            updateMessageInChat(activeChatId, aiMessageId, {
+              isComplete: true,
+              wasPaused: true
+            });
+          } else {
+            // Show error and mark message as complete
+            console.error('Regeneration error:', error instanceof Error ? error.message : 'Unknown error');
+            updateMessageInChat(activeChatId, aiMessageId, {
+              text: 'Sorry, there was an error processing your request.',
+              isComplete: true
+            });
+          }
+        } finally {
+          // Clear processing state and abort controller
+          setProcessing(false);
+          setActiveRequestController(null);
+        }
       }
     } catch (error) {
       // Handle errors
@@ -214,6 +251,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
         isComplete: true
       });
       setProcessing(false);
+      setActiveRequestController(null);
       // Reset accumulated text
       accumulatedTextRef.current = "";
     }

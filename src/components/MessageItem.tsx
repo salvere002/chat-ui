@@ -95,7 +95,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     updateMessageInChat,
     setProcessing,
     getCurrentBranchMessages,
-    getChatById
+    getChatById,
+    setActiveRequestController
   } = useChatStore();
   
   // Get response mode selection for AI responses
@@ -176,8 +177,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     if (!chatId) return;
     
     try {
-      // Set processing state
+      // Set processing state and create abort controller
       setProcessing(true);
+      const abortController = new AbortController();
+      setActiveRequestController(abortController);
       
       // Create a unique message ID for AI response
       const aiMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -246,44 +249,77 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                 isComplete: true,
                 isThinkingComplete: true // Ensure thinking is also marked complete
               });
-              // Clear processing state
+              // Clear processing state and abort controller
               setProcessing(false);
+              setActiveRequestController(null);
               // Reset accumulated text
               accumulatedTextRef.current = '';
             },
             onError: (error) => {
-              // Show error and mark message as complete
-              console.error('AI response error:', error.message);
-              updateMessageInChat(chatId, aiMessageId, {
-                text: 'Sorry, there was an error processing your request.',
-                isComplete: true
-              });
-              // Clear processing state
+              // Don't show error for aborted requests
+              if (error.name !== 'AbortError') {
+                console.error('AI response error:', error.message);
+                updateMessageInChat(chatId, aiMessageId, {
+                  text: 'Sorry, there was an error processing your request.',
+                  isComplete: true
+                });
+              } else {
+                // For aborted requests, mark current message as complete with existing content
+                updateMessageInChat(chatId, aiMessageId, {
+                  isComplete: true,
+                  isThinkingComplete: true,
+                  wasPaused: true
+                });
+              }
+              // Clear processing state and abort controller
               setProcessing(false);
+              setActiveRequestController(null);
               // Reset accumulated text
               accumulatedTextRef.current = '';
             }
           },
-          history
+          history,
+          abortController.signal
         );
       } else {
         // Non-streaming API call
-        const response = await ChatService.sendMessage(userText, userFiles, history);
-        // Update AI message with complete response
-        updateMessageInChat(chatId, aiMessageId, {
-          text: response.text,
-          imageUrl: response.imageUrl,
-          isComplete: true,
-          thinkingContent: response.thinking,
-          isThinkingComplete: true
-        });
-        // Clear processing state
-        setProcessing(false);
+        try {
+          const response = await ChatService.sendMessage(userText, userFiles, history, abortController.signal);
+          // Update AI message with complete response
+          updateMessageInChat(chatId, aiMessageId, {
+            text: response.text,
+            imageUrl: response.imageUrl,
+            isComplete: true,
+            thinkingContent: response.thinking,
+            isThinkingComplete: true
+          });
+        } catch (error) {
+          // Handle abort vs other errors
+          if (error instanceof Error && error.name === 'AbortError') {
+            // For aborted requests, mark current message as complete with existing content
+            updateMessageInChat(chatId, aiMessageId, {
+              isComplete: true,
+              wasPaused: true
+            });
+          } else {
+            // Show error and mark message as complete
+            console.error('AI response error:', error instanceof Error ? error.message : 'Unknown error');
+            updateMessageInChat(chatId, aiMessageId, {
+              text: 'Sorry, there was an error processing your request.',
+              isComplete: true
+            });
+          }
+        } finally {
+          // Clear processing state and abort controller
+          setProcessing(false);
+          setActiveRequestController(null);
+        }
       }
     } catch (error) {
       // Handle errors
       console.error("Error generating AI response for new branch:", error);
       setProcessing(false);
+      setActiveRequestController(null);
     }
   };
 
