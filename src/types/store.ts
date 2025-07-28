@@ -7,6 +7,7 @@ export interface ChatStore {
   activeChatId: string | null;
   isProcessing: boolean;
   error: string | null;
+  activeRequestController: AbortController | null;
   // Branch state
   activeBranchPath: Map<string, string[]>; // chatId -> branch path
   branchTree: Map<string, Map<string, BranchNode>>; // chatId -> branchId -> BranchNode
@@ -22,6 +23,8 @@ export interface ChatStore {
   renameChatSession: (chatId: string, newName: string) => void;
   clearError: () => void;
   setProcessing: (isProcessing: boolean) => void;
+  setActiveRequestController: (controller: AbortController | null) => void;
+  pauseCurrentRequest: () => void;
   // Branch actions
   getCurrentBranchMessages: (chatId: string) => Message[];
   createBranchFromMessage: (chatId: string, messageId: string, newMessage: Message) => string;

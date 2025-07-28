@@ -9,6 +9,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
   activeChatId: null,
   isProcessing: false,
   error: null,
+  activeRequestController: null,
   // Branch state
   activeBranchPath: new Map(),
   branchTree: new Map(),
@@ -129,6 +130,21 @@ const useChatStore = create<ChatStore>((set, get) => ({
   
   setProcessing: (isProcessing: boolean) => {
     set({ isProcessing });
+  },
+
+  setActiveRequestController: (controller: AbortController | null) => {
+    set({ activeRequestController: controller });
+  },
+
+  pauseCurrentRequest: () => {
+    const state = get();
+    if (state.activeRequestController) {
+      state.activeRequestController.abort();
+      set({ 
+        activeRequestController: null, 
+        isProcessing: false 
+      });
+    }
   },
   
   // Branch management methods
