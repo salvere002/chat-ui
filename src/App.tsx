@@ -30,6 +30,9 @@ const App: React.FC = () => {
   // State for settings modal
   const [showSettings, setShowSettings] = useState(false);
   
+  // State for responsive settings handling
+  const [isWideScreen, setIsWideScreen] = useState(window.innerWidth >= 1280);
+  
   // State for mobile sidebar visibility
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
@@ -51,6 +54,19 @@ const App: React.FC = () => {
 
     initializeService();
   }, [getCurrentConfig]);
+
+  // Handle window resize for responsive settings
+  useEffect(() => {
+    const handleResize = () => {
+      const newIsWideScreen = window.innerWidth >= 1280;
+      setIsWideScreen(newIsWideScreen);
+      
+      // Keep settings open, just switch styles - no auto-close
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Handler for creating a new chat
   const handleNewChat = () => {
@@ -64,7 +80,7 @@ const App: React.FC = () => {
   };
   
   const handleSettingsClick = () => {
-    setShowSettings(true);
+    setShowSettings(!showSettings);
   };
   
   const handleSidebarToggle = () => {
@@ -110,12 +126,13 @@ const App: React.FC = () => {
         </div>
       </div>
       
-      {/* Settings modal */}
-      {showSettings && (
+      {/* Settings modal - only show on narrow screens */}
+      {showSettings && !isWideScreen && (
         <Settings 
           onClose={() => setShowSettings(false)}
           selectedResponseMode={selectedResponseMode}
           onResponseModeChange={setSelectedResponseMode}
+          isSidebar={false}
         />
       )}
       
@@ -157,6 +174,22 @@ const App: React.FC = () => {
             <ChatInterface selectedResponseMode={selectedResponseMode} />
           </ErrorBoundary>
         </div>
+        
+        {/* Settings sidebar - animated container for wide screens */}
+        {isWideScreen && (
+          <div 
+            className={`${showSettings ? 'w-[400px] opacity-100' : 'w-0 opacity-0'} overflow-hidden transition-all duration-300 ease-in-out`}
+          >
+            {showSettings && (
+              <Settings 
+                onClose={() => setShowSettings(false)}
+                selectedResponseMode={selectedResponseMode}
+                onResponseModeChange={setSelectedResponseMode}
+                isSidebar={true}
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
