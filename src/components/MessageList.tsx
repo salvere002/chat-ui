@@ -278,7 +278,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
       isComplete: false,
       thinkingContent: undefined,
       isThinkingComplete: false,
-      thinkingCollapsed: true
+      thinkingCollapsed: true,
+      wasPaused: false
     });
     
     // Generate new response using our shared function
@@ -309,7 +310,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
         isComplete: false,
         thinkingContent: undefined,
         isThinkingComplete: false,
-        thinkingCollapsed: true
+        thinkingCollapsed: true,
+        wasPaused: false
       });
       
       // Use the shared function to generate the response with the edited message
