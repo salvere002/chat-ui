@@ -205,3 +205,38 @@ html {
 .loading-dots span {
   animation-delay: -0.16s;
 }
+
+/* Enhanced prose styling for better text wrapping */
+.prose {
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose * {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.prose p, .prose div, .prose span {
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.prose code {
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.prose pre {
+  overflow-x: auto;
+  word-wrap: normal;
+  overflow-wrap: normal;
+}
+
+.prose pre code {
+  white-space: pre;
+  word-wrap: normal;
+  overflow-wrap: normal;
+}
