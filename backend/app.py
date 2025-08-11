@@ -9,6 +9,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from streaming import create_sse_response, stream_response_generator
 from config_loader import config_manager
+from chart_generator import ChartGenerator
 
 app = Flask(__name__)
 
@@ -108,6 +109,17 @@ def stream_message():
     # Add delay before processing to test pause functionality
     time.sleep(3)  # 3 second delay
     
+    # Check for chart requests
+    chart_type = ChartGenerator.detect_chart_request(text)
+    chart_response = None
+    if chart_type:
+        data_context = ChartGenerator.detect_data_context(text)
+        if chart_type == 'all':
+            chart_response = ChartGenerator.create_all_charts_markdown(data_context)
+        else:
+            single_chart_data = ChartGenerator.generate_chart_data(chart_type, data_context)
+            chart_response = ChartGenerator.create_chart_markdown(single_chart_data)
+    
     # Determine if we should include an image in the response
     include_image = any(f.get('type', '').startswith('image/') for f in uploaded_files) or (random.random() < 0.3)
     
@@ -119,7 +131,7 @@ def stream_message():
     
     # Create an SSE response using our generator
     response = create_sse_response(
-        stream_response_generator(text, uploaded_files, image_url)
+        stream_response_generator(text, uploaded_files, image_url, chart_response)
     )
     
     # Note: Cannot set cookies on SSE responses as they're streamed
@@ -140,6 +152,17 @@ def fetch_message():
     # Check if thinking mode should be enabled
     enable_thinking = '/think' in text
     
+    # Check for chart requests
+    chart_type = ChartGenerator.detect_chart_request(text)
+    chart_response = None
+    if chart_type:
+        data_context = ChartGenerator.detect_data_context(text)
+        if chart_type == 'all':
+            chart_response = ChartGenerator.create_all_charts_markdown(data_context)
+        else:
+            single_chart_data = ChartGenerator.generate_chart_data(chart_type, data_context)
+            chart_response = ChartGenerator.create_chart_markdown(single_chart_data)
+    
     # Determine if we should include an image in the response
     include_image = any(f.get('type', '').startswith('image/') for f in uploaded_files) or (random.random() < 0.3)
     
@@ -149,8 +172,11 @@ def fetch_message():
         image_size = 200 + (int(time.time()) % 100)
         image_url = f"https://picsum.photos/{image_size}/{image_size}?random={int(time.time())}"
     
-    # Simulate response generation
-    response_text = f"AI fetch response to: \"{text}\". Files received: {', '.join([f['name'] for f in uploaded_files]) if uploaded_files else 'None'}. This is a complete response."
+    # Generate response text
+    if chart_response:
+        response_text = chart_response
+    else:
+        response_text = f"AI fetch response to: \"{text}\". Files received: {', '.join([f['name'] for f in uploaded_files]) if uploaded_files else 'None'}. This is a complete response."
     
     response_data = {
         'text': response_text,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Message, MessageFile } from '../types/chat'; // Import the Message and MessageFile types
 import { FaFileAlt, FaRedo, FaEdit, FaCheck, FaTimes, FaCopy, FaChevronLeft, FaChevronRight } from 'react-icons/fa'; // Import required icons
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
@@ -15,7 +15,9 @@ import { ChatService } from '../services/chatService';
 import { useResponseModeStore, useThemeStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
 import ThinkingSection from './ThinkingSection';
+import ChartRenderer from './ChartRenderer';
 import { ConversationMessage } from '../types/api';
+import { ChartData } from '../types/chat';
 
 interface MessageItemProps {
   message: Message;
@@ -462,16 +464,90 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
               rehypePlugins={[rehypeKatex]}
               components={{
                 code({ node, inline, className, children, ...props }: any) {
-                  const match = /language-(\w+)/.exec(className || '');
-                  return !inline && match ? (
-                    <CodeBlock
-                      language={match[1]}
-                      className={className}
-                      {...props}
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </CodeBlock>
-                  ) : (
+                  const match = /language-([^\s]+)/.exec(className || '');
+                  
+                  // Handle chart code blocks
+                  if (!inline && match) {
+                    const language = match[1];
+                    const chartMatch = /^chart[:\-_](\w+)$/.exec(language);
+                    
+                    if (chartMatch) {
+                      const chartType = chartMatch[1];
+                      const chartContent = String(children).replace(/\n$/, '');
+                      
+                      // Check if the content looks like it might be incomplete JSON
+                      // (during streaming, we might have partial JSON)
+                      if (!chartContent.trim() || 
+                          !chartContent.includes('{') || 
+                          !chartContent.includes('"type"') ||
+                          !chartContent.includes('"data"')) {
+                        // If it's clearly incomplete or empty, render as regular code block
+                        return (
+                          <CodeBlock
+                            language={language}
+                            className={className}
+                            {...props}
+                          >
+                            {chartContent}
+                          </CodeBlock>
+                        );
+                      }
+                      
+                      // Memoize chartData creation to prevent new object references on every render
+                      const memoizedChartData = useMemo(() => {
+                        try {
+                          const chartData: ChartData = JSON.parse(chartContent);
+                          
+                          // Validate that we have the required fields
+                          if (!chartData.type || !chartData.data || !Array.isArray(chartData.data)) {
+                            throw new Error('Missing required chart fields');
+                          }
+                          
+                          // Ensure the chart type matches
+                          if (chartData.type !== chartType) {
+                            chartData.type = chartType as any;
+                          }
+                          
+                          return chartData;
+                        } catch (error) {
+                          return null;
+                        }
+                      }, [chartContent, chartType]);
+
+                      if (memoizedChartData) {
+                        // Add stable key based on content to prevent unmount/remount
+                        const chartKey = `chart-${chartType}-${chartContent.substring(0, 50)}`;
+                        return <ChartRenderer key={chartKey} chartData={memoizedChartData} />;
+                      } else {
+                        // Error case - render as code block
+                        // During streaming or with invalid data, just render as code block
+                        // Don't show error message to user
+                        return (
+                          <CodeBlock
+                            language={language}
+                            className={className}
+                            {...props}
+                          >
+                            {chartContent}
+                          </CodeBlock>
+                        );
+                      }
+                    }
+                    
+                    // Regular code block
+                    return (
+                      <CodeBlock
+                        language={language}
+                        className={className}
+                        {...props}
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </CodeBlock>
+                    );
+                  }
+                  
+                  // Inline code
+                  return (
                     <code className={className} {...props}>
                       {children}
                     </code>

@@ -61,4 +61,28 @@ export interface BranchNode {
 }
 
 // Response mode type for different message sending methods
-export type ResponseMode = 'stream' | 'fetch'; 
+export type ResponseMode = 'stream' | 'fetch';
+
+// Chart data types for embedding charts in messages
+export type ChartType = 'bar' | 'line' | 'pie' | 'area' | 'scatter';
+
+export interface ChartDataPoint {
+  [key: string]: string | number;
+}
+
+export interface ChartConfig {
+  title?: string;
+  xLabel?: string;
+  yLabel?: string;
+  colors?: string[];
+  width?: number;
+  height?: number;
+  xKey?: string; // Key for x-axis data
+  yKey?: string | string[]; // Key(s) for y-axis data
+}
+
+export interface ChartData {
+  type: ChartType;
+  data: ChartDataPoint[];
+  config?: ChartConfig;
+} 
