@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Chat } from '../types/chat';
 import { useChatStore } from '../stores';
+import { FaBars, FaPlus } from 'react-icons/fa';
+import { HiOutlineBars3BottomLeft, HiOutlineBars3 } from 'react-icons/hi2';
 
 interface SidebarProps {
   chats: Chat[];
@@ -8,6 +10,8 @@ interface SidebarProps {
   onChatSelected: (chatId: string) => void;
   onNewChat: () => void;
   onDeleteChat: (chatId: string) => void;
+  collapsed: boolean;
+  onCollapse: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -15,7 +19,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeChatId,
   onChatSelected,
   onNewChat,
-  onDeleteChat
+  onDeleteChat,
+  collapsed,
+  onCollapse
 }) => {
   const { renameChatSession } = useChatStore();
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
@@ -109,33 +115,79 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
   
   return (
-    <div className="flex flex-col w-[280px] sm:w-[300px] lg:w-[280px] h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 overflow-hidden transition-all duration-200">
-      <div className="flex items-center justify-between p-4 bg-bg-secondary border-b border-border-primary">
-        <h2 className="text-lg font-semibold text-text-primary m-0">Conversations</h2>
-        <button 
-          className="flex items-center gap-1 px-3 py-2 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 whitespace-nowrap hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]" 
-          onClick={onNewChat}
-          aria-label="Start new chat"
-        >
-          <span className="text-lg leading-none">+</span> New Chat
-        </button>
+    <div className={`flex flex-col ${collapsed ? 'w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-all duration-300 ease-in-out`}>
+      <div className={`w-full h-full overflow-hidden ${collapsed ? '' : 'min-w-[280px]'}`}>
+      <div className="bg-bg-secondary border-b border-border-primary">
+        {collapsed ? (
+          /* Collapsed state - simple centered layout */
+          <div className="flex flex-col items-center p-4 gap-2">
+            <button 
+              className="flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-e-resize transition-all duration-150 hover:bg-bg-tertiary hover:text-accent-primary active:scale-[0.98]" 
+              onClick={onCollapse}
+              aria-label="Expand sidebar"
+              title="Expand Sidebar"
+            >
+              <HiOutlineBars3 className="w-5 h-5" />
+            </button>
+            <button 
+              className="flex items-center justify-center w-8 h-8 p-0 bg-accent-primary text-text-inverse border-none rounded-md text-sm cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]" 
+              onClick={onNewChat}
+              aria-label="Start new chat"
+              title="New Chat"
+            >
+              <FaPlus />
+            </button>
+          </div>
+        ) : (
+          /* Expanded state - always render in final format, let width reveal it */
+          <div className="p-4">
+            <div className="w-[248px] flex flex-col gap-3">
+              <div className="flex items-center justify-between w-full">
+                <h2 className="text-lg font-semibold text-text-primary m-0 whitespace-nowrap">Conversations</h2>
+                <button 
+                  className="flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-w-resize transition-all duration-150 hover:bg-bg-tertiary hover:text-accent-primary active:scale-[0.98] flex-shrink-0"
+                  onClick={onCollapse}
+                  aria-label="Collapse sidebar"
+                  title="Collapse Sidebar"
+                >
+                  <HiOutlineBars3BottomLeft className="w-5 h-5" />
+                </button>
+              </div>
+              <button 
+                className="flex items-center justify-center gap-2 px-3 py-2 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 w-full hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98] whitespace-nowrap"
+                onClick={onNewChat}
+                aria-label="Start new chat"
+              >
+                <FaPlus className="text-sm flex-shrink-0" /> <span>New Chat</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-2">
-        {chats.length === 0 ? (
-          <div className="flex items-center justify-center px-4 py-6 text-text-tertiary text-sm text-center opacity-80">
-            No conversations yet. Start a new chat!
-          </div>
+        {collapsed ? (
+          // Collapsed state - hide chat list
+          null
         ) : (
-          chats.map((chat, index) => (
-            <div 
-              key={chat.id}
-              className={`group flex items-center gap-3 p-3 mb-2 bg-bg-primary border border-transparent rounded-md cursor-pointer transition-all duration-150 relative overflow-hidden hover:bg-bg-tertiary hover:border-border-secondary hover:translate-x-0.5 ${
-                chat.id === activeChatId ? 'bg-accent-light border-accent-primary before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-accent-primary' : ''
-              }`}
-              onClick={() => onChatSelected(chat.id)}
-            >
-              <div className="flex-1 min-w-0">
+          // Expanded state - show full chat list
+          <div className="min-w-[240px] w-full">
+            {chats.length === 0 ? (
+              <div className="flex items-center justify-center px-4 py-6 text-text-tertiary text-sm text-center opacity-80 min-w-[200px]">
+                <span className="leading-relaxed">
+                  No conversations yet. Start a new chat!
+                </span>
+              </div>
+            ) : (
+              chats.map((chat, index) => (
+          <div 
+            key={chat.id}
+            className={`group flex items-center gap-3 p-3 mb-2 bg-bg-primary border border-transparent rounded-md cursor-pointer transition-all duration-150 relative overflow-hidden hover:bg-bg-tertiary hover:border-border-secondary hover:translate-x-0.5 min-w-[220px] ${
+              chat.id === activeChatId ? 'bg-accent-light border-accent-primary before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-accent-primary' : ''
+            }`}
+            onClick={() => onChatSelected(chat.id)}
+          >
+              <div className="flex-1 min-w-0 max-w-[180px]">
                 {editingChatId === chat.id ? (
                   <div className="w-full">
                     <input
@@ -152,12 +204,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ) : (
                   <>
                     <div 
-                      className="text-sm font-medium text-text-primary truncate leading-tight cursor-pointer"
+                      className="text-sm font-medium text-text-primary truncate leading-tight cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis"
                       onDoubleClick={(e) => startEditing(chat, e)}
                     >
                       {getChatTitle(chat, index)}
                     </div>
-                    <div className="text-xs text-text-tertiary mt-1 leading-tight">
+                    <div className="text-xs text-text-tertiary mt-1 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
                       {formatDate(chat.updatedAt)}
                     </div>
                   </>
@@ -183,10 +235,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                 >
                   ×
                 </button>
-              </div>
-            </div>
-          ))
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         )}
+      </div>
       </div>
     </div>
   );

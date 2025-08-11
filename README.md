@@ -11,7 +11,7 @@ A modern chat application featuring a React frontend with a Flask backend that s
 - **Response mode selection** - Toggle between streaming and batch responses
 - **AI thinking display** - UI support for showing AI reasoning process when provided by backend
 - **File upload and download** capabilities with progress tracking
-- **Rich message support** - Markdown, math equations (KaTeX), code highlighting
+- **Rich message support** - Markdown, math equations (KaTeX), code highlighting, interactive charts
 
 ### **UI/UX Features**
 - **Dynamic theme system** - Light and dark mode with smooth transitions
@@ -219,6 +219,134 @@ For development and testing purposes, the Mock adapter includes a special featur
 - **Example**: `"/think How does photosynthesis work?"` triggers mock thinking content
 - **Note**: This is purely for testing the thinking UI - real backends don't need special triggers
 
+### **Interactive Chart Rendering**
+
+The application supports embedding interactive charts directly within chat messages using markdown code blocks.
+
+#### **How to Create Charts**
+
+Charts are created by including properly formatted JSON data in code blocks with chart type specification:
+
+````markdown
+```chart:bar
+{
+  "type": "bar",
+  "data": [
+    {"name": "Jan", "value": 400},
+    {"name": "Feb", "value": 300},
+    {"name": "Mar", "value": 500}
+  ],
+  "config": {
+    "title": "Monthly Sales",
+    "xLabel": "Month",
+    "yLabel": "Sales ($)"
+  }
+}
+```
+````
+
+#### **Chart Format**
+
+**Basic Structure:**
+- **Code Block Syntax**: Use ````chart:type` where `type` is the chart type
+- **Alternative Formats**: `chart-type` or `chart_type` also work
+- **JSON Content**: Must contain valid chart data object
+
+**Required Fields:**
+- **`type`** (string): Chart type - one of `bar`, `line`, `pie`, `area`, `scatter`
+- **`data`** (array): Array of data points with key-value pairs
+
+**Optional Fields:**
+- **`config`** (object): Configuration options for customizing the chart
+
+#### **Chart Types & Data Format**
+
+**Bar Chart** (`bar`)
+```json
+{
+  "type": "bar",
+  "data": [
+    {"name": "Category A", "value": 100},
+    {"name": "Category B", "value": 200}
+  ]
+}
+```
+
+**Line Chart** (`line`)
+```json
+{
+  "type": "line",
+  "data": [
+    {"name": "Jan", "value": 100},
+    {"name": "Feb", "value": 150}
+  ]
+}
+```
+
+**Pie Chart** (`pie`)
+```json
+{
+  "type": "pie",
+  "data": [
+    {"name": "Desktop", "value": 60},
+    {"name": "Mobile", "value": 40}
+  ]
+}
+```
+
+**Area Chart** (`area`)
+```json
+{
+  "type": "area",
+  "data": [
+    {"name": "Q1", "revenue": 1000, "expenses": 600},
+    {"name": "Q2", "revenue": 1200, "expenses": 700}
+  ]
+}
+```
+
+**Scatter Plot** (`scatter`)
+```json
+{
+  "type": "scatter",
+  "data": [
+    {"x": 10, "y": 20},
+    {"x": 15, "y": 25}
+  ]
+}
+```
+
+#### **Configuration Options**
+
+The `config` object supports these optional fields:
+
+- **`title`** (string): Chart title displayed at the top
+- **`xLabel`** (string): Label for the X-axis
+- **`yLabel`** (string): Label for the Y-axis
+- **`colors`** (array): Array of color strings for chart elements
+- **`height`** (number): Chart height in pixels (default: 320)
+- **`xKey`** (string): Data key for X-axis values (default: "name")
+- **`yKey`** (string|array): Data key(s) for Y-axis values (default: "value")
+
+#### **Multi-Series Charts**
+
+For charts with multiple data series, use arrays for `yKey`:
+
+```json
+{
+  "type": "bar",
+  "data": [
+    {"month": "Jan", "sales": 400, "target": 350},
+    {"month": "Feb", "sales": 300, "target": 320}
+  ],
+  "config": {
+    "xKey": "month",
+    "yKey": ["sales", "target"]
+  }
+}
+```
+
+
 ### **Service Adapter System**
 
 Flexible backend communication through adapter pattern:
@@ -251,6 +379,7 @@ Efficient state management using Zustand:
 - **Tailwind CSS 4.1.11** - Utility-first CSS framework
 - **Zustand 5.0.3** - Lightweight state management
 - **React Markdown** - Markdown rendering with KaTeX math support
+- **Recharts** - Interactive chart rendering library
 - **React Icons** - Comprehensive icon library
 
 ### **Backend** 
