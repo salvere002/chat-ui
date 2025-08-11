@@ -38,7 +38,7 @@ def chunk_text(text, chunk_size=3):
         yield ' '.join(chunk) + (' ' if i + chunk_size < len(words) else '')
         time.sleep(0.1)  # Simulate network delay
 
-def stream_response_generator(text, uploaded_files, image_url=None):
+def stream_response_generator(text, uploaded_files, image_url=None, chart_response=None):
     """
     Generator function that yields response chunks
     
@@ -46,6 +46,7 @@ def stream_response_generator(text, uploaded_files, image_url=None):
         text: The user's input text
         uploaded_files: List of uploaded file metadata
         image_url: Optional image URL to include in the response
+        chart_response: Optional chart response text
         
     Returns:
         Generator that yields response chunks
@@ -91,7 +92,10 @@ def stream_response_generator(text, uploaded_files, image_url=None):
         }
     
     # Create the full response text
-    full_response_text = f"AI stream response to: \"{text}\". Files received: {', '.join([f['name'] for f in uploaded_files]) if uploaded_files else 'None'}. This response streams in chunks."
+    if chart_response:
+        full_response_text = chart_response
+    else:
+        full_response_text = f"AI stream response to: \"{text}\". Files received: {', '.join([f['name'] for f in uploaded_files]) if uploaded_files else 'None'}. This response streams in chunks."
     
     # Stream the text in chunks
     sent_image = False
