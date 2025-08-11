@@ -33,6 +33,9 @@ const App: React.FC = () => {
   // State for mobile sidebar visibility
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  // State for sidebar collapse/expand (desktop only)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
   // Initialize the service on app load
   useEffect(() => {
     const initializeService = async () => {
@@ -69,6 +72,10 @@ const App: React.FC = () => {
   
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+  
+  const handleSidebarCollapse = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
   };
   
   return (
@@ -147,6 +154,8 @@ const App: React.FC = () => {
                 setSidebarOpen(false); // Close sidebar on mobile after creating new chat
               }}
               onDeleteChat={deleteChat}
+              collapsed={sidebarCollapsed}
+              onCollapse={handleSidebarCollapse}
             />
           </ErrorBoundary>
         </div>
