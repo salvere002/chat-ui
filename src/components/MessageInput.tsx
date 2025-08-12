@@ -15,6 +15,7 @@ interface MessageInputProps {
   isProcessing: boolean;
   isFileProcessing?: boolean;
   initialFiles?: PreviewFile[];
+  showTopBorder?: boolean;
 }
 
 // Convert allowed extensions from config to accept attribute format
@@ -53,7 +54,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onPauseRequest,
   isProcessing,
   isFileProcessing = false,
-  initialFiles = []
+  initialFiles = [],
+  showTopBorder = true
 }) => {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -212,7 +214,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div 
-      className={`flex flex-col p-3 sm:p-4 bg-bg-primary border-t border-border-secondary max-w-[800px] w-full mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
+      className={`flex flex-col p-3 sm:p-4 bg-bg-primary ${showTopBorder ? 'border-t border-border-secondary' : ''} max-w-[800px] w-full mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
       ref={dropAreaRef}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}

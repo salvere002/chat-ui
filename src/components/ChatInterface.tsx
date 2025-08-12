@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
@@ -249,28 +249,100 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     }
   };
   
+  // Different empty states
+  const hasNoActiveChat = !activeChatId;
+  const hasActiveChatButEmpty = activeChatId && activeChatMessages.length === 0;
+  const hasMessages = activeChatId && activeChatMessages.length > 0;
+  
+  // Track when we transition from empty to having messages for animation
+  const previousMessageCount = useRef(0);
+  const [shouldAnimateTransition, setShouldAnimateTransition] = useState(false);
+  
+  useEffect(() => {
+    const currentMessageCount = activeChatMessages.length;
+    
+    // If we go from 0 to 1+ messages, trigger animation
+    if (previousMessageCount.current === 0 && currentMessageCount > 0) {
+      setShouldAnimateTransition(true);
+      // Reset animation flag after animation completes
+      setTimeout(() => setShouldAnimateTransition(false), 500);
+    }
+    
+    previousMessageCount.current = currentMessageCount;
+  }, [activeChatMessages.length]);
+
   return (
     <div className="flex flex-col h-full w-full bg-bg-primary relative overflow-hidden">
-      {/* Show empty state if no active chat */}
-      {!activeChatId && activeChatMessages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-full p-6 animate-fade-in">
-          <div className="text-center max-w-[420px]">
-            <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-accent-light text-accent-primary rounded-2xl text-4xl transition-transform duration-200 hover:scale-105">
-              💬
+      {/* No conversation selected - show welcome message */}
+      {hasNoActiveChat ? (
+        <div className="flex flex-col h-full">
+          {/* Welcome content positioned above the centered input */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full flex flex-col items-center" style={{marginTop: '-120px'}}>
+            <div className="text-center max-w-[420px] mb-12 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-accent-light text-accent-primary rounded-2xl text-4xl transition-transform duration-200 hover:scale-105">
+                💬
+              </div>
+              <h3 className="text-xl font-semibold text-text-primary mb-3">No Active Conversation</h3>
+              <p className="text-base text-text-secondary leading-relaxed m-0">
+                Start a new chat by typing a message below or choose an existing conversation from the sidebar.
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-text-primary mb-3">No Active Conversation</h3>
-            <p className="text-base text-text-secondary leading-relaxed m-0">
-              Start a new chat by typing a message below or choose an existing conversation from the sidebar.
-            </p>
+          </div>
+          
+          {/* Fixed positioned input at same height as empty conversation */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-4" style={{marginTop: '60px'}}>
+            <MessageInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSendMessage={handleSendMessage}
+              onPauseRequest={handlePauseRequest}
+              isProcessing={combinedIsProcessing}
+              isFileProcessing={isFileProcessing}
+              initialFiles={fileUploads}
+              showTopBorder={false}
+            />
+          </div>
+        </div>
+      ) : hasActiveChatButEmpty ? (
+        /* New conversation but empty - input at exact center */
+        <div className="flex flex-col h-full">
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-4" style={{marginTop: '60px'}}>
+            <MessageInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSendMessage={handleSendMessage}
+              onPauseRequest={handlePauseRequest}
+              isProcessing={combinedIsProcessing}
+              isFileProcessing={isFileProcessing}
+              initialFiles={fileUploads}
+              showTopBorder={false}
+            />
           </div>
         </div>
       ) : (
-        <MessageList messages={activeChatMessages} chatId={activeChatId} />
+        /* Active conversation with messages */
+        <>
+          <MessageList messages={activeChatMessages} chatId={activeChatId} />
+          
+          {/* Bottom-positioned message input with animation */}
+          <div className={shouldAnimateTransition ? 'animate-input-to-bottom' : ''}>
+            <MessageInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSendMessage={handleSendMessage}
+              onPauseRequest={handlePauseRequest}
+              isProcessing={combinedIsProcessing}
+              isFileProcessing={isFileProcessing}
+              initialFiles={fileUploads}
+              showTopBorder={true}
+            />
+          </div>
+        </>
       )}
       
       {/* Display file upload loading state only */}
       {isFileProcessing && (
-        <div className="absolute bottom-[90px] left-1/2 -translate-x-1/2 bg-bg-elevated border border-border-secondary rounded-lg px-4 py-3 shadow-md flex items-center gap-3 z-dropdown animate-slide-up">
+        <div className={`absolute ${hasMessages ? 'bottom-[90px]' : 'bottom-[120px]'} left-1/2 -translate-x-1/2 bg-bg-elevated border border-border-secondary rounded-lg px-4 py-3 shadow-md flex items-center gap-3 z-dropdown animate-slide-up`}>
           <LoadingIndicator 
             type="dots"
             text="Uploading files..."
@@ -286,17 +358,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           <button className="ml-auto bg-transparent border-none text-current text-xl cursor-pointer opacity-80 transition-opacity duration-150 p-0 w-6 h-6 flex items-center justify-center rounded hover:opacity-100 hover:bg-white/20">×</button>
         </div>
       )}
-      
-      {/* Message input area */}
-      <MessageInput
-        value={inputValue}
-        onChange={setInputValue}
-        onSendMessage={handleSendMessage}
-        onPauseRequest={handlePauseRequest}
-        isProcessing={combinedIsProcessing}
-        isFileProcessing={isFileProcessing}
-        initialFiles={fileUploads}
-      />
     </div>
   );
 };
