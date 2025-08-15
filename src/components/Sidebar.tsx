@@ -194,9 +194,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 min-h-0" style={{maxHeight: 'calc(100vh - 200px)'}}>
             <div className="min-w-[240px] w-full">
               {chats.length === 0 ? (
-                <div className="flex items-center justify-center px-4 py-6 text-text-tertiary text-sm text-center opacity-80 min-w-[200px]">
+                <div className="flex items-center justify-center px-4 py-6 text-text-tertiary text-sm text-center opacity-60 min-w-[200px]">
                   <span className="leading-relaxed">
-                    No conversations yet. Start a new chat!
+                    No conversations
                   </span>
                 </div>
               ) : (
