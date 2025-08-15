@@ -3,13 +3,15 @@ import { ApiClient, RequestInterceptor, ResponseInterceptor, DataTransformer } f
 import { MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
 import { StreamCallbacks, ProgressCallback } from './BaseAdapter';
 
+/**
+ * Session-based adapter that manages session cookies for API communication.
+ * Uses '/session' endpoint paths - the ApiClient handles the base URL configuration.
+ */
 export class SessionAdapter extends AbstractBaseAdapter {
   private sessionCookie: string | null = null;
-  private readonly endpoint: string;
 
-  constructor(apiClient: ApiClient, endpoint: string) {
+  constructor(apiClient: ApiClient) {
     super(apiClient);
-    this.endpoint = endpoint;
 
     // Add a request interceptor to include the session cookie
     const requestInterceptor: RequestInterceptor = (requestConfig) => {
@@ -41,7 +43,7 @@ export class SessionAdapter extends AbstractBaseAdapter {
 
   async sendMessage(request: MessageRequest, abortSignal?: AbortSignal): Promise<MessageResponse> {
     return this.apiClient.request<MessageResponse>(
-      this.endpoint, 
+      '/session/message', 
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,7 +64,7 @@ export class SessionAdapter extends AbstractBaseAdapter {
 
   async sendStreamingMessage(request: MessageRequest, callbacks: StreamCallbacks, abortSignal?: AbortSignal): Promise<void> {
     await this.apiClient.streamMessages(
-      this.endpoint, 
+      '/session/stream', 
       {
         method: 'POST',
         headers: {
@@ -84,7 +86,7 @@ export class SessionAdapter extends AbstractBaseAdapter {
 
     try {
       const response = await this.apiClient.request<FileUploadResponse>(
-        this.endpoint, 
+        '/session/upload', 
         {
           method: 'POST',
           body: formData,
@@ -116,11 +118,9 @@ export class SessionAdapter extends AbstractBaseAdapter {
 
   async getFiles(): Promise<FileUploadResponse[]> {
     return this.apiClient.request<FileUploadResponse[]>(
-      this.endpoint, 
+      '/session/files', 
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getFiles' }),
+        method: 'GET',
       },
       this.transformFilesResponse
     );
@@ -136,11 +136,9 @@ export class SessionAdapter extends AbstractBaseAdapter {
 
   async getFile(fileId: string): Promise<FileUploadResponse> {
     return this.apiClient.request<FileUploadResponse>(
-      this.endpoint, 
+      `/session/files/${fileId}`, 
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getFile', fileId }),
+        method: 'GET',
       },
       this.transformFileUploadResponse
     );

@@ -73,11 +73,13 @@ The application uses a centralized `config.json` file to manage all configuratio
     },
     "services": {
       "adapterType": "rest",
-      "useMockInDev": true,
-      "sessionEndpoint": "http://localhost:5001/api/session"
+      "useMockInDev": false
     },
     "ui": {
       "defaultTheme": "light"
+    },
+    "dev": {
+      "port": 3000
     }
   },
   "backend": {
@@ -119,7 +121,7 @@ Modify this file to change application settings.
    ```bash
    npm run dev
    ```
-   The frontend will run on `http://localhost:5173` (Vite default)
+   The frontend will run on `http://localhost:3000` (as configured in config.json)
 
 3. **Production build:**
    ```bash

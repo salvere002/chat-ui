@@ -1,6 +1,7 @@
 import os
 from flask import Flask, send_from_directory
 from app import app as api_app
+from config_loader import config_manager
 
 # Configure app to serve frontend from ../dist directory
 frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'dist'))
@@ -25,5 +26,8 @@ def serve_spa(path):
     return send_from_directory(frontend_path, 'index.html')
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    api_app.run(host='0.0.0.0', port=port, debug=False) 
+    server_config = config_manager.get_server_config()
+    port = int(os.environ.get('PORT', server_config.get("port", 5001)))
+    host = server_config.get("host", "0.0.0.0")
+    debug = server_config.get("debug", False)
+    api_app.run(host=host, port=port, debug=debug) 

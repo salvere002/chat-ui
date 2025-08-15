@@ -17,7 +17,6 @@ export interface ServiceConfig {
   adapterType: AdapterType;
   apiBaseUrl?: string;
   useMockInDev?: boolean; // Option to use mock adapter in development
-  sessionEndpoint?: string; // Endpoint for session-based adapter
 }
 
 /**
@@ -26,8 +25,7 @@ export interface ServiceConfig {
 const DEFAULT_CONFIG: ServiceConfig = {
   adapterType: configManager.getServicesConfig().adapterType as AdapterType,
   apiBaseUrl: configManager.getApiConfig().baseUrl,
-  useMockInDev: configManager.getServicesConfig().useMockInDev,
-  sessionEndpoint: configManager.getServicesConfig().sessionEndpoint
+  useMockInDev: configManager.getServicesConfig().useMockInDev
 };
 
 /**
@@ -112,16 +110,12 @@ export class ServiceFactory {
   /**
    * Switch to a different adapter type
    */
-  public switchAdapter(adapterType: AdapterType, apiBaseUrl?: string, sessionEndpoint?: string): BaseAdapter {
+  public switchAdapter(adapterType: AdapterType, apiBaseUrl?: string): BaseAdapter {
     // Update configuration
     this.config.adapterType = adapterType;
     
     if (apiBaseUrl) {
       this.config.apiBaseUrl = apiBaseUrl;
-    }
-    
-    if (sessionEndpoint) {
-      this.config.sessionEndpoint = sessionEndpoint;
     }
     
     // Remove the existing adapter to force recreation with new settings
@@ -149,10 +143,7 @@ export class ServiceFactory {
         this.adapters.set(adapterType, new MockAdapter(apiClient));
         break;
       case 'session':
-        if (!this.config.sessionEndpoint) {
-          throw new Error('Session endpoint is required for session adapter');
-        }
-        this.adapters.set(adapterType, new SessionAdapter(apiClient, this.config.sessionEndpoint));
+        this.adapters.set(adapterType, new SessionAdapter(apiClient));
         break;
       default:
         throw new Error(`Unknown adapter type: ${adapterType}`);

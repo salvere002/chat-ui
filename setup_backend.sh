@@ -17,5 +17,5 @@ echo "Installing requirements..."
 pip install -r requirements.txt
 
 # Run the server
-echo "Starting server on http://localhost:5000"
+echo "Starting server on http://localhost:5001"
 python app.py 

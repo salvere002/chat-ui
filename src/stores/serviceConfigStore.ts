@@ -6,7 +6,6 @@ import { configManager } from '../utils/config';
 export interface ServiceConfig {
   adapterType: AdapterType;
   baseUrl: string;
-  sessionEndpoint?: string;
 }
 
 interface ServiceConfigStore {
@@ -24,24 +23,20 @@ interface ServiceConfigStore {
 // Get default config from static configuration
 const getDefaultConfig = (): Record<AdapterType, ServiceConfig> => {
   const apiConfig = configManager.getApiConfig();
-  const servicesConfig = configManager.getServicesConfig();
   const baseUrl = apiConfig.baseUrl;
   
   return {
     rest: {
       adapterType: 'rest',
-      baseUrl,
-      sessionEndpoint: `${baseUrl}/session`
+      baseUrl
     },
     session: {
       adapterType: 'session',
-      baseUrl,
-      sessionEndpoint: servicesConfig.sessionEndpoint || `${baseUrl}/session`
+      baseUrl
     },
     mock: {
       adapterType: 'mock',
-      baseUrl: 'http://mock.local',
-      sessionEndpoint: 'http://mock.local/session'
+      baseUrl: 'http://mock.local'
     }
   };
 };
@@ -52,8 +47,7 @@ const configureChatService = (config: ServiceConfig) => {
   import('../services/chatService').then(({ ChatService }) => {
     ChatService.configure({
       adapterType: config.adapterType,
-      baseUrl: config.baseUrl,
-      sessionEndpoint: config.sessionEndpoint
+      baseUrl: config.baseUrl
     });
   });
 };
@@ -64,8 +58,7 @@ const configureChatServiceSync = (config: ServiceConfig) => {
   return import('../services/chatService').then(({ ChatService }) => {
     ChatService.configure({
       adapterType: config.adapterType,
-      baseUrl: config.baseUrl,
-      sessionEndpoint: config.sessionEndpoint
+      baseUrl: config.baseUrl
     });
   });
 };

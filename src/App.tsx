@@ -44,8 +44,7 @@ const App: React.FC = () => {
         const { ChatService } = await import('./services/chatService');
         ChatService.configure({
           adapterType: config.adapterType,
-          baseUrl: config.baseUrl,
-          sessionEndpoint: config.sessionEndpoint
+          baseUrl: config.baseUrl
         });
       } catch (error) {
         console.error('Failed to initialize chat service:', error);

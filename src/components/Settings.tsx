@@ -43,8 +43,7 @@ const Settings: React.FC<SettingsProps> = ({
     try {
       // Update configuration for the current adapter type
       updateConfig(adapterType, {
-        baseUrl: backendUrl,
-        sessionEndpoint: backendUrl + '/session'
+        baseUrl: backendUrl
       });
       
       // Set as current adapter type (this will automatically configure ChatService)
