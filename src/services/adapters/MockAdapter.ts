@@ -145,7 +145,10 @@ export class MockAdapter extends AbstractBaseAdapter {
         // Stream thinking content
         for (let i = 0; i < thinkingSteps.length; i++) {
           if (abortSignal?.aborted) {
-            return; // Exit silently if aborted
+            const abortError = new Error('AbortError');
+            abortError.name = 'AbortError';
+            onError(abortError);
+            return;
           }
           
           await this.simulateNetworkDelay(200, 400);
@@ -179,7 +182,10 @@ export class MockAdapter extends AbstractBaseAdapter {
       // Stream the response word by word
       for (let i = 0; i < words.length; i++) {
         if (abortSignal?.aborted) {
-          return; // Exit silently if aborted
+          const abortError = new Error('AbortError');
+          abortError.name = 'AbortError';
+          onError(abortError);
+          return;
         }
         
         await this.simulateNetworkDelay(50, 150);
