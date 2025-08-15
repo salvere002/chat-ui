@@ -21,7 +21,8 @@ const App: React.FC = () => {
     activeChatId,
     setActiveChat,
     createChat,
-    deleteChat
+    deleteChat,
+    clearAllChats
   } = useChatStore();
   
   // Use the response mode store for response mode selection
@@ -170,6 +171,7 @@ const App: React.FC = () => {
                 setSidebarOpen(false); // Close sidebar on mobile after creating new chat
               }}
               onDeleteChat={deleteChat}
+              onClearAllChats={clearAllChats}
               collapsed={sidebarCollapsed}
               onCollapse={handleSidebarCollapse}
             />

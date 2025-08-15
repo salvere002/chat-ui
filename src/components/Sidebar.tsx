@@ -10,6 +10,7 @@ interface SidebarProps {
   onChatSelected: (chatId: string) => void;
   onNewChat: () => void;
   onDeleteChat: (chatId: string) => void;
+  onClearAllChats: () => void;
   collapsed: boolean;
   onCollapse: () => void;
 }
@@ -20,12 +21,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   onChatSelected,
   onNewChat,
   onDeleteChat,
+  onClearAllChats,
   collapsed,
   onCollapse
 }) => {
   const { renameChatSession } = useChatStore();
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingChatName, setEditingChatName] = useState('');
+  const [showClearModal, setShowClearModal] = useState(false);
   
   // Function to format the chat title or generate a default one
   const getChatTitle = (chat: Chat, index: number) => {
@@ -85,6 +88,22 @@ const Sidebar: React.FC<SidebarProps> = ({
     saveEditedName();
   };
   
+  // Handle clear all conversations - show confirmation modal
+  const handleClearAll = () => {
+    setShowClearModal(true);
+  };
+
+  // Confirm clear all conversations
+  const confirmClearAll = () => {
+    onClearAllChats();
+    setShowClearModal(false);
+  };
+
+  // Cancel clear all
+  const cancelClearAll = () => {
+    setShowClearModal(false);
+  };
+
   // Format the date to a readable string
   const formatDate = (date: Date) => {
     const today = new Date();
@@ -115,6 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
   
   return (
+    <>
     <div className={`flex flex-col ${collapsed ? 'w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-all duration-300 ease-in-out`}>
       <div className={`w-full h-full overflow-hidden ${collapsed ? '' : 'min-w-[280px]'}`}>
       <div className="bg-bg-secondary border-b border-border-primary border-r border-border-primary">
@@ -244,8 +264,54 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </div>
+      
+      {/* Clear All Button - Footer */}
+      {!collapsed && chats.length > 0 && (
+        <div className="border-r border-border-primary p-3 bg-bg-secondary">
+          <button
+            onClick={handleClearAll}
+            className="w-full px-3 py-2 text-xs font-medium rounded-md transition-all duration-150 flex items-center justify-center gap-2 bg-transparent text-text-tertiary border border-border-primary hover:bg-bg-tertiary hover:text-error hover:border-error"
+            title="Clear all conversations"
+          >
+            🗑️ Clear All
+          </button>
+        </div>
+      )}
       </div>
     </div>
+
+    {/* Confirmation Modal */}
+    {showClearModal && (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in">
+        <div className="bg-bg-elevated rounded-lg w-full max-w-[400px] shadow-lg flex flex-col animate-slide-up">
+          <div className="flex items-center justify-between px-6 py-4 bg-bg-secondary border-b border-border-primary rounded-t-lg">
+            <h3 className="text-lg font-semibold text-text-primary m-0">Clear All Conversations</h3>
+          </div>
+          
+          <div className="p-6">
+            <p className="text-text-secondary mb-6 leading-relaxed">
+              Are you sure you want to delete all conversations? This action cannot be undone and will permanently remove all your chat history.
+            </p>
+            
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={cancelClearAll}
+                className="px-4 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmClearAll}
+                className="px-4 py-2 bg-error text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-red-600 hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 

@@ -12,7 +12,7 @@
       "useMockInDev": false
     },
     "ui": {
-      "defaultTheme": "light"
+      "defaultTheme": "dark"
     },
     "dev": {
       "port": 3000

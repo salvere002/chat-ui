@@ -33,6 +33,7 @@ export interface ChatStore {
   getBranchingPoints: (chatId: string) => Message[];
   getBranchOptionsAtMessage: (chatId: string, messageId: string) => BranchNode[];
   getBreadcrumb: (chatId: string) => string[];
+  clearAllChats: () => void;
 }
 
 // Define interface for the theme store state
