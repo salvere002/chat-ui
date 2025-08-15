@@ -191,8 +191,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           null
         ) : (
           // Expanded state - show full chat list
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 min-h-0" style={{maxHeight: 'calc(100vh - 200px)'}}>
-            <div className="min-w-[240px] w-full">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 min-h-0 flex flex-col" style={{maxHeight: 'calc(100vh - 200px)'}}>
+            <div className="min-w-[240px] w-full flex-1">
               {chats.length === 0 ? (
                 <div className="flex items-center justify-center px-4 py-6 text-text-tertiary text-sm text-center opacity-60 min-w-[200px]">
                   <span className="leading-relaxed">
@@ -261,22 +261,23 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ))
               )}
             </div>
+            
+            {/* Clear All Button - Inside scrollable area */}
+            {chats.length > 0 && (
+              <div className="p-3 mt-2 flex-shrink-0">
+                <button
+                  onClick={handleClearAll}
+                  className="w-full px-3 py-2 text-xs font-medium rounded-md transition-all duration-150 flex items-center justify-center gap-2 bg-transparent text-text-tertiary border border-border-primary hover:bg-bg-tertiary hover:text-error hover:border-error"
+                  title="Clear all conversations"
+                >
+                  🗑️ Clear All
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
       
-      {/* Clear All Button - Footer */}
-      {!collapsed && chats.length > 0 && (
-        <div className="border-r border-border-primary p-3 bg-bg-secondary">
-          <button
-            onClick={handleClearAll}
-            className="w-full px-3 py-2 text-xs font-medium rounded-md transition-all duration-150 flex items-center justify-center gap-2 bg-transparent text-text-tertiary border border-border-primary hover:bg-bg-tertiary hover:text-error hover:border-error"
-            title="Clear all conversations"
-          >
-            🗑️ Clear All
-          </button>
-        </div>
-      )}
       </div>
     </div>
 
