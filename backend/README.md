@@ -24,7 +24,7 @@ Start the development server:
 python app.py
 ```
 
-The server will run on `http://localhost:5000` by default.
+The server will run on `http://localhost:5001` by default (as configured in config.json).
 
 ## API Endpoints
 
@@ -38,5 +38,5 @@ The server will run on `http://localhost:5000` by default.
 
 For production deployment, consider using Gunicorn:
 ```bash
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
+gunicorn -w 4 -b 0.0.0.0:5001 app:app
 ``` 

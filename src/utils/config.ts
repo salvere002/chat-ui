@@ -57,6 +57,13 @@ export class ConfigManager {
   public getUiConfig() {
     return this.config.frontend.ui;
   }
+
+  /**
+   * Get development configuration
+   */
+  public getDevConfig() {
+    return this.config.frontend.dev;
+  }
 }
 
 // Export a singleton instance

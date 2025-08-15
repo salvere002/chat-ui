@@ -14,17 +14,16 @@ export class ChatService {
   /**
    * Configure the chat service with a specific adapter type
    */
-  static configure(config: { adapterType: AdapterType; sessionEndpoint?: string; baseUrl?: string }) {
+  static configure(config: { adapterType: AdapterType; baseUrl?: string }) {
     // If baseUrl is provided, update the default API client
     if (config.baseUrl) {
       serviceFactory.updateDefaultApiClient(config.baseUrl);
     }
     
-    // Switch to the specified adapter type, passing along baseUrl and sessionEndpoint
+    // Switch to the specified adapter type, passing along baseUrl
     this.adapter = serviceFactory.switchAdapter(
       config.adapterType,
-      config.baseUrl,
-      config.sessionEndpoint
+      config.baseUrl
     );
   }
 
