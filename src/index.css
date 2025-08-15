@@ -2,10 +2,16 @@
 @import 'katex/dist/katex.min.css';
 
 /* Custom color classes using CSS variables */
-.bg-bg-primary { background-color: var(--color-bg-primary) !important; }
+.bg-bg-primary { 
+  background-color: var(--color-bg-primary) !important;
+  background-image: var(--texture-pattern) !important;
+}
 .bg-bg-secondary { background-color: var(--color-bg-secondary) !important; }
 .bg-bg-tertiary { background-color: var(--color-bg-tertiary) !important; }
-.bg-bg-elevated { background-color: var(--color-bg-elevated) !important; }
+.bg-bg-elevated { 
+  background-color: var(--color-bg-elevated) !important;
+  background-image: none !important;
+}
 
 .text-text-primary { color: var(--color-text-primary) !important; }
 .text-text-secondary { color: var(--color-text-secondary) !important; }
@@ -38,9 +44,9 @@
 .hover\:border-text-tertiary:hover { border-color: var(--color-text-tertiary) !important; }
 
 /* Focus states */
-.focus\:bg-bg-primary:focus { background-color: var(--color-bg-primary) !important; }
+.focus\:bg-bg-primary:focus { background-color: var(--color-bg-primary) !important; background-image: none !important; }
 .focus\:border-border-focus:focus { border-color: var(--color-border-focus) !important; }
-.focus-within\:bg-bg-primary:focus-within { background-color: var(--color-bg-primary) !important; }
+.focus-within\:bg-bg-primary:focus-within { background-color: var(--color-bg-primary) !important; background-image: none !important; }
 .focus-within\:border-border-focus:focus-within { border-color: var(--color-border-focus) !important; }
 
 /* Group hover states */
@@ -114,6 +120,27 @@
   --color-bg-tertiary: #E9ECEF;
   --color-bg-elevated: #FFFFFF;
   
+  /* Subtle background texture for light theme */
+  --texture-pattern: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 8px,
+      rgba(120, 119, 198, 0.06) 8px,
+      rgba(120, 119, 198, 0.06) 10px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 8px,
+      rgba(128, 128, 128, 0.04) 8px,
+      rgba(128, 128, 128, 0.04) 10px
+    ),
+    radial-gradient(circle at 25% 25%, rgba(120, 119, 198, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 75% 25%, rgba(255, 119, 198, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 25% 75%, rgba(120, 200, 120, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 75% 75%, rgba(255, 140, 0, 0.05) 0%, transparent 40%);
+  
   --color-text-primary: #000000;
   --color-text-secondary: #495057;
   --color-text-tertiary: #6C757D;
@@ -140,6 +167,27 @@
   --color-bg-secondary: #1A1A1A;
   --color-bg-tertiary: #2D2D2D;
   --color-bg-elevated: #1A1A1A;
+  
+  /* Subtle background texture for dark theme */
+  --texture-pattern: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 8px,
+      rgba(120, 119, 198, 0.1) 8px,
+      rgba(120, 119, 198, 0.1) 10px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 8px,
+      rgba(255, 255, 255, 0.06) 8px,
+      rgba(255, 255, 255, 0.06) 10px
+    ),
+    radial-gradient(circle at 25% 25%, rgba(120, 119, 198, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 75% 25%, rgba(255, 140, 0, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 25% 75%, rgba(50, 205, 50, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 75% 75%, rgba(255, 119, 198, 0.07) 0%, transparent 40%);
   
   --color-text-primary: #FFFFFF;
   --color-text-secondary: #E0E0E0;
@@ -217,6 +265,16 @@ html {
   word-wrap: break-word;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+/* Hide scrollbars for horizontal scroll areas */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 .prose * {

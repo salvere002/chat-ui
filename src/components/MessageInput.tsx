@@ -214,7 +214,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div 
-      className={`flex flex-col p-3 sm:p-4 bg-bg-primary ${showTopBorder ? 'border-t border-border-secondary' : ''} max-w-[800px] w-full mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
+      className={`flex flex-col px-1 py-3 sm:p-4 bg-bg-primary ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
       ref={dropAreaRef}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
@@ -223,7 +223,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     >
       {/* Drag overlay when dragging files */}
       {isDragging && (
-        <div className="absolute inset-0 bg-bg-primary/95 flex items-center justify-center rounded-lg z-10 animate-fade-in">
+        <div className="absolute inset-0 bg-bg-elevated/95 flex items-center justify-center rounded-lg z-10 animate-fade-in">
           <div className="flex flex-col items-center gap-3 p-5 text-accent-primary text-center border-2 border-dashed border-accent-primary rounded-lg bg-accent-light">
             <FaUpload size={32} />
             <p className="text-base font-medium m-0">Drop files to upload</p>
@@ -235,7 +235,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       {selectedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3 p-3 bg-bg-secondary border border-border-secondary rounded-md max-h-[120px] overflow-y-auto transition-all duration-150">
           {selectedFiles.map((pf) => (
-            <div key={pf.id} className={`flex items-center gap-2 bg-bg-primary border border-border-secondary rounded-md px-3 py-2 max-w-[200px] relative transition-all duration-150 hover:border-accent-primary hover:-translate-y-px hover:shadow-sm ${pf.status === 'error' ? 'bg-error text-text-inverse border-error' : ''}`}>
+            <div key={pf.id} className={`flex items-center gap-2 bg-bg-elevated border border-border-secondary rounded-md px-3 py-2 max-w-[200px] relative transition-all duration-150 hover:border-accent-primary hover:-translate-y-px hover:shadow-sm ${pf.status === 'error' ? 'bg-error text-text-inverse border-error' : ''}`}>
               {/* Image or Icon */}
               {fileService.isImage(pf.file) ? (
                 <img src={pf.previewUrl} alt={pf.file.name} className="w-8 h-8 object-cover rounded flex-shrink-0" />
@@ -281,9 +281,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
         />
         
         {/* Bottom Controls Row */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           {/* Left side controls: Upload, Model, Agent, Deep Research */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 overflow-x-auto scrollbar-none">
             <button
               onClick={handleUploadClick} 
               className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 flex-shrink-0 hover:bg-bg-tertiary hover:text-accent-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" 
@@ -293,9 +293,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
             >
               <FaPaperclip className="w-[16px] h-[16px]" />
             </button>
-            <ModelSelector />
-            <AgentSelector />
-            <DeepResearchToggle />
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              <ModelSelector />
+              <AgentSelector />
+              <DeepResearchToggle />
+            </div>
           </div>
           
           {/* Right side: Send/Pause button */}

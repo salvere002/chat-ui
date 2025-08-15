@@ -69,8 +69,8 @@ const Settings: React.FC<SettingsProps> = ({
   // Different rendering based on mode
   if (isSidebar) {
     return (
-      <div className="w-[400px] h-full bg-bg-primary border-l border-border-primary flex flex-col overflow-hidden">        
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 bg-bg-primary">
+      <div className="w-[400px] h-full bg-bg-elevated border-l border-border-primary flex flex-col overflow-hidden">        
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 bg-bg-elevated">
           <div className="mb-6 last:mb-0">
             <h3 className="text-base font-semibold text-text-primary m-0 mb-4 pb-3 border-b border-border-secondary">Connection</h3>
             
@@ -130,7 +130,7 @@ const Settings: React.FC<SettingsProps> = ({
   // Modal mode for narrow screens
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in" onClick={handleOverlayClick}>
-      <div className="bg-bg-primary rounded-lg w-full max-w-[600px] max-h-[85vh] overflow-hidden shadow-lg flex flex-col animate-slide-up">
+      <div className="bg-bg-elevated rounded-lg w-full max-w-[600px] max-h-[85vh] overflow-hidden shadow-lg flex flex-col animate-slide-up">
         <div className="flex items-center justify-between px-6 py-5 bg-bg-secondary border-b border-border-primary">
           <h2 className="text-xl font-semibold text-text-primary m-0">Settings</h2>
           <button 
@@ -142,7 +142,7 @@ const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 bg-bg-primary">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 bg-bg-elevated">
           <div className="mb-6 last:mb-0">
             <h3 className="text-base font-semibold text-text-primary m-0 mb-4 pb-3 border-b border-border-secondary">Connection</h3>
             

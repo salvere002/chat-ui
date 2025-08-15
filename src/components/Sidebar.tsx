@@ -117,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div className={`flex flex-col ${collapsed ? 'w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-all duration-300 ease-in-out`}>
       <div className={`w-full h-full overflow-hidden ${collapsed ? '' : 'min-w-[280px]'}`}>
-      <div className="bg-bg-secondary border-b border-border-primary">
+      <div className="bg-bg-secondary border-b border-border-primary border-r border-border-primary">
         {collapsed ? (
           /* Collapsed state - simple centered layout */
           <div className="flex flex-col items-center p-4 gap-2">
@@ -165,24 +165,25 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
       
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2">
+      <div className="flex-1 border-r border-border-primary min-h-0 flex flex-col">
         {collapsed ? (
           // Collapsed state - hide chat list
           null
         ) : (
           // Expanded state - show full chat list
-          <div className="min-w-[240px] w-full">
-            {chats.length === 0 ? (
-              <div className="flex items-center justify-center px-4 py-6 text-text-tertiary text-sm text-center opacity-80 min-w-[200px]">
-                <span className="leading-relaxed">
-                  No conversations yet. Start a new chat!
-                </span>
-              </div>
-            ) : (
-              chats.map((chat, index) => (
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 min-h-0" style={{maxHeight: 'calc(100vh - 200px)'}}>
+            <div className="min-w-[240px] w-full">
+              {chats.length === 0 ? (
+                <div className="flex items-center justify-center px-4 py-6 text-text-tertiary text-sm text-center opacity-80 min-w-[200px]">
+                  <span className="leading-relaxed">
+                    No conversations yet. Start a new chat!
+                  </span>
+                </div>
+              ) : (
+                chats.map((chat, index) => (
           <div 
             key={chat.id}
-            className={`group flex items-center gap-3 p-3 mb-2 bg-bg-primary border border-transparent rounded-md cursor-pointer transition-all duration-150 relative overflow-hidden hover:bg-bg-tertiary hover:border-border-secondary hover:translate-x-0.5 min-w-[220px] ${
+            className={`group flex items-center gap-3 p-3 mb-2 bg-bg-elevated border border-transparent rounded-md cursor-pointer transition-all duration-150 relative overflow-hidden hover:bg-bg-tertiary hover:border-border-secondary hover:translate-x-0.5 min-w-[220px] ${
               chat.id === activeChatId ? 'bg-accent-light border-accent-primary before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-accent-primary' : ''
             }`}
             onClick={() => onChatSelected(chat.id)}
@@ -198,7 +199,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       onBlur={handleBlur}
                       onClick={(e) => e.stopPropagation()}
                       autoFocus
-                      className="w-full px-2 py-1 bg-bg-primary text-text-primary border border-border-focus rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent-light"
+                      className="w-full px-2 py-1 bg-bg-elevated text-text-primary border border-border-focus rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent-light"
                     />
                   </div>
                 ) : (
@@ -237,8 +238,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </button>
                   </div>
                 </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
         )}
       </div>

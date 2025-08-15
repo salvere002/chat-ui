@@ -81,7 +81,7 @@ const ThinkingSection: React.FC<ThinkingSectionProps> = ({
       {!isCollapsed && (
         <div 
           ref={scrollRef}
-          className="p-3 bg-bg-primary max-h-64 overflow-y-auto border-t border-border-primary"
+          className="p-3 bg-bg-elevated max-h-64 overflow-y-auto border-t border-border-primary"
         >
           <div className="text-sm text-text-secondary whitespace-pre-wrap font-mono">
             {displayContent || (isStreaming ? 'Starting to think...' : '')}

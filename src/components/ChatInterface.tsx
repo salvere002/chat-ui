@@ -273,7 +273,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
 
   return (
     <div className="flex flex-col h-full w-full bg-bg-primary relative overflow-hidden">
-      {/* No conversation selected - show welcome message */}
+      {/* No conversation selected or empty conversation - show same welcome message */}
       {hasNoActiveChat ? (
         <div className="flex flex-col h-full">
           {/* Welcome content positioned above the centered input */}
@@ -282,15 +282,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
               <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-accent-light text-accent-primary rounded-2xl text-4xl transition-transform duration-200 hover:scale-105">
                 💬
               </div>
-              <h3 className="text-xl font-semibold text-text-primary mb-3">No Active Conversation</h3>
+              <h3 className="text-xl font-semibold text-text-primary mb-3">Start a Conversation</h3>
               <p className="text-base text-text-secondary leading-relaxed m-0">
-                Start a new chat by typing a message below or choose an existing conversation from the sidebar.
+                Ask me anything! I'm here to help with your questions, tasks, and creative projects.
               </p>
             </div>
           </div>
           
           {/* Fixed positioned input at same height as empty conversation */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-4" style={{marginTop: '60px'}}>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-0 sm:px-4" style={{marginTop: '60px'}}>
             <MessageInput
               value={inputValue}
               onChange={setInputValue}
@@ -304,9 +304,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           </div>
         </div>
       ) : hasActiveChatButEmpty ? (
-        /* New conversation but empty - input at exact center */
+        /* New conversation but empty - show welcome message */
         <div className="flex flex-col h-full">
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-4" style={{marginTop: '60px'}}>
+          {/* Welcome content positioned above the centered input */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full flex flex-col items-center" style={{marginTop: '-120px'}}>
+            <div className="text-center max-w-[420px] mb-12 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-accent-light text-accent-primary rounded-2xl text-4xl transition-transform duration-200 hover:scale-105">
+                💬
+              </div>
+              <h3 className="text-xl font-semibold text-text-primary mb-3">Start a Conversation</h3>
+              <p className="text-base text-text-secondary leading-relaxed m-0">
+                Ask me anything! I'm here to help with your questions, tasks, and creative projects.
+              </p>
+            </div>
+          </div>
+          
+          {/* Fixed positioned input at same height as no conversation state */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-0 sm:px-4" style={{marginTop: '60px'}}>
             <MessageInput
               value={inputValue}
               onChange={setInputValue}

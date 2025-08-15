@@ -44,7 +44,7 @@ const AgentSelector: React.FC = () => {
   return (
     <div className="relative inline-block" ref={dropdownRef}>
       <button
-        className={`flex items-center justify-between px-2 py-1 bg-bg-primary border border-border-secondary rounded-full transition-all duration-200 text-xs w-[130px] gap-0.5 min-h-[24px] focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_var(--color-accent-light)] ${
+        className={`flex items-center justify-between px-2 py-1 bg-bg-elevated border border-border-secondary rounded-full transition-all duration-200 text-xs w-[90px] sm:w-[130px] gap-0.5 min-h-[24px] focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_var(--color-accent-light)] ${
           deepResearchEnabled 
             ? 'cursor-default opacity-60' 
             : 'cursor-pointer hover:bg-bg-secondary hover:border-border-hover'
@@ -61,7 +61,7 @@ const AgentSelector: React.FC = () => {
 
       {isOpen && !deepResearchEnabled && (
         <div 
-          className="absolute bottom-full left-0 mb-1 min-w-[180px] bg-bg-primary border border-border-secondary rounded-lg shadow-lg z-[9999] max-h-[300px] overflow-y-auto"
+          className="absolute bottom-full left-0 mb-1 min-w-[180px] bg-bg-elevated border border-border-secondary rounded-lg shadow-lg z-[9999] max-h-[300px] overflow-y-auto"
         >
           {selectableAgents.map((agent, index, array) => (
             <div
