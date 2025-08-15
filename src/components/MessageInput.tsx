@@ -283,7 +283,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         {/* Bottom Controls Row */}
         <div className="flex items-center justify-between gap-2">
           {/* Left side controls: Upload, Model, Agent, Deep Research */}
-          <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 scrollbar-none">
             <button
               onClick={handleUploadClick} 
               className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 flex-shrink-0 hover:bg-bg-tertiary hover:text-accent-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" 
