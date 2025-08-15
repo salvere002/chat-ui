@@ -280,7 +280,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           {/* Welcome content positioned above the centered input */}
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full flex flex-col items-center" style={{marginTop: '-120px'}}>
             <div className="text-center max-w-[420px] mb-12 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-accent-light text-accent-primary rounded-2xl text-4xl transition-transform duration-200 hover:scale-105">
+              <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-bg-elevated border border-border-secondary text-accent-primary rounded-2xl text-4xl transition-transform duration-200 hover:scale-105 hover:bg-accent-light">
                 💬
               </div>
               <h3 className="text-xl font-semibold text-text-primary mb-3">Start a Conversation</h3>
