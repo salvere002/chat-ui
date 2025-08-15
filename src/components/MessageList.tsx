@@ -338,6 +338,16 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
             onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
           />
         ))}
+        
+        {/* Show disclaimer centered after the last AI message */}
+        {messages.length > 0 && messages[messages.length - 1].sender === 'ai' && messages[messages.length - 1].isComplete !== false && (
+          <div className="w-full flex justify-center">
+            <p className="text-xs text-text-tertiary">
+              Please verify important information before use.
+            </p>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} /> {/* Element to scroll to */}
       </div>
       
