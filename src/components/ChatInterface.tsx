@@ -254,7 +254,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       {!activeChatId && activeChatMessages.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full p-6 animate-fade-in">
           <div className="text-center max-w-[420px]">
-            <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-accent-light text-accent-primary rounded-2xl text-4xl transition-transform duration-200 hover:scale-105">
+            <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-accent-light text-accent-primary rounded-2xl text-4xl">
               💬
             </div>
             <h3 className="text-xl font-semibold text-text-primary mb-3">No Active Conversation</h3>
