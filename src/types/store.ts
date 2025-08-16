@@ -12,6 +12,9 @@ export interface ChatStore {
   activeBranchPath: Map<string, string[]>; // chatId -> branch path
   branchTree: Map<string, Map<string, BranchNode>>; // chatId -> branchId -> BranchNode
   messageBranches: Map<string, Map<string, string[]>>; // chatId -> messageId -> branchIds
+  // Suggestions state
+  suggestions: Map<string, string[]>; // chatId -> suggested questions
+  isSuggestionsLoading: boolean;
   
   // Actions
   createChat: (name?: string) => string;
@@ -34,6 +37,11 @@ export interface ChatStore {
   getBranchOptionsAtMessage: (chatId: string, messageId: string) => BranchNode[];
   getBreadcrumb: (chatId: string) => string[];
   clearAllChats: () => void;
+  // Suggestions actions
+  setSuggestions: (chatId: string, suggestions: string[]) => void;
+  getSuggestions: (chatId: string) => string[];
+  clearSuggestions: (chatId: string) => void;
+  setSuggestionsLoading: (loading: boolean) => void;
 }
 
 // Define interface for the theme store state

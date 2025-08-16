@@ -17,6 +17,9 @@ const useChatStore = create<ChatStore>()(
   activeBranchPath: new Map(),
   branchTree: new Map(),
   messageBranches: new Map(),
+  // Suggestions state
+  suggestions: new Map(),
+  isSuggestionsLoading: false,
   
   // Actions
   createChat: (name?: string) => {
@@ -458,8 +461,35 @@ const useChatStore = create<ChatStore>()(
       activeChatId: null,
       activeBranchPath: new Map(),
       branchTree: new Map(),
-      messageBranches: new Map()
+      messageBranches: new Map(),
+      suggestions: new Map()
     }));
+  },
+
+  // Suggestions actions
+  setSuggestions: (chatId: string, suggestions: string[]) => {
+    set((state) => {
+      const newSuggestions = new Map(state.suggestions);
+      newSuggestions.set(chatId, suggestions);
+      return { suggestions: newSuggestions };
+    });
+  },
+
+  getSuggestions: (chatId: string) => {
+    const state = get();
+    return state.suggestions.get(chatId) || [];
+  },
+
+  clearSuggestions: (chatId: string) => {
+    set((state) => {
+      const newSuggestions = new Map(state.suggestions);
+      newSuggestions.delete(chatId);
+      return { suggestions: newSuggestions };
+    });
+  },
+
+  setSuggestionsLoading: (loading: boolean) => {
+    set({ isSuggestionsLoading: loading });
   }
     }),
     {
@@ -475,7 +505,8 @@ const useChatStore = create<ChatStore>()(
         messageBranches: Array.from(state.messageBranches.entries()).map(([chatId, branches]) => [
           chatId,
           Array.from(branches.entries())
-        ])
+        ]),
+        suggestions: Array.from(state.suggestions.entries())
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -493,6 +524,7 @@ const useChatStore = create<ChatStore>()(
               new Map(branches)
             ])
           );
+          state.suggestions = new Map(state.suggestions as any);
           
           // Convert date strings back to Date objects
           state.chatSessions = state.chatSessions.map(chat => ({

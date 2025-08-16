@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
+import SuggestedQuestions from './SuggestedQuestions';
 import { useChatStore, useToastStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
@@ -25,7 +26,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     setActiveChat,
     getCurrentBranchMessages,
     setActiveRequestController,
-    pauseCurrentRequest
+    pauseCurrentRequest,
+    getSuggestions,
+    setSuggestions,
+    isSuggestionsLoading
   } = useChatStore();
 
   // Get toast functions from Zustand store
@@ -34,6 +38,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
 
   // Get the messages for the currently active chat (branch-aware)
   const activeChatMessages = activeChatId ? getCurrentBranchMessages(activeChatId) : [];
+  
+  // Default suggestions used for both welcome state and new chat initialization
+  const defaultSuggestions = [
+    "What can you help me with?",
+    "Tell me a fun fact",
+    "How do I learn programming?"
+  ];
+  const currentSuggestions = activeChatId ? getSuggestions(activeChatId) : defaultSuggestions;
   
   // Local state for error handling
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +71,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   // Handle pausing/aborting current request
   const handlePauseRequest = () => {
     pauseCurrentRequest();
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputValue(suggestion);
   };
 
   // Handle sending a new message
@@ -272,26 +289,47 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     previousMessageCount.current = currentMessageCount;
   }, [activeChatMessages.length]);
 
+  // Initialize suggestions for new chats
+  useEffect(() => {
+    if (activeChatId) {
+      const currentChatSuggestions = getSuggestions(activeChatId);
+      
+      // Only set suggestions if no suggestions exist yet
+      if (currentChatSuggestions.length === 0) {
+        setSuggestions(activeChatId, defaultSuggestions);
+      }
+    }
+  }, [activeChatId, getSuggestions, setSuggestions, defaultSuggestions]);
+
   return (
     <div className="flex flex-col h-full w-full bg-bg-primary relative overflow-hidden">
       {/* Single welcome state for both no chat and empty chat */}
       {showWelcome ? (
-        <div className="flex flex-col h-full">
-          {/* Welcome content positioned above the centered input */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full flex flex-col items-center" style={{marginTop: '-120px'}}>
-            <div className="text-center max-w-[420px] mb-12 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-bg-elevated border border-border-secondary text-accent-primary rounded-2xl text-4xl">
-                💬
-              </div>
-              <h3 className="text-xl font-semibold text-text-primary mb-3">Start a Conversation</h3>
-              <p className="text-base text-text-secondary leading-relaxed m-0">
-                Ask me anything! I'm here to help with your questions, tasks, and creative projects.
-              </p>
+        <div className="flex flex-col h-full justify-center items-center px-4 py-8">
+          {/* Welcome content */}
+          <div className="text-center max-w-[420px] mb-2 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-bg-elevated border border-border-secondary text-accent-primary rounded-2xl text-4xl">
+              💬
             </div>
+            <h3 className="text-xl font-semibold text-text-primary mb-3">Start a Conversation</h3>
+            <p className="text-base text-text-secondary leading-relaxed m-0">
+              Ask me anything! I'm here to help with your questions, tasks, and creative projects.
+            </p>
           </div>
           
-          {/* Fixed positioned input */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-0 sm:px-4" style={{marginTop: '60px'}}>
+          {/* Input area with proper spacing */}
+          <div className="w-full max-w-4xl">
+            {/* Suggested questions above input - centered */}
+            <div className="flex justify-center">
+              <div className="w-full max-w-2xl">
+                <SuggestedQuestions
+                  suggestions={combinedIsProcessing ? [] : currentSuggestions}
+                  isLoading={isSuggestionsLoading}
+                  onSuggestionClick={handleSuggestionClick}
+                />
+              </div>
+            </div>
+            
             <MessageInput
               value={inputValue}
               onChange={setInputValue}
@@ -309,8 +347,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
         <>
           <MessageList messages={activeChatMessages} chatId={activeChatId} />
           
-          {/* Bottom-positioned message input with animation */}
-          <div className={shouldAnimateTransition ? 'animate-input-to-bottom' : ''}>
+          {/* Bottom-positioned message input with suggestions and animation */}
+          <div className={`relative ${shouldAnimateTransition ? 'animate-input-to-bottom' : ''}`}>
+            {/* Suggested questions overlay - positioned above input without taking space */}
+            {currentSuggestions.length > 0 && !combinedIsProcessing && (
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-full max-w-4xl px-4 z-dropdown">
+                <div className="flex justify-center">
+                  <div className="w-full max-w-2xl">
+                    <SuggestedQuestions
+                      suggestions={currentSuggestions}
+                      isLoading={isSuggestionsLoading}
+                      onSuggestionClick={handleSuggestionClick}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <MessageInput
               value={inputValue}
               onChange={setInputValue}
