@@ -3,7 +3,7 @@ import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
 import SuggestedQuestions from './SuggestedQuestions';
-import { useChatStore, useToastStore } from '../stores';
+import { useChatStore, useToastStore, useUiSettingsStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
 import { ConversationMessage } from '../types/api';
@@ -34,6 +34,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
 
   // Get toast functions from Zustand store
   const { showToast } = useToastStore();
+
+  // Get UI settings from Zustand store
+  const { showSuggestions } = useUiSettingsStore();
 
 
   // Get the messages for the currently active chat (branch-aware)
@@ -320,15 +323,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           {/* Input area with proper spacing */}
           <div className="w-full max-w-4xl">
             {/* Suggested questions above input - centered */}
-            <div className="flex justify-center">
-              <div className="w-full max-w-2xl">
-                <SuggestedQuestions
-                  suggestions={combinedIsProcessing ? [] : currentSuggestions}
-                  isLoading={isSuggestionsLoading}
-                  onSuggestionClick={handleSuggestionClick}
-                />
+            {showSuggestions && (
+              <div className="flex justify-center">
+                <div className="w-full max-w-2xl">
+                  <SuggestedQuestions
+                    suggestions={combinedIsProcessing ? [] : currentSuggestions}
+                    isLoading={isSuggestionsLoading}
+                    onSuggestionClick={handleSuggestionClick}
+                  />
+                </div>
               </div>
-            </div>
+            )}
             
             <MessageInput
               value={inputValue}
@@ -350,7 +355,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           {/* Bottom-positioned message input with suggestions and animation */}
           <div className={`relative ${shouldAnimateTransition ? 'animate-input-to-bottom' : ''}`}>
             {/* Suggested questions overlay - positioned above input without taking space */}
-            {currentSuggestions.length > 0 && !combinedIsProcessing && (
+            {showSuggestions && currentSuggestions.length > 0 && !combinedIsProcessing && (
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-full max-w-4xl px-4 z-dropdown">
                 <div className="flex justify-center">
                   <div className="w-full max-w-2xl">

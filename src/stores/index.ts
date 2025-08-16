@@ -5,4 +5,5 @@ export { default as useToastStore } from './toastStore';
 export { default as useResponseModeStore } from './responseModeStore';
 export { default as useServiceConfigStore } from './serviceConfigStore';
 export { default as useAgentStore } from './agentStore';
-export { default as useModelStore } from './modelStore'; 
+export { default as useModelStore } from './modelStore';
+export { default as useUiSettingsStore } from './uiSettingsStore'; 

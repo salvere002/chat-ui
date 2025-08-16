@@ -94,4 +94,14 @@ export interface ModelStore {
   removeModel: (modelId: string) => void;
   setSelectedModel: (modelId: string | null) => void;
   getSelectedModel: () => Model | null;
+}
+
+// Define interface for the UI settings store state
+export interface UiSettingsStore {
+  // Settings
+  showSuggestions: boolean;
+  
+  // Actions
+  setShowSuggestions: (show: boolean) => void;
+  toggleSuggestions: () => void;
 } 

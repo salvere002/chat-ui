@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ResponseMode } from '../types/chat';
-import { useServiceConfigStore } from '../stores';
+import { useServiceConfigStore, useUiSettingsStore } from '../stores';
 import { AdapterType } from '../services/chatService';
 
 interface SettingsProps {
@@ -23,6 +23,11 @@ const Settings: React.FC<SettingsProps> = ({
     updateConfig,
     setCurrentAdapterType
   } = useServiceConfigStore();
+
+  const {
+    showSuggestions,
+    setShowSuggestions
+  } = useUiSettingsStore();
 
   // Get current configuration
   const currentConfig = getCurrentConfig();
@@ -117,6 +122,34 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
           </div>
           
+          <div className="mb-6 last:mb-0">
+            <h3 className="text-base font-semibold text-text-primary m-0 mb-4 pb-3 border-b border-border-secondary">Interface</h3>
+            
+            <div className="mb-4 last:mb-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label htmlFor="show-suggestions" className="text-sm font-medium text-text-secondary">Show Suggestions</label>
+                  <p className="text-xs text-text-tertiary mt-1">Display suggested questions in chat interface</p>
+                </div>
+                <div 
+                  className="relative inline-flex items-center cursor-pointer"
+                  onClick={() => setShowSuggestions(!showSuggestions)}
+                >
+                  <div className={`relative w-11 h-6 rounded-full transition-all duration-200 ${showSuggestions ? 'bg-accent-primary' : 'bg-bg-tertiary'}`}>
+                    <div className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-200 shadow-sm ${showSuggestions ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                  </div>
+                  <input
+                    id="show-suggestions"
+                    type="checkbox"
+                    checked={showSuggestions}
+                    onChange={() => {}} // Handled by div onClick
+                    className="sr-only"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border-secondary">
             <button type="submit" className="px-5 py-3 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]">Save Changes</button>
             <button type="button" className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary" onClick={onClose}>Cancel</button>
@@ -186,6 +219,34 @@ const Settings: React.FC<SettingsProps> = ({
                 <option value="stream">Stream (Real-time)</option>
                 <option value="fetch">Fetch (Complete)</option>
               </select>
+            </div>
+          </div>
+          
+          <div className="mb-6 last:mb-0">
+            <h3 className="text-base font-semibold text-text-primary m-0 mb-4 pb-3 border-b border-border-secondary">Interface</h3>
+            
+            <div className="mb-4 last:mb-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label htmlFor="show-suggestions" className="text-sm font-medium text-text-secondary">Show Suggestions</label>
+                  <p className="text-xs text-text-tertiary mt-1">Display suggested questions in chat interface</p>
+                </div>
+                <div 
+                  className="relative inline-flex items-center cursor-pointer"
+                  onClick={() => setShowSuggestions(!showSuggestions)}
+                >
+                  <div className={`relative w-11 h-6 rounded-full transition-all duration-200 ${showSuggestions ? 'bg-accent-primary' : 'bg-bg-tertiary'}`}>
+                    <div className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-200 shadow-sm ${showSuggestions ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                  </div>
+                  <input
+                    id="show-suggestions"
+                    type="checkbox"
+                    checked={showSuggestions}
+                    onChange={() => {}} // Handled by div onClick
+                    className="sr-only"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           
