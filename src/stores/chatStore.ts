@@ -1,9 +1,12 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Message, Chat, BranchNode } from '../types/chat';
 import { ChatStore } from '../types/store';
 
 // Create the chat store with Zustand
-const useChatStore = create<ChatStore>((set, get) => ({
+const useChatStore = create<ChatStore>()(
+  persist(
+    (set, get) => ({
   // State
   chatSessions: [],
   activeChatId: null,
@@ -49,6 +52,16 @@ const useChatStore = create<ChatStore>((set, get) => ({
       chatSessions: state.chatSessions.filter((chat) => chat.id !== id),
       // If the active chat is deleted, set activeChatId to null
       activeChatId: state.activeChatId === id ? null : state.activeChatId
+    }));
+  },
+
+  clearAllChats: () => {
+    set(() => ({
+      chatSessions: [],
+      activeChatId: null,
+      activeBranchPath: new Map(),
+      branchTree: new Map(),
+      messageBranches: new Map()
     }));
   },
   
@@ -448,6 +461,53 @@ const useChatStore = create<ChatStore>((set, get) => ({
     const state = get();
     return state.activeBranchPath.get(chatId) || ['main'];
   }
-}));
+    }),
+    {
+      name: 'chat-store',
+      partialize: (state) => ({
+        chatSessions: state.chatSessions,
+        activeChatId: state.activeChatId,
+        activeBranchPath: Array.from(state.activeBranchPath.entries()),
+        branchTree: Array.from(state.branchTree.entries()).map(([chatId, tree]) => [
+          chatId,
+          Array.from(tree.entries())
+        ]),
+        messageBranches: Array.from(state.messageBranches.entries()).map(([chatId, branches]) => [
+          chatId,
+          Array.from(branches.entries())
+        ])
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Convert arrays back to Maps
+          state.activeBranchPath = new Map(state.activeBranchPath as any);
+          state.branchTree = new Map(
+            (state.branchTree as any).map(([chatId, tree]: [string, any]) => [
+              chatId,
+              new Map(tree)
+            ])
+          );
+          state.messageBranches = new Map(
+            (state.messageBranches as any).map(([chatId, branches]: [string, any]) => [
+              chatId,
+              new Map(branches)
+            ])
+          );
+          
+          // Convert date strings back to Date objects
+          state.chatSessions = state.chatSessions.map(chat => ({
+            ...chat,
+            createdAt: new Date(chat.createdAt),
+            updatedAt: new Date(chat.updatedAt),
+            messages: chat.messages.map(message => ({
+              ...message,
+              timestamp: new Date(message.timestamp)
+            }))
+          }));
+        }
+      }
+    }
+  )
+);
 
 export default useChatStore; 

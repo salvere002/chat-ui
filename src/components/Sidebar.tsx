@@ -10,6 +10,7 @@ interface SidebarProps {
   onChatSelected: (chatId: string) => void;
   onNewChat: () => void;
   onDeleteChat: (chatId: string) => void;
+  onClearAllChats: () => void;
   collapsed: boolean;
   onCollapse: () => void;
 }
@@ -20,12 +21,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   onChatSelected,
   onNewChat,
   onDeleteChat,
+  onClearAllChats,
   collapsed,
   onCollapse
 }) => {
   const { renameChatSession } = useChatStore();
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingChatName, setEditingChatName] = useState('');
+  const [showClearModal, setShowClearModal] = useState(false);
   
   // Function to format the chat title or generate a default one
   const getChatTitle = (chat: Chat, index: number) => {
@@ -85,6 +88,22 @@ const Sidebar: React.FC<SidebarProps> = ({
     saveEditedName();
   };
   
+  // Handle clear all conversations - show confirmation modal
+  const handleClearAll = () => {
+    setShowClearModal(true);
+  };
+
+  // Confirm clear all conversations
+  const confirmClearAll = () => {
+    onClearAllChats();
+    setShowClearModal(false);
+  };
+
+  // Cancel clear all
+  const cancelClearAll = () => {
+    setShowClearModal(false);
+  };
+  
   // Format the date to a readable string
   const formatDate = (date: Date) => {
     const today = new Date();
@@ -115,136 +134,244 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
   
   return (
+    <>
     <div className={`flex flex-col ${collapsed ? 'w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-all duration-300 ease-in-out`}>
       <div className={`w-full h-full overflow-hidden ${collapsed ? '' : 'min-w-[280px]'}`}>
-      <div className="bg-bg-secondary border-b border-border-primary">
-        {collapsed ? (
-          /* Collapsed state - simple centered layout */
-          <div className="flex flex-col items-center p-4 gap-2">
+      <div className="bg-bg-secondary border-b border-border-primary border-r border-border-primary overflow-hidden">
+        <div className="p-4 relative" style={{ height: '112px' }}>
+          {/* Header row - absolutely positioned when collapsed to not affect layout */}
+          <div className={`flex items-center justify-between w-full transition-all duration-300 ease-in-out ${
+            collapsed 
+              ? 'absolute top-4 left-4 right-4 opacity-0 pointer-events-none' 
+              : 'opacity-100 mb-3'
+          }`} style={{ height: '32px' }}>
+            <h2 className="text-lg font-semibold text-text-primary m-0 whitespace-nowrap">Conversations</h2>
             <button 
-              className="flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-e-resize transition-all duration-150 hover:bg-bg-tertiary hover:text-accent-primary active:scale-[0.98]" 
+              className={`flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-w-resize transition-all duration-300 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary active:scale-[0.98] flex-shrink-0 ${
+                collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              }`}
               onClick={onCollapse}
-              aria-label="Expand sidebar"
-              title="Expand Sidebar"
+              aria-label="Collapse sidebar"
+              title="Collapse Sidebar"
             >
-              <HiOutlineBars3 className="w-5 h-5" />
-            </button>
-            <button 
-              className="flex items-center justify-center w-8 h-8 p-0 bg-accent-primary text-text-inverse border-none rounded-md text-sm cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]" 
-              onClick={onNewChat}
-              aria-label="Start new chat"
-              title="New Chat"
-            >
-              <FaPlus />
+              <HiOutlineBars3BottomLeft className="w-7 h-7" />
             </button>
           </div>
-        ) : (
-          /* Expanded state - always render in final format, let width reveal it */
-          <div className="p-4">
-            <div className="w-[248px] flex flex-col gap-3">
-              <div className="flex items-center justify-between w-full">
-                <h2 className="text-lg font-semibold text-text-primary m-0 whitespace-nowrap">Conversations</h2>
-                <button 
-                  className="flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-w-resize transition-all duration-150 hover:bg-bg-tertiary hover:text-accent-primary active:scale-[0.98] flex-shrink-0"
-                  onClick={onCollapse}
-                  aria-label="Collapse sidebar"
-                  title="Collapse Sidebar"
-                >
-                  <HiOutlineBars3BottomLeft className="w-5 h-5" />
-                </button>
-              </div>
-              <button 
-                className="flex items-center justify-center gap-2 px-3 py-2 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 w-full hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98] whitespace-nowrap"
-                onClick={onNewChat}
-                aria-label="Start new chat"
-              >
-                <FaPlus className="text-sm flex-shrink-0" /> <span>New Chat</span>
-              </button>
-            </div>
-          </div>
-        )}
+          
+          {/* Collapse icon for collapsed state - centered horizontally */}
+          <button 
+            className={`flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-e-resize transition-all duration-300 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary active:scale-[0.98] ${
+              collapsed ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+            style={{ 
+              position: 'absolute',
+              top: '16px',
+              left: '16px',
+              transition: 'opacity 300ms ease-in-out',
+              transitionDelay: collapsed ? '150ms' : '0ms'
+            }}
+            onClick={onCollapse}
+            aria-label="Expand sidebar"
+            title="Expand Sidebar"
+          >
+            <HiOutlineBars3 className="w-7 h-7" />
+          </button>
+          
+          {/* New Chat button - at second row, centered horizontally when expanded */}
+          <button 
+            className={`flex items-center bg-accent-primary text-text-inverse border-none rounded-md cursor-pointer hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98] ${
+              collapsed 
+                ? 'w-8 h-8 p-0 text-sm justify-center' 
+                : 'px-3 py-2 text-sm font-medium justify-center gap-2'
+            }`}
+            style={{ 
+              position: 'absolute',
+              top: '56px',
+              left: collapsed ? '16px' : '40px',
+              width: collapsed ? '32px' : '200px',
+              minWidth: '32px',
+              transition: 'width 300ms ease-out, left 300ms ease-out'
+            }}
+            onClick={onNewChat}
+            aria-label="Start new chat"
+            title="New Chat"
+          >
+            <FaPlus className={`${collapsed ? 'text-sm' : 'text-sm flex-shrink-0'}`} style={{ 
+              transition: 'margin-right 300ms ease-out',
+              marginRight: collapsed ? '0' : '8px'
+            }} />
+            <span 
+              className={`whitespace-nowrap ${collapsed ? 'opacity-0 w-0 overflow-hidden ml-0' : 'opacity-100 w-auto ml-0'}`}
+              style={{
+                transition: 'opacity 150ms ease-out, width 300ms ease-out',
+                transitionDelay: collapsed ? '0ms' : '150ms'
+              }}
+            >
+              New Chat
+            </span>
+          </button>
+        </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2">
-        {collapsed ? (
-          // Collapsed state - hide chat list
-          null
-        ) : (
-          // Expanded state - show full chat list
-          <div className="min-w-[240px] w-full">
+      <div className="flex-1 border-r border-border-primary min-h-0 flex flex-col">
+        {/* Conversation list - always rendered but with opacity transitions */}
+        <div 
+          className={`flex-1 overflow-y-auto overflow-x-hidden p-2 min-h-0 flex flex-col transition-all duration-300 ease-in-out ${
+            collapsed 
+              ? 'opacity-0 pointer-events-none' 
+              : 'opacity-100'
+          }`} 
+          style={{
+            maxHeight: 'calc(100vh - 200px)',
+            transitionDelay: collapsed ? '0ms' : '150ms'
+          }}
+        >
+          <div className="min-w-[240px] w-full flex-1">
             {chats.length === 0 ? (
-              <div className="flex items-center justify-center px-4 py-6 text-text-tertiary text-sm text-center opacity-80 min-w-[200px]">
+              <div className="flex items-center justify-center px-4 py-6 text-text-tertiary text-sm text-center opacity-60 min-w-[200px]">
                 <span className="leading-relaxed">
-                  No conversations yet. Start a new chat!
+                  No conversations
                 </span>
               </div>
             ) : (
               chats.map((chat, index) => (
-          <div 
-            key={chat.id}
-            className={`group flex items-center gap-3 p-3 mb-2 bg-bg-primary border border-transparent rounded-md cursor-pointer transition-all duration-150 relative overflow-hidden hover:bg-bg-tertiary hover:border-border-secondary hover:translate-x-0.5 min-w-[220px] ${
-              chat.id === activeChatId ? 'bg-accent-light border-accent-primary before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-accent-primary' : ''
-            }`}
-            onClick={() => onChatSelected(chat.id)}
-          >
-              <div className="flex-1 min-w-0 max-w-[180px]">
-                {editingChatId === chat.id ? (
-                  <div className="w-full">
-                    <input
-                      type="text"
-                      value={editingChatName}
-                      onChange={(e) => setEditingChatName(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      onBlur={handleBlur}
-                      onClick={(e) => e.stopPropagation()}
-                      autoFocus
-                      className="w-full px-2 py-1 bg-bg-primary text-text-primary border border-border-focus rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent-light"
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div 
-                      className="text-sm font-medium text-text-primary truncate leading-tight cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis"
-                      onDoubleClick={(e) => startEditing(chat, e)}
-                    >
-                      {getChatTitle(chat, index)}
-                    </div>
-                    <div className="text-xs text-text-tertiary mt-1 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
-                      {formatDate(chat.updatedAt)}
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                {editingChatId !== chat.id && (
-                  <button 
-                    className="flex items-center justify-center w-6 h-6 p-0 bg-transparent border-none rounded text-text-tertiary cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-accent-primary active:scale-90"
-                    onClick={(e) => startEditing(chat, e)}
-                    aria-label="Edit chat name"
-                  >
-                    ✎
-                  </button>
-                )}
-                <button 
-                  className="flex items-center justify-center w-6 h-6 p-0 bg-transparent border-none rounded text-text-tertiary cursor-pointer transition-all duration-150 hover:bg-error hover:text-text-inverse active:scale-90"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteChat(chat.id);
-                  }}
-                  aria-label="Delete chat"
-                >
-                  ×
-                </button>
-                  </div>
+        <div 
+          key={chat.id}
+          className={`group flex items-center gap-3 p-3 mb-2 bg-bg-elevated border border-transparent rounded-md cursor-pointer transition-all duration-150 relative overflow-hidden hover:bg-bg-tertiary hover:border-border-secondary hover:translate-x-0.5 min-w-[220px] ${
+            chat.id === activeChatId ? 'bg-accent-light border-accent-primary before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-accent-primary' : ''
+          }`}
+          style={{
+            transition: 'all 150ms ease-out, opacity 300ms ease-in-out, transform 300ms ease-in-out',
+            transitionDelay: collapsed ? '0ms' : `${index * 25}ms`
+          }}
+          onClick={() => onChatSelected(chat.id)}
+        >
+            <div className="flex-1 min-w-0 max-w-[180px]">
+              {editingChatId === chat.id ? (
+                <div className="w-full">
+                  <input
+                    type="text"
+                    value={editingChatName}
+                    onChange={(e) => setEditingChatName(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onBlur={handleBlur}
+                    onClick={(e) => e.stopPropagation()}
+                    autoFocus
+                    className="w-full px-2 py-1 bg-bg-elevated text-text-primary border border-border-focus rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent-light"
+                  />
                 </div>
+              ) : (
+                <>
+                  <div 
+                    className="text-sm font-medium text-text-primary truncate leading-tight cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis"
+                    onDoubleClick={(e) => startEditing(chat, e)}
+                  >
+                    {getChatTitle(chat, index)}
+                  </div>
+                  <div className="text-xs text-text-tertiary mt-1 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                    {formatDate(chat.updatedAt)}
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              {editingChatId !== chat.id && (
+                <button 
+                  className="flex items-center justify-center w-6 h-6 p-0 bg-transparent border-none rounded text-text-tertiary cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-accent-primary active:scale-90"
+                  onClick={(e) => startEditing(chat, e)}
+                  aria-label="Edit chat name"
+                >
+                  ✎
+                </button>
+              )}
+              <button 
+                className="flex items-center justify-center w-6 h-6 p-0 bg-transparent border-none rounded text-text-tertiary cursor-pointer transition-all duration-150 hover:bg-error hover:text-text-inverse active:scale-90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteChat(chat.id);
+                }}
+                aria-label="Delete chat"
+              >
+                ×
+              </button>
+                </div>
+              </div>
               ))
             )}
           </div>
-        )}
+          
+          {/* Clear All Button - Inside scrollable area */}
+          {chats.length > 0 && (
+            <div 
+              className="p-3 mt-2 flex-shrink-0 relative"
+              style={{ height: '52px' }}
+            >
+              <button
+                onClick={handleClearAll}
+                className={`absolute inset-x-3 top-3 bottom-3 text-xs font-medium rounded-md flex items-center justify-center gap-2 bg-transparent text-text-tertiary border border-border-primary hover:bg-bg-tertiary hover:text-error hover:border-error transition-all duration-300 ease-in-out ${
+                  collapsed 
+                    ? 'opacity-0 pointer-events-none' 
+                    : 'opacity-100'
+                }`}
+                style={{
+                  transitionDelay: collapsed ? '0ms' : `${chats.length * 25 + 100}ms`
+                }}
+                title="Clear all conversations"
+              >
+                <span className="text-xs">🗑️</span>
+                <span 
+                  className={`whitespace-nowrap text-xs ${
+                    collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100 w-auto'
+                  }`}
+                  style={{
+                    transition: 'opacity 150ms ease-out, width 300ms ease-out',
+                    transitionDelay: collapsed ? '0ms' : '150ms'
+                  }}
+                >
+                  Clear All
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+      
       </div>
     </div>
+
+    {/* Confirmation Modal */}
+    {showClearModal && (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in">
+        <div className="bg-bg-elevated rounded-lg w-full max-w-[400px] shadow-lg flex flex-col animate-slide-up">
+          <div className="flex items-center justify-between px-6 py-4 bg-bg-secondary border-b border-border-primary rounded-t-lg">
+            <h3 className="text-lg font-semibold text-text-primary m-0">Clear All Conversations</h3>
+          </div>
+          
+          <div className="p-6">
+            <p className="text-text-secondary mb-6 leading-relaxed">
+              Are you sure you want to delete all conversations? This action cannot be undone and will permanently remove all your chat history.
+            </p>
+            
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={cancelClearAll}
+                className="px-4 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmClearAll}
+                className="px-4 py-2 bg-error text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-red-600 hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 
-export default Sidebar; 
+export default Sidebar;
