@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Message, Chat, BranchNode } from '../types/chat';
 import { ChatStore } from '../types/store';
+import { configManager } from '../utils/config';
 
 // Create the chat store with Zustand
 const useChatStore = create<ChatStore>()(
@@ -467,23 +468,50 @@ const useChatStore = create<ChatStore>()(
   },
 
   // Suggestions actions
-  setSuggestions: (chatId: string, suggestions: string[]) => {
+  setSuggestions: ((chatIdOrSuggestions: string | string[], suggestions?: string[]) => {
+    let targetChatId: string;
+    let targetSuggestions: string[];
+    
+    if (typeof chatIdOrSuggestions === 'string') {
+      // Called with explicit chatId
+      targetChatId = chatIdOrSuggestions;
+      targetSuggestions = suggestions!;
+    } else {
+      // Called with just suggestions, use activeChatId
+      const state = get();
+      if (!state.activeChatId) return; // No active chat to update
+      targetChatId = state.activeChatId;
+      targetSuggestions = chatIdOrSuggestions;
+    }
+    
     set((state) => {
       const newSuggestions = new Map(state.suggestions);
-      newSuggestions.set(chatId, suggestions);
+      newSuggestions.set(targetChatId, targetSuggestions);
       return { suggestions: newSuggestions };
     });
-  },
+  }) as ((chatId: string, suggestions: string[]) => void) & ((suggestions: string[]) => void),
 
-  getSuggestions: (chatId: string) => {
+  getSuggestions: (chatId?: string) => {
     const state = get();
-    return state.suggestions.get(chatId) || [];
+    const targetChatId = chatId || state.activeChatId;
+    
+    // If no target chat, return default suggestions
+    if (!targetChatId) {
+      return configManager.getDefaultSuggestions();
+    }
+    
+    // Return chat-specific suggestions or defaults if none exist
+    return state.suggestions.get(targetChatId) || configManager.getDefaultSuggestions();
   },
 
-  clearSuggestions: (chatId: string) => {
+  clearSuggestions: (chatId?: string) => {
+    const state = get();
+    const targetChatId = chatId || state.activeChatId;
+    if (!targetChatId) return;
+    
     set((state) => {
       const newSuggestions = new Map(state.suggestions);
-      newSuggestions.delete(chatId);
+      newSuggestions.delete(targetChatId);
       return { suggestions: newSuggestions };
     });
   },

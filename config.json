@@ -12,7 +12,12 @@
       "useMockInDev": false
     },
     "ui": {
-      "defaultTheme": "dark"
+      "defaultTheme": "dark",
+      "defaultSuggestions": [
+        "What can you help me with?",
+        "Tell me a fun fact",
+        "How do I learn programming?"
+      ]
     },
     "dev": {
       "port": 3000

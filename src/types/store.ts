@@ -38,9 +38,9 @@ export interface ChatStore {
   getBreadcrumb: (chatId: string) => string[];
   clearAllChats: () => void;
   // Suggestions actions
-  setSuggestions: (chatId: string, suggestions: string[]) => void;
-  getSuggestions: (chatId: string) => string[];
-  clearSuggestions: (chatId: string) => void;
+  setSuggestions: ((chatId: string, suggestions: string[]) => void) & ((suggestions: string[]) => void);
+  getSuggestions: (chatId?: string) => string[];
+  clearSuggestions: (chatId?: string) => void;
   setSuggestionsLoading: (loading: boolean) => void;
 }
 

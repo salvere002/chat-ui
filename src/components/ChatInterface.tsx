@@ -28,7 +28,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     setActiveRequestController,
     pauseCurrentRequest,
     getSuggestions,
-    setSuggestions,
     isSuggestionsLoading
   } = useChatStore();
 
@@ -42,13 +41,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   // Get the messages for the currently active chat (branch-aware)
   const activeChatMessages = activeChatId ? getCurrentBranchMessages(activeChatId) : [];
   
-  // Default suggestions used for both welcome state and new chat initialization
-  const defaultSuggestions = [
-    "What can you help me with?",
-    "Tell me a fun fact",
-    "How do I learn programming?"
-  ];
-  const currentSuggestions = activeChatId ? getSuggestions(activeChatId) : defaultSuggestions;
+  // Get suggestions - store handles fallbacks to defaults automatically
+  const currentSuggestions = getSuggestions(activeChatId || undefined);
   
   // Local state for error handling
   const [error, setError] = useState<string | null>(null);
@@ -292,17 +286,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     previousMessageCount.current = currentMessageCount;
   }, [activeChatMessages.length]);
 
-  // Initialize suggestions for new chats
-  useEffect(() => {
-    if (activeChatId) {
-      const currentChatSuggestions = getSuggestions(activeChatId);
-      
-      // Only set suggestions if no suggestions exist yet
-      if (currentChatSuggestions.length === 0) {
-        setSuggestions(activeChatId, defaultSuggestions);
-      }
-    }
-  }, [activeChatId, getSuggestions, setSuggestions, defaultSuggestions]);
 
   return (
     <div className="flex flex-col h-full w-full bg-bg-primary relative overflow-hidden">

@@ -64,6 +64,17 @@ export class ConfigManager {
   public getDevConfig() {
     return this.config.frontend.dev;
   }
+
+  /**
+   * Get default suggestions for chat interface
+   */
+  public getDefaultSuggestions(): string[] {
+    return this.config.frontend.ui.defaultSuggestions || [
+      "What can you help me with?",
+      "Tell me a fun fact",
+      "How do I learn programming?"
+    ];
+  }
 }
 
 // Export a singleton instance
