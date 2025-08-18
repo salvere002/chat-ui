@@ -58,3 +58,6 @@ Thumbs.db
 export-project.py
 export-project.sh
 project-export.txt
+
+# Claude Code generated files
+CLAUDE.md

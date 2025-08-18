@@ -322,7 +322,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden p-0 bg-bg-primary relative scroll-smooth" ref={messageContainerRef}>
-      <div className="flex flex-col max-w-[800px] w-full py-2 sm:py-4 px-1 sm:px-4 sm:mx-auto relative">
+      <div className="flex flex-col max-w-[800px] w-full py-2 sm:py-4 px-1 sm:px-4 sm:mx-auto relative pb-32">
         {messages.map((msg, index) => (
           <MessageItem 
             key={msg.id} 
@@ -348,7 +348,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
           </div>
         )}
         
-        <div ref={messagesEndRef} /> {/* Element to scroll to */}
+        <div ref={messagesEndRef} className="h-32" /> {/* Element to scroll to with spacing */}
       </div>
       
       {showScrollButton && (
