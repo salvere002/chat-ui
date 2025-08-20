@@ -30,8 +30,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [editingChatName, setEditingChatName] = useState('');
   const [showClearModal, setShowClearModal] = useState(false);
   
-  
-  
   // Function to format the chat title or generate a default one
   const getChatTitle = (chat: Chat, index: number) => {
     // Check title first
@@ -105,7 +103,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const cancelClearAll = () => {
     setShowClearModal(false);
   };
-
   // Format the date to a readable string
   const formatDate = (date: Date) => {
     const today = new Date();
@@ -376,4 +373,4 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-export default Sidebar; 
+export default Sidebar;
