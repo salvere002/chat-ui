@@ -51,6 +51,9 @@ htmlcov/
 *.sublime-workspace
 *.sublime-project
 
+# Claude Code
+CLAUDE.md
+
 # OS files
 Thumbs.db
 
