@@ -59,15 +59,6 @@ const useChatStore = create<ChatStore>()(
     }));
   },
 
-  clearAllChats: () => {
-    set(() => ({
-      chatSessions: [],
-      activeChatId: null,
-      activeBranchPath: new Map(),
-      branchTree: new Map(),
-      messageBranches: new Map()
-    }));
-  },
   
   setActiveChat: (id: string) => {
     set({ activeChatId: id });
