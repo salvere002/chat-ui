@@ -540,8 +540,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                 // Custom table components for better styling
                 table({ children, ...props }) {
                   return (
-                    <div className="overflow-x-auto my-4 rounded-lg border border-border-secondary shadow-sm">
-                      <table className="min-w-full border-collapse bg-bg-primary" {...props}>
+                    <div className="overflow-x-auto my-4 rounded-lg border-2 border-border-secondary shadow-md bg-bg-primary">
+                      <table className="min-w-full border-collapse" {...props}>
                         {children}
                       </table>
                     </div>
@@ -549,14 +549,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                 },
                 thead({ children, ...props }) {
                   return (
-                    <thead className="bg-bg-secondary" {...props}>
+                    <thead className="bg-bg-elevated" {...props}>
                       {children}
                     </thead>
                   );
                 },
                 tbody({ children, ...props }) {
                   return (
-                    <tbody className="divide-y divide-border-secondary" {...props}>
+                    <tbody className="divide-y divide-border-secondary bg-bg-secondary" {...props}>
                       {children}
                     </tbody>
                   );
@@ -564,21 +564,21 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                 tr({ children, ...props }) {
                   const isHeaderRow = props.className?.includes('thead') || false;
                   return (
-                    <tr className={`${isHeaderRow ? '' : 'hover:bg-bg-tertiary'} transition-colors duration-150`} {...props}>
+                    <tr className={`${isHeaderRow ? 'bg-bg-elevated' : 'bg-bg-secondary hover:bg-bg-tertiary'} transition-colors duration-150`} {...props}>
                       {children}
                     </tr>
                   );
                 },
                 th({ children, ...props }) {
                   return (
-                    <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider border-b border-border-secondary" {...props}>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider border-b border-border-secondary bg-bg-elevated" {...props}>
                       {children}
                     </th>
                   );
                 },
                 td({ children, ...props }) {
                   return (
-                    <td className="px-4 py-3 text-sm text-text-primary whitespace-nowrap" {...props}>
+                    <td className="px-4 py-3 text-sm text-text-primary whitespace-nowrap bg-inherit" {...props}>
                       {children}
                     </td>
                   );
