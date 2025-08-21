@@ -537,6 +537,52 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
               remarkPlugins={[remarkGfm, remarkMath]}
               rehypePlugins={[rehypeKatex]}
               components={{
+                // Custom table components for better styling
+                table({ children, ...props }) {
+                  return (
+                    <div className="overflow-x-auto my-4 rounded-lg border border-border-secondary shadow-sm">
+                      <table className="min-w-full border-collapse bg-bg-primary" {...props}>
+                        {children}
+                      </table>
+                    </div>
+                  );
+                },
+                thead({ children, ...props }) {
+                  return (
+                    <thead className="bg-bg-secondary" {...props}>
+                      {children}
+                    </thead>
+                  );
+                },
+                tbody({ children, ...props }) {
+                  return (
+                    <tbody className="divide-y divide-border-secondary" {...props}>
+                      {children}
+                    </tbody>
+                  );
+                },
+                tr({ children, ...props }) {
+                  const isHeaderRow = props.className?.includes('thead') || false;
+                  return (
+                    <tr className={`${isHeaderRow ? '' : 'hover:bg-bg-tertiary'} transition-colors duration-150`} {...props}>
+                      {children}
+                    </tr>
+                  );
+                },
+                th({ children, ...props }) {
+                  return (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider border-b border-border-secondary" {...props}>
+                      {children}
+                    </th>
+                  );
+                },
+                td({ children, ...props }) {
+                  return (
+                    <td className="px-4 py-3 text-sm text-text-primary whitespace-nowrap" {...props}>
+                      {children}
+                    </td>
+                  );
+                },
                 code({ node, inline, className, children, ...props }: any) {
                   const match = /language-([^\s]+)/.exec(className || '');
                   
