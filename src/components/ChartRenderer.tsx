@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useRef, useMemo, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -345,6 +345,8 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
                   color: textColor,
                   fontSize: '12px'
                 }}
+                labelStyle={{ color: textColor }}
+                itemStyle={{ color: textColor }}
                 cursor={{ stroke: gridColor, strokeWidth: 1 }}
                 allowEscapeViewBox={{ x: false, y: false }}
                 wrapperStyle={{ outline: 'none' }}
@@ -400,6 +402,8 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
                   color: textColor,
                   fontSize: '12px'
                 }}
+                labelStyle={{ color: textColor }}
+                itemStyle={{ color: textColor }}
                 cursor={{ stroke: gridColor, strokeWidth: 1 }}
                 allowEscapeViewBox={{ x: false, y: false }}
                 wrapperStyle={{ outline: 'none' }}
