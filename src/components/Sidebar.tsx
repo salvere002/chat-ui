@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Chat } from '../types/chat';
 import { useChatStore } from '../stores';
-import { FaBars, FaPlus } from 'react-icons/fa';
+import { FaPlus } from 'react-icons/fa';
 import { HiOutlineBars3BottomLeft, HiOutlineBars3 } from 'react-icons/hi2';
 
 interface SidebarProps {

@@ -304,36 +304,34 @@ class ChartGenerator:
         if not data:
             return "No data available for chart"
         
-        # Build attributes string from config - use | as separator to avoid spaces
-        attributes = [f'type={chart_type}']
+        # Build attributes string from config - use | as separator and quotes for all values
+        attributes = [f'type="{chart_type}"']
         
         if config.get('title'):
-            # Replace spaces in title with underscores for language identifier
-            title_safe = config["title"].replace(' ', '_')
-            attributes.append(f'title={title_safe}')
+            # Use quoted format for all values
+            attributes.append(f'title="{config["title"]}"')
         if config.get('xKey'):
             x_key = config['xKey']
             if isinstance(x_key, list):
                 x_key = x_key[0]  # Use first key for table format
-            attributes.append(f'x={x_key}')
+            attributes.append(f'x="{x_key}"')
         if config.get('yKey'):
             y_key = config['yKey']
             if isinstance(y_key, list):
                 y_key = y_key[0]  # Use first key for table format
-            attributes.append(f'y={y_key}')
+            attributes.append(f'y="{y_key}"')
         if config.get('xLabel'):
-            # Replace spaces for language identifier
-            xlabel_safe = config["xLabel"].replace(' ', '_')
-            attributes.append(f'xlabel={xlabel_safe}')
+            # Use quoted format for all values
+            attributes.append(f'xlabel="{config["xLabel"]}"')
         if config.get('yLabel'):
-            # Replace spaces for language identifier
-            ylabel_safe = config["yLabel"].replace(' ', '_')
-            attributes.append(f'ylabel={ylabel_safe}')
+            # Use quoted format for all values
+            attributes.append(f'ylabel="{config["yLabel"]}"')
         if config.get('height') and config['height'] != 320:
-            attributes.append(f'height={config["height"]}')
+            attributes.append(f'height="{config["height"]}"')
         if config.get('colors'):
-            # Simplified colors - just use first color for language identifier
-            attributes.append(f'color={config["colors"][0]}')
+            # Support multiple colors separated by commas - use quotes for all values
+            colors_str = ','.join(config["colors"][:3])  # Limit to 3 colors
+            attributes.append(f'colors="{colors_str}"')
         
         # Use | as separator instead of spaces
         attribute_string = '|'.join(attributes)
