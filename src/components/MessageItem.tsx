@@ -158,23 +158,59 @@ const CodeBlock: React.FC<{ children: string; language: string; className?: stri
   );
 };
 
-// Utility function to parse attributes from chart{key=value|key2=value2} format
+// Utility function to parse attributes from chart{key=value|key2="quoted value"} format
 const parseChartAttributes = (attributeString: string): Record<string, string> => {
   const attributes: Record<string, string> = {};
   
-  // Split by | separator
-  const pairs = attributeString.split('|');
+  // Enhanced parsing to handle quoted values with spaces and special characters
+  const pairs: string[] = [];
+  let currentPair = '';
+  let insideQuotes = false;
+  let quoteChar = '';
   
+  // Parse character by character to handle quoted values properly
+  for (let i = 0; i < attributeString.length; i++) {
+    const char = attributeString[i];
+    
+    if (!insideQuotes && (char === '"' || char === "'")) {
+      insideQuotes = true;
+      quoteChar = char;
+      currentPair += char;
+    } else if (insideQuotes && char === quoteChar) {
+      insideQuotes = false;
+      quoteChar = '';
+      currentPair += char;
+    } else if (!insideQuotes && char === '|') {
+      // Found separator outside quotes
+      if (currentPair.trim()) {
+        pairs.push(currentPair.trim());
+      }
+      currentPair = '';
+    } else {
+      currentPair += char;
+    }
+  }
+  
+  // Add the last pair
+  if (currentPair.trim()) {
+    pairs.push(currentPair.trim());
+  }
+  
+  // Process each key=value pair
   for (const pair of pairs) {
-    const [key, value] = pair.split('=');
+    const equalIndex = pair.indexOf('=');
+    if (equalIndex === -1) continue;
+    
+    const key = pair.substring(0, equalIndex).trim();
+    let value = pair.substring(equalIndex + 1).trim();
+    
     if (key && value !== undefined) {
       // Clean up the value (remove quotes if present)
-      let cleanValue = value;
-      if ((cleanValue.startsWith('"') && cleanValue.endsWith('"')) ||
-          (cleanValue.startsWith("'") && cleanValue.endsWith("'"))) {
-        cleanValue = cleanValue.slice(1, -1);
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
       }
-      attributes[key.trim()] = cleanValue.trim();
+      attributes[key] = value;
     }
   }
   
@@ -699,16 +735,19 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                         try {
                           // Build chart configuration from attributes
                           const config: any = {
-                            title: attributes.title ? attributes.title.replace(/_/g, ' ') : undefined,
+                            title: attributes.title || undefined,
                             xKey: attributes.x || attributes.xKey || 'name',
                             yKey: attributes.y || attributes.yKey || 'value',
-                            xLabel: attributes.xlabel ? attributes.xlabel.replace(/_/g, ' ') : undefined,
-                            yLabel: attributes.ylabel ? attributes.ylabel.replace(/_/g, ' ') : undefined,
+                            xLabel: attributes.xlabel || undefined,
+                            yLabel: attributes.ylabel || undefined,
                             height: attributes.height ? parseInt(attributes.height) : 320,
                           };
                           
-                          // Handle colors - simplified to single color or default array
-                          if (attributes.color) {
+                          // Handle colors - support multiple colors separated by commas
+                          if (attributes.colors) {
+                            config.colors = attributes.colors.split(',').map(c => c.trim());
+                          } else if (attributes.color) {
+                            // Backward compatibility for single color
                             config.colors = [attributes.color];
                           } else {
                             config.colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#00ff7f"];
