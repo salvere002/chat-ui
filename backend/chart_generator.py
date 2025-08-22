@@ -276,7 +276,7 @@ class ChartGenerator:
     @classmethod
     def create_chart_markdown(cls, chart_data: Dict[str, Any]) -> str:
         """
-        Create markdown with embedded chart
+        Create markdown with embedded chart using table format
         
         Args:
             chart_data: Chart data dictionary
@@ -284,16 +284,101 @@ class ChartGenerator:
         Returns:
             Markdown string with chart code block
         """
-        chart_json = json.dumps(chart_data, indent=2)
-        chart_type = chart_data.get('type', 'bar')
+        return cls._create_table_format_markdown(chart_data)
+    
+    @classmethod
+    def _create_table_format_markdown(cls, chart_data: Dict[str, Any]) -> str:
+        """
+        Create markdown table format chart
         
-        return f"""Here's your {chart_type} chart visualization:
+        Args:
+            chart_data: Chart data dictionary
+            
+        Returns:
+            Markdown string with table format chart
+        """
+        chart_type = chart_data.get('type', 'bar')
+        data = chart_data.get('data', [])
+        config = chart_data.get('config', {})
+        
+        if not data:
+            return "No data available for chart"
+        
+        # Build attributes string from config - use | as separator to avoid spaces
+        attributes = [f'type={chart_type}']
+        
+        if config.get('title'):
+            # Replace spaces in title with underscores for language identifier
+            title_safe = config["title"].replace(' ', '_')
+            attributes.append(f'title={title_safe}')
+        if config.get('xKey'):
+            x_key = config['xKey']
+            if isinstance(x_key, list):
+                x_key = x_key[0]  # Use first key for table format
+            attributes.append(f'x={x_key}')
+        if config.get('yKey'):
+            y_key = config['yKey']
+            if isinstance(y_key, list):
+                y_key = y_key[0]  # Use first key for table format
+            attributes.append(f'y={y_key}')
+        if config.get('xLabel'):
+            # Replace spaces for language identifier
+            xlabel_safe = config["xLabel"].replace(' ', '_')
+            attributes.append(f'xlabel={xlabel_safe}')
+        if config.get('yLabel'):
+            # Replace spaces for language identifier
+            ylabel_safe = config["yLabel"].replace(' ', '_')
+            attributes.append(f'ylabel={ylabel_safe}')
+        if config.get('height') and config['height'] != 320:
+            attributes.append(f'height={config["height"]}')
+        if config.get('colors'):
+            # Simplified colors - just use first color for language identifier
+            attributes.append(f'color={config["colors"][0]}')
+        
+        # Use | as separator instead of spaces
+        attribute_string = '|'.join(attributes)
+        
+        # Extract all column names from data
+        all_keys = set()
+        for item in data:
+            all_keys.update(item.keys())
+        
+        # Sort keys to ensure consistent column order
+        columns = sorted(list(all_keys))
+        
+        # Build markdown table
+        table_lines = []
+        
+        # Header row
+        header = '| ' + ' | '.join(columns) + ' |'
+        table_lines.append(header)
+        
+        # Separator row  
+        separator = '|' + '|'.join(['-' * (len(col) + 2) for col in columns]) + '|'
+        table_lines.append(separator)
+        
+        # Data rows
+        for item in data:
+            row_values = []
+            for col in columns:
+                value = item.get(col, '')
+                # Format numbers nicely
+                if isinstance(value, (int, float)):
+                    row_values.append(str(value))
+                else:
+                    row_values.append(str(value))
+            row = '| ' + ' | '.join(row_values) + ' |'
+            table_lines.append(row)
+        
+        table_content = '\n'.join(table_lines)
+        
+        return f"""Here's your {chart_type} chart visualization using the new table format:
 
-```chart:{chart_type}
-{chart_json}
+```chart{{{attribute_string}}}
+{table_content}
 ```
 
-This chart shows the data in an interactive format. You can hover over elements to see detailed values."""
+This chart uses markdown table format for better readability and AI-friendly generation."""
 
     @classmethod
     def create_all_charts_markdown(cls, data_context: str = 'sales') -> str:
@@ -310,7 +395,7 @@ This chart shows the data in an interactive format. You can hover over elements 
         markdown_parts = []
         
         markdown_parts.append("# Chart Testing - All Chart Types")
-        markdown_parts.append("Here are examples of all supported chart types with sample data:")
+        markdown_parts.append("Here are examples of all supported chart types using markdown table format:")
         markdown_parts.append("")
         
         for chart_type in chart_types:
@@ -329,13 +414,24 @@ This chart shows the data in an interactive format. You can hover over elements 
                 context = 'sales'
             
             chart_data = cls.generate_chart_data(chart_type, context)
-            chart_json = json.dumps(chart_data, indent=2)
             
+            # Table format only
             markdown_parts.append(f"## {chart_type.title()} Chart")
             markdown_parts.append("")
-            markdown_parts.append(f"```chart:{chart_type}")
-            markdown_parts.append(chart_json)
-            markdown_parts.append("```")
+            table_chart = cls._create_table_format_markdown(chart_data)
+            # Extract just the code block part
+            table_lines = table_chart.split('\n')
+            in_code_block = False
+            for line in table_lines:
+                if line.startswith('```chart{'):
+                    in_code_block = True
+                    markdown_parts.append(line)
+                elif line == '```' and in_code_block:
+                    markdown_parts.append(line)
+                    in_code_block = False
+                    break
+                elif in_code_block:
+                    markdown_parts.append(line)
             markdown_parts.append("")
         
         markdown_parts.append("All charts above should render as interactive visualizations.")
@@ -365,6 +461,7 @@ This chart shows the data in an interactive format. You can hover over elements 
         ]
         
         return any(keyword in text_lower for keyword in test_keywords)
+    
 
 # Example usage and test functions
 def test_chart_detection():
@@ -389,12 +486,22 @@ def test_chart_detection():
 def test_all_charts_generation():
     """Test generating all chart types"""
     print("Testing all chart types generation...")
-    markdown = ChartGenerator.create_all_charts_markdown('sales')
-    print("Generated markdown length:", len(markdown))
+    markdown_table = ChartGenerator.create_all_charts_markdown('sales')
+    print("Generated table markdown length:", len(markdown_table))
     print("First 200 characters:")
-    print(markdown[:200] + "...")
+    print(markdown_table[:200] + "...")
+
+def test_table_format():
+    """Test the table format generation"""
+    print("Testing table format generation...")
+    chart_data = ChartGenerator.generate_chart_data('bar', 'sales')
+    table_markdown = ChartGenerator.create_chart_markdown(chart_data)
+    print("Generated table format:")
+    print(table_markdown)
 
 if __name__ == "__main__":
     test_chart_detection()
     print("\n" + "="*50 + "\n")
     test_all_charts_generation()
+    print("\n" + "="*50 + "\n")
+    test_table_format()

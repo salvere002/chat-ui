@@ -158,6 +158,65 @@ const CodeBlock: React.FC<{ children: string; language: string; className?: stri
   );
 };
 
+// Utility function to parse attributes from chart{key=value|key2=value2} format
+const parseChartAttributes = (attributeString: string): Record<string, string> => {
+  const attributes: Record<string, string> = {};
+  
+  // Split by | separator
+  const pairs = attributeString.split('|');
+  
+  for (const pair of pairs) {
+    const [key, value] = pair.split('=');
+    if (key && value !== undefined) {
+      // Clean up the value (remove quotes if present)
+      let cleanValue = value;
+      if ((cleanValue.startsWith('"') && cleanValue.endsWith('"')) ||
+          (cleanValue.startsWith("'") && cleanValue.endsWith("'"))) {
+        cleanValue = cleanValue.slice(1, -1);
+      }
+      attributes[key.trim()] = cleanValue.trim();
+    }
+  }
+  
+  return attributes;
+};
+
+// Utility function to parse markdown table to data array
+const parseMarkdownTable = (content: string): any[] => {
+  const lines = content.trim().split('\n').filter(line => line.trim());
+  if (lines.length < 3) return []; // Need at least header, separator, and one data row
+  
+  // Extract headers (remove leading/trailing | and trim)
+  const headerLine = lines[0];
+  const headers = headerLine.split('|')
+    .map(h => h.trim())
+    .filter(h => h && h !== ''); // Remove empty strings
+  
+  // Skip separator line (line[1])
+  // Extract data rows
+  const dataRows = lines.slice(2);
+  
+  return dataRows.map(row => {
+    // Remove leading/trailing | and split
+    const cells = row.split('|')
+      .map(cell => cell.trim())
+      .filter(cell => cell !== ''); // Don't filter out 0 values
+    
+    const rowData: any = {};
+    
+    headers.forEach((header, index) => {
+      if (index < cells.length) {
+        // Try to parse as number, otherwise keep as string
+        const value = cells[index];
+        const numValue = parseFloat(value);
+        rowData[header] = !isNaN(numValue) && isFinite(numValue) ? numValue : value;
+      }
+    });
+    
+    return rowData;
+  });
+};
+
 const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, chatId }) => {
   // Destructure files array instead of single file
   const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed, wasPaused } = message;
@@ -584,71 +643,107 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                   );
                 },
                 code({ node, inline, className, children, ...props }: any) {
-                  const match = /language-([^\s]+)/.exec(className || '');
+                  const match = /language-(.+)/.exec(className || '');
                   
                   // Handle chart code blocks
                   if (!inline && match) {
                     const language = match[1];
-                    const chartMatch = /^chart[:\-_](\w+)$/.exec(language);
+                    const content = String(children).replace(/\n$/, '');
                     
-                    if (chartMatch) {
-                      const chartType = chartMatch[1];
-                      const chartContent = String(children).replace(/\n$/, '');
+                    // Debug all code blocks to see what we're getting
+                    console.log('🔧 Code block detected:', {
+                      language,
+                      className,
+                      fullMatch: match,
+                      contentLength: content.length,
+                      contentPreview: content.substring(0, 100)
+                    });
+                    
+                    // Check for chart format: chart{attributes}
+                    const chartFormatMatch = /^chart\{([^}]*)\}$/.exec(language);
+                    
+                    if (chartFormatMatch) {
+                      // Markdown table format with attributes
+                      const attributeString = chartFormatMatch[1];
+                      const attributes = parseChartAttributes(attributeString);
                       
-                      // Check if the content looks like it might be incomplete JSON
-                      // (during streaming, we might have partial JSON)
-                      if (!chartContent.trim() || 
-                          !chartContent.includes('{') || 
-                          !chartContent.includes('"type"') ||
-                          !chartContent.includes('"data"')) {
-                        // If it's clearly incomplete or empty, render as regular code block
+                      // Debug logging
+                      console.log('🔍 Chart table format detected:', {
+                        language,
+                        attributeString,
+                        attributes,
+                        contentPreview: content.substring(0, 200)
+                      });
+                      
+                      // Parse markdown table from content
+                      const tableData = parseMarkdownTable(content);
+                      
+                      console.log('📊 Parsed table data:', tableData);
+                      
+                      // Check if we have valid data
+                      if (tableData.length === 0 || !attributes.type) {
+                        // If incomplete or no type specified, render as regular code block
                         return (
                           <CodeBlock
                             language={language}
                             className={className}
                             {...props}
                           >
-                            {chartContent}
+                            {content}
                           </CodeBlock>
                         );
                       }
                       
-                      // Memoize chartData creation to prevent new object references on every render
+                      // Memoize chartData creation
                       const memoizedChartData = useMemo(() => {
                         try {
-                          const chartData: ChartData = JSON.parse(chartContent);
+                          // Build chart configuration from attributes
+                          const config: any = {
+                            title: attributes.title ? attributes.title.replace(/_/g, ' ') : undefined,
+                            xKey: attributes.x || attributes.xKey || 'name',
+                            yKey: attributes.y || attributes.yKey || 'value',
+                            xLabel: attributes.xlabel ? attributes.xlabel.replace(/_/g, ' ') : undefined,
+                            yLabel: attributes.ylabel ? attributes.ylabel.replace(/_/g, ' ') : undefined,
+                            height: attributes.height ? parseInt(attributes.height) : 320,
+                          };
                           
-                          // Validate that we have the required fields
-                          if (!chartData.type || !chartData.data || !Array.isArray(chartData.data)) {
-                            throw new Error('Missing required chart fields');
+                          // Handle colors - simplified to single color or default array
+                          if (attributes.color) {
+                            config.colors = [attributes.color];
+                          } else {
+                            config.colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#00ff7f"];
                           }
                           
-                          // Ensure the chart type matches
-                          if (chartData.type !== chartType) {
-                            chartData.type = chartType as any;
-                          }
+                          // Remove undefined values
+                          Object.keys(config).forEach(key => {
+                            if (config[key] === undefined) {
+                              delete config[key];
+                            }
+                          });
+                          
+                          const chartData: ChartData = {
+                            type: attributes.type as any,
+                            data: tableData,
+                            config
+                          };
                           
                           return chartData;
                         } catch (error) {
                           return null;
                         }
-                      }, [chartContent, chartType]);
-
+                      }, [content, attributeString]);
+                      
                       if (memoizedChartData) {
-                        // Add stable key based on content to prevent unmount/remount
-                        const chartKey = `chart-${chartType}-${chartContent.substring(0, 50)}`;
+                        const chartKey = `chart-table-${attributes.type}-${content.substring(0, 50)}`;
                         return <ChartRenderer key={chartKey} chartData={memoizedChartData} />;
                       } else {
-                        // Error case - render as code block
-                        // During streaming or with invalid data, just render as code block
-                        // Don't show error message to user
                         return (
                           <CodeBlock
                             language={language}
                             className={className}
                             {...props}
                           >
-                            {chartContent}
+                            {content}
                           </CodeBlock>
                         );
                       }
