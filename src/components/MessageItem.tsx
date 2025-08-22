@@ -158,9 +158,13 @@ const CodeBlock: React.FC<{ children: string; language: string; className?: stri
   );
 };
 
-// Utility function to parse attributes from chart{key=value|key2="quoted value"} format
+// Utility function to parse attributes from chart{key=value;key2="quoted value"} format
+// Also handles truncated input gracefully
 const parseChartAttributes = (attributeString: string): Record<string, string> => {
   const attributes: Record<string, string> = {};
+  
+  // Support both semicolon (;) and pipe (|) delimiters for backward compatibility
+  const delimiter = attributeString.includes(';') ? ';' : '|';
   
   // Enhanced parsing to handle quoted values with spaces and special characters
   const pairs: string[] = [];
@@ -180,7 +184,7 @@ const parseChartAttributes = (attributeString: string): Record<string, string> =
       insideQuotes = false;
       quoteChar = '';
       currentPair += char;
-    } else if (!insideQuotes && char === '|') {
+    } else if (!insideQuotes && char === delimiter) {
       // Found separator outside quotes
       if (currentPair.trim()) {
         pairs.push(currentPair.trim());
@@ -191,7 +195,7 @@ const parseChartAttributes = (attributeString: string): Record<string, string> =
     }
   }
   
-  // Add the last pair
+  // Add the last pair (might be truncated)
   if (currentPair.trim()) {
     pairs.push(currentPair.trim());
   }
@@ -205,10 +209,13 @@ const parseChartAttributes = (attributeString: string): Record<string, string> =
     let value = pair.substring(equalIndex + 1).trim();
     
     if (key && value !== undefined) {
-      // Clean up the value (remove quotes if present)
+      // Handle potentially truncated values (missing closing quotes)
       if ((value.startsWith('"') && value.endsWith('"')) ||
           (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1, -1);
+      } else if (value.startsWith('"') || value.startsWith("'")) {
+        // Truncated quoted value - remove opening quote
+        value = value.slice(1);
       }
       attributes[key] = value;
     }
@@ -686,35 +693,66 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                     const language = match[1];
                     const content = String(children).replace(/\n$/, '');
                     
-                    // Debug all code blocks to see what we're getting
-                    console.log('🔧 Code block detected:', {
-                      language,
-                      className,
-                      fullMatch: match,
-                      contentLength: content.length,
-                      contentPreview: content.substring(0, 100)
-                    });
                     
-                    // Check for chart format: chart{attributes}
-                    const chartFormatMatch = /^chart\{([^}]*)\}$/.exec(language);
+                    // Check for chart format: chart{attributes} - handle both complete and truncated
+                    const completeChartMatch = /^chart\{([^}]*)\}$/.exec(language);
+                    const truncatedChartMatch = /^chart\{(.*)$/.exec(language);
+                    
+                    // Try complete match first, then truncated
+                    const chartFormatMatch = completeChartMatch || truncatedChartMatch;
                     
                     if (chartFormatMatch) {
+                      // Detect if this is a truncated chart block
+                      const isTruncated = !completeChartMatch && truncatedChartMatch;
+                      
                       // Markdown table format with attributes
                       const attributeString = chartFormatMatch[1];
                       const attributes = parseChartAttributes(attributeString);
                       
-                      // Debug logging
-                      console.log('🔍 Chart table format detected:', {
-                        language,
-                        attributeString,
-                        attributes,
-                        contentPreview: content.substring(0, 200)
-                      });
-                      
                       // Parse markdown table from content
                       const tableData = parseMarkdownTable(content);
                       
-                      console.log('📊 Parsed table data:', tableData);
+                      // Handle truncated attributes by inferring missing values based on table structure
+                      if (isTruncated && attributes.type) {
+                        // For truncated charts, try to infer missing x/y from table headers
+                        const firstRow = tableData[0];
+                        if (firstRow) {
+                          const columns = Object.keys(firstRow);
+                          // Smart attribute inference based on chart type and available columns
+                          if (!attributes.x) {
+                            if (columns.includes('name')) attributes.x = 'name';
+                            else if (columns.includes('month')) attributes.x = 'month'; 
+                            else if (columns.includes('date')) attributes.x = 'date';
+                            else if (columns.includes('x')) attributes.x = 'x';
+                            else attributes.x = columns[0]; // First column as fallback
+                          }
+                          
+                          if (!attributes.y) {
+                            // Chart-type specific Y-axis inference
+                            if (attributes.type === 'area' && columns.includes('desktop')) {
+                              attributes.y = 'desktop';
+                            } else if (attributes.type === 'line' && columns.includes('revenue')) {
+                              attributes.y = 'revenue';
+                            } else if (columns.includes('value')) {
+                              attributes.y = 'value';
+                            } else if (columns.includes('y')) {
+                              attributes.y = 'y';
+                            } else if (columns.includes('sales')) {
+                              attributes.y = 'sales';
+                            } else if (columns.includes('price')) {
+                              attributes.y = 'price';
+                            } else {
+                              // Use the last numeric-looking column or fallback to last column
+                              attributes.y = columns[columns.length - 1];
+                            }
+                          }
+                          
+                          // Apply default height if missing due to truncation
+                          if (!attributes.height) {
+                            attributes.height = '320';
+                          }
+                        }
+                      }
                       
                       // Check if we have valid data
                       if (tableData.length === 0 || !attributes.type) {
@@ -737,11 +775,36 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                           const config: any = {
                             title: attributes.title || undefined,
                             xKey: attributes.x || attributes.xKey || 'name',
-                            yKey: attributes.y || attributes.yKey || 'value',
                             xLabel: attributes.xlabel || undefined,
                             yLabel: attributes.ylabel || undefined,
                             height: attributes.height ? parseInt(attributes.height) : 320,
                           };
+                          
+                          // Smart multi-series detection for line and area charts
+                          if (tableData.length > 0 && (attributes.type === 'line' || attributes.type === 'area')) {
+                            const firstRow = tableData[0];
+                            const allColumns = Object.keys(firstRow);
+                            const xColumn = config.xKey;
+                            
+                            // Find all numeric columns that aren't the x-axis
+                            const numericColumns = allColumns.filter(col => {
+                              if (col === xColumn) return false; // Skip x-axis column
+                              
+                              // Check if column contains numeric data
+                              const sampleValue = firstRow[col];
+                              return !isNaN(parseFloat(sampleValue)) && isFinite(sampleValue);
+                            });
+                            
+                            // Use multiple columns for multi-series charts
+                            if (numericColumns.length > 1) {
+                              config.yKey = numericColumns;
+                            } else {
+                              config.yKey = attributes.y || attributes.yKey || numericColumns[0] || 'value';
+                            }
+                          } else {
+                            // Single series for other chart types
+                            config.yKey = attributes.y || attributes.yKey || 'value';
+                          }
                           
                           // Handle colors - support multiple colors separated by commas
                           if (attributes.colors) {
