@@ -33,6 +33,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
   
   const { type, data, config = {} } = chartData;
   
+  
   // Use completely static width - no more ResizeObserver or dynamic calculations
   const chartWidth = 580; // Fixed width that works well for the chat interface
   const containerRef = useRef<HTMLDivElement>(null);
@@ -56,10 +57,39 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
     backgroundColor: stableTheme === 'dark' ? '#1f2937' : '#ffffff'
   }), [stableTheme]);
 
+  // Adaptive font size and rotation based on number of data points
+  const adaptiveTickProps = useMemo(() => {
+    if (!data || !Array.isArray(data)) return { fontSize: 10 };
+    
+    const dataPointCount = data.length;
+    
+    if (dataPointCount <= 5) {
+      return { fontSize: 11 };
+    } else if (dataPointCount <= 8) {
+      return { fontSize: 10 };
+    } else if (dataPointCount <= 12) {
+      return { fontSize: 9 };
+    } else {
+      // For many points, use rotation to save space
+      // Rotate when we have 13+ data points to prevent overlap
+      return { 
+        fontSize: 8, 
+        angle: -45, 
+        height: 45,  // Increased height to push text further down
+        textAnchor: 'end'  // Anchor at end for better rotated text positioning
+      };
+    }
+  }, [data]);
+
   const commonProps = useMemo(() => ({
     data,
-    margin: { top: 30, right: 5, left: 5, bottom: 5 },
-  }), [data]);
+    margin: { 
+      top: 30, 
+      right: 5, 
+      left: 5, 
+      bottom: 5  // Much more space when rotated
+    },
+  }), [data, adaptiveTickProps.angle]);
 
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
@@ -88,7 +118,13 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
               )}
               <XAxis 
                 dataKey={defaultConfig.xKey} 
-                tick={{ fill: textColor, fontSize: 11 }}
+                type="category"
+                tick={{ 
+                  fill: textColor, 
+                  fontSize: adaptiveTickProps.fontSize, 
+                  textAnchor: adaptiveTickProps.textAnchor || 'middle'
+                }}
+                tickFormatter={(value) => String(value)}
                 axisLine={{ stroke: gridColor }}
                 tickLine={{ stroke: gridColor }}
                 label={{ 
@@ -97,6 +133,8 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
                   offset: -5,
                   style: { textAnchor: 'middle', fill: textColor, fontSize: '12px' }
                 }}
+                {...(adaptiveTickProps.angle && { angle: adaptiveTickProps.angle })}
+                {...(adaptiveTickProps.height && { height: adaptiveTickProps.height })}
               />
               <YAxis 
                 tick={{ fill: textColor, fontSize: 11 }}
@@ -165,7 +203,13 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
               )}
               <XAxis 
                 dataKey={defaultConfig.xKey} 
-                tick={{ fill: textColor, fontSize: 11 }}
+                type="category"
+                tick={{ 
+                  fill: textColor, 
+                  fontSize: adaptiveTickProps.fontSize, 
+                  textAnchor: adaptiveTickProps.textAnchor || 'middle'
+                }}
+                tickFormatter={(value) => String(value)}
                 axisLine={{ stroke: gridColor }}
                 tickLine={{ stroke: gridColor }}
                 label={{ 
@@ -174,6 +218,8 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
                   offset: -5,
                   style: { textAnchor: 'middle', fill: textColor, fontSize: '12px' }
                 }}
+                {...(adaptiveTickProps.angle && { angle: adaptiveTickProps.angle })}
+                {...(adaptiveTickProps.height && { height: adaptiveTickProps.height })}
               />
               <YAxis 
                 tick={{ fill: textColor, fontSize: 11 }}
@@ -242,7 +288,13 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
               )}
               <XAxis 
                 dataKey={defaultConfig.xKey} 
-                tick={{ fill: textColor, fontSize: 11 }}
+                type="category"
+                tick={{ 
+                  fill: textColor, 
+                  fontSize: adaptiveTickProps.fontSize, 
+                  textAnchor: adaptiveTickProps.textAnchor || 'middle'
+                }}
+                tickFormatter={(value) => String(value)}
                 axisLine={{ stroke: gridColor }}
                 tickLine={{ stroke: gridColor }}
                 label={{ 
@@ -251,6 +303,8 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
                   offset: -5,
                   style: { textAnchor: 'middle', fill: textColor, fontSize: '12px' }
                 }}
+                {...(adaptiveTickProps.angle && { angle: adaptiveTickProps.angle })}
+                {...(adaptiveTickProps.height && { height: adaptiveTickProps.height })}
               />
               <YAxis 
                 tick={{ fill: textColor, fontSize: 11 }}
@@ -312,6 +366,13 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
           );
 
         case 'pie':
+          // Convert string values to numbers for pie chart
+          const yKey = typeof defaultConfig.yKey === 'string' ? defaultConfig.yKey : 'value';
+          const pieData = data.map(item => ({
+            ...item,
+            [yKey]: parseFloat(String(item[yKey])) || 0
+          }));
+          
           return (
             <PieChart {...commonProps} width={chartWidth - 4} height={defaultConfig.height - 4}>
               {defaultConfig.title && (
@@ -320,17 +381,19 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
                 </text>
               )}
               <Pie
-                data={data}
+                data={pieData}
                 cx="50%"
                 cy="50%"
-                outerRadius={Math.min(chartWidth / 8, 80)} // Responsive radius
+                innerRadius={0}
+                outerRadius={100} // Fixed larger radius for better visibility
                 fill="#8884d8"
                 dataKey={typeof defaultConfig.yKey === 'string' ? defaultConfig.yKey : 'value'}
                 nameKey={defaultConfig.xKey}
                 label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                labelLine={false}
                 isAnimationActive={false}
               >
-                {data.map((_, index) => (
+                {pieData.map((_, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={defaultConfig.colors[index % defaultConfig.colors.length]}
@@ -372,7 +435,13 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
               )}
               <XAxis 
                 dataKey={defaultConfig.xKey} 
-                tick={{ fill: textColor, fontSize: 11 }}
+                type="category"
+                tick={{ 
+                  fill: textColor, 
+                  fontSize: adaptiveTickProps.fontSize, 
+                  textAnchor: adaptiveTickProps.textAnchor || 'middle'
+                }}
+                tickFormatter={(value) => String(value)}
                 axisLine={{ stroke: gridColor }}
                 tickLine={{ stroke: gridColor }}
                 label={{ 
@@ -381,6 +450,8 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
                   offset: -5,
                   style: { textAnchor: 'middle', fill: textColor, fontSize: '12px' }
                 }}
+                {...(adaptiveTickProps.angle && { angle: adaptiveTickProps.angle })}
+                {...(adaptiveTickProps.height && { height: adaptiveTickProps.height })}
               />
               <YAxis 
                 tick={{ fill: textColor, fontSize: 11 }}

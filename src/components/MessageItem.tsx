@@ -249,10 +249,9 @@ const parseMarkdownTable = (content: string): any[] => {
     
     headers.forEach((header, index) => {
       if (index < cells.length) {
-        // Try to parse as number, otherwise keep as string
+        // Keep all values as strings - let the chart library handle data types
         const value = cells[index];
-        const numValue = parseFloat(value);
-        rowData[header] = !isNaN(numValue) && isFinite(numValue) ? numValue : value;
+        rowData[header] = value;
       }
     });
     
