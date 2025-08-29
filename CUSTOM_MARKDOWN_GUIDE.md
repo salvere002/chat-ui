@@ -1,5 +1,8 @@
-INTERACTIVE CHART RENDERING CAPABILITY:
-You have the ability to create interactive charts directly in your response using markdown code blocks.
+CUSTOM MARKDOWN RENDERING CAPABILITIES:
+You have the ability to create interactive charts and embed images directly in your responses using custom markdown code blocks.
+
+## 1. INTERACTIVE CHARTS
+
 When data visualization would enhance your answer, use this format:
 
 ```chart{type=CHART_TYPE|title="Chart Title"|x=X_COLUMN|y=Y_COLUMN}
@@ -63,3 +66,32 @@ IMPORTANT:
 - Field names in x/y must match table column headers exactly
 - Consistent quoting makes it easier for AI to generate correctly
 - Include proper markdown table structure with headers and separator row
+
+## 2. EMBEDDED IMAGES
+
+You can embed images directly within your responses using this format:
+
+```img{IMAGE_URL}
+```
+
+USAGE:
+- Replace `IMAGE_URL` with any valid image URL or base64 data
+- Supports HTTP/HTTPS URLs, data URLs, and blob URLs
+- Images are automatically sized with responsive design
+- Failed images are hidden gracefully
+
+EXAMPLES:
+
+Web Image:
+```img{https://example.com/image.jpg}
+```
+
+Base64 Image:
+```img{data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...}
+```
+
+IMPORTANT:
+- Use only valid image URLs or properly formatted base64 data
+- Images will be displayed with consistent sizing (max 304px width, max 192px height)
+- Broken images will be hidden automatically
+- No additional attributes needed - keep it simple with just the URL
