@@ -693,6 +693,49 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                     const content = String(children).replace(/\n$/, '');
                     
                     
+                    // Check for image format: img{url}
+                    const imageMatch = /^img\{([^}]+)\}$/.exec(language);
+                    
+                    if (imageMatch) {
+                      const imageUrl = imageMatch[1].trim();
+                      
+                      // Validate that we have a URL
+                      if (!imageUrl) {
+                        return (
+                          <CodeBlock
+                            language={language}
+                            className={className}
+                            {...props}
+                          >
+                            {content}
+                          </CodeBlock>
+                        );
+                      }
+                      
+                      return (
+                        <div className="mb-3">
+                          {/* Track this image URL to prevent revocation if it's a blob URL */}
+                          {(() => { 
+                            if (imageUrl.startsWith('blob:')) {
+                              fileService.trackActiveImageUrl(imageUrl); 
+                            }
+                            return null; 
+                          })()}
+                          <img 
+                            src={imageUrl} 
+                            className="w-full h-auto max-w-xs max-h-48 object-cover rounded-lg" 
+                            onError={(e) => {
+                              // Handle broken images by hiding them
+                              const target = e.currentTarget as HTMLImageElement;
+                              target.style.display = 'none';
+                              console.warn('Failed to load embedded image:', imageUrl);
+                            }}
+                            loading="lazy"
+                          />
+                        </div>
+                      );
+                    }
+                    
                     // Check for chart format: chart{attributes} - handle both complete and truncated
                     const completeChartMatch = /^chart\{([^}]*)\}$/.exec(language);
                     const truncatedChartMatch = /^chart\{(.*)$/.exec(language);
