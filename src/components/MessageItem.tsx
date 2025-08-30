@@ -160,15 +160,23 @@ const CodeBlock: React.FC<{ children: string; language: string; className?: stri
 
 // Memoized embedded image component to prevent reloads on typing
 const EmbeddedImage: React.FC<{ imageUrl: string }> = memo(({ imageUrl }) => {
+  useEffect(() => {
+    // Track image URL when component mounts
+    if (imageUrl.startsWith('blob:')) {
+      fileService.trackActiveImageUrl(imageUrl);
+    }
+    
+    // Cleanup function for when component unmounts or URL changes
+    return () => {
+      if (imageUrl.startsWith('blob:')) {
+        // Don't immediately revoke - let the cleanup system handle it
+        // This prevents premature revocation if the same URL is used elsewhere
+      }
+    };
+  }, [imageUrl]);
+  
   return (
     <div className="mb-3">
-      {/* Track this image URL to prevent revocation if it's a blob URL */}
-      {(() => { 
-        if (imageUrl.startsWith('blob:')) {
-          fileService.trackActiveImageUrl(imageUrl); 
-        }
-        return null; 
-      })()}
       <img 
         src={imageUrl} 
         alt="Embedded image"
@@ -871,17 +879,33 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   };
 
   // Helper component to render a single file attachment
-  const FileAttachment: React.FC<{ file: MessageFile }> = ({ file }) => {
-    // Track image URLs to prevent them from being revoked
-    if (file.type.startsWith('image/')) {
-      fileService.trackActiveImageUrl(file.url);
-    }
+  const FileAttachment: React.FC<{ file: MessageFile }> = memo(({ file }) => {
+    useEffect(() => {
+      // Track image URLs when component mounts
+      if (file.type.startsWith('image/') && file.url.startsWith('blob:')) {
+        fileService.trackActiveImageUrl(file.url);
+      }
+      
+      return () => {
+        // Cleanup handled by periodic cleanup system
+      };
+    }, [file.url, file.type]);
     
-    // Rendering FileAttachment
     return (
       <div className="inline-block bg-bg-secondary border border-border-secondary rounded-lg overflow-hidden" style={{maxWidth: '580px'}}>
         {file.type.startsWith('image/') ? (
-          <img src={file.url} alt={file.name} className="w-full h-auto object-contain" style={{maxWidth: '580px', maxHeight: '320px'}} />
+          <img 
+            src={file.url} 
+            alt={file.name} 
+            className="w-full h-auto object-contain" 
+            style={{maxWidth: '580px', maxHeight: '320px'}}
+            loading="lazy"
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              target.style.display = 'none';
+              console.warn('Failed to load file attachment image:', file.url);
+            }}
+          />
         ) : (
           <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 text-text-primary hover:bg-bg-tertiary transition-colors duration-150">
             <FaFileAlt className="text-accent-primary text-lg flex-shrink-0" />
@@ -893,7 +917,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         )}
       </div>
     );
-  };
+  });
 
   // Check if this is an incomplete AI message (for streaming)
   const isIncomplete = sender === 'ai' && isComplete === false;
@@ -901,8 +925,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   return (
     <div 
       className={`group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${sender === 'user' ? 'self-end items-end' : 'self-start items-start'} ${isEditing ? 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]' : ''}`}
-      data-is-complete={isComplete !== false}
-    >
+        data-is-complete={isComplete !== false}
+      >
       <div className={`relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${isEditing ? 'w-full' : 'w-fit'} ${
         sender === 'user' 
           ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
@@ -932,11 +956,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         
         {/* Render AI's image if present */}
         {imageUrl && sender === 'ai' && (
-          <div className="mb-3">
-            {/* Track this image URL to prevent revocation */}
-            {(() => { fileService.trackActiveImageUrl(imageUrl); return null; })()}
-            <img src={imageUrl} alt="AI generated" className="w-full h-auto object-contain rounded-lg" style={{maxWidth: '580px', maxHeight: '320px'}} />
-          </div>
+          <EmbeddedImage imageUrl={imageUrl} />
         )}
         
         {/* Render text content */}

@@ -72,7 +72,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     }, 300);
   }, []); 
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change - optimized version
   useEffect(() => {
     // Get current last message id
     const currentLastMessageId = messages.length > 0 ? messages[messages.length - 1].id : '';
@@ -83,35 +83,103 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
       (messages.length > 0 && currentLastMessageId !== previousLastMessageId && previousLastMessageId !== '');
     
     if (shouldScrollToBottom) {
-      // Use multiple timeouts to ensure it scrolls even if DOM updates are delayed
-      setTimeout(scrollToBottom, 50);
-      setTimeout(scrollToBottom, 150);
-      setTimeout(scrollToBottom, 300);
+      // Use requestAnimationFrame for smooth scrolling without blocking UI
+      let rafId: number;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      const attemptScroll = () => {
+        rafId = requestAnimationFrame(() => {
+          scrollToBottom();
+          attempts++;
+          
+          // Only retry if we haven't reached max attempts and container exists
+          if (attempts < maxAttempts && messageContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+            const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 10;
+            
+            if (!isScrolledToBottom) {
+              attemptScroll(); // Retry if not scrolled to bottom
+            } else {
+              // Check scroll position after successful scroll
+              requestAnimationFrame(() => checkScrollPosition());
+            }
+          } else {
+            // Final check after all attempts
+            requestAnimationFrame(() => checkScrollPosition());
+          }
+        });
+      };
+      
+      attemptScroll();
+      
+      // Cleanup function to cancel animation frame if component unmounts
+      return () => {
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+      };
     }
     
     // Update previous message info
     setPreviousMessageCount(messages.length);
     setPreviousLastMessageId(currentLastMessageId);
-    
-    // Check if we need to show the scroll button after scrolling
-    setTimeout(() => {
-      checkScrollPosition();
-    }, 350);
   }, [messages, previousMessageCount, previousLastMessageId, scrollToBottom, checkScrollPosition]);
 
-  // Also check if the message content is updating (for streaming responses)
+  // Optimized streaming scroll behavior - only scroll during active streaming
   useEffect(() => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       
       // If the last message is from AI and still processing (streaming)
       if (lastMessage.sender === 'ai' && lastMessage.isComplete === false) {
-        // Ensure we're scrolled to the bottom to see the streaming message
-        const scrollInterval = setInterval(() => {
-          scrollToBottom();
-        }, 1000); // Check every second while streaming
+        let rafId: number;
+        let timeoutId: number;
+        let isActive = true; // Flag to control whether streaming scroll should continue
         
-        return () => clearInterval(scrollInterval);
+        const smoothScrollForStreaming = () => {
+          if (!isActive) return; // Stop if effect has been cleaned up
+          
+          rafId = requestAnimationFrame(() => {
+            if (!isActive) return; // Double-check before scrolling
+            
+            // Check if user has manually scrolled up - if so, respect their choice
+            if (messageContainerRef.current) {
+              const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+              const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+              
+              // If user scrolled up more than 100px, stop auto-scrolling during streaming
+              if (distanceFromBottom > 100) {
+                return; // Don't force scroll if user has scrolled away
+              }
+            }
+            
+            scrollToBottom();
+            
+            // Schedule next scroll check, but only if still active
+            if (isActive) {
+              timeoutId = window.setTimeout(() => {
+                if (isActive) {
+                  smoothScrollForStreaming();
+                }
+              }, 500);
+            }
+          });
+        };
+        
+        // Start streaming scroll
+        smoothScrollForStreaming();
+        
+        return () => {
+          // Clean up and stop streaming scroll
+          isActive = false;
+          if (rafId) {
+            cancelAnimationFrame(rafId);
+          }
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+        };
       }
     }
   }, [messages, scrollToBottom]);

@@ -33,6 +33,33 @@ class FileService {
   }
   
   /**
+   * Removes an image URL from active tracking and revokes it if needed
+   */
+  untrackImageUrl(url: string): void {
+    this.activeImageUrls.delete(url);
+    // Only revoke blob URLs to prevent memory leaks
+    if (url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
+  }
+  
+  /**
+   * Clean up inactive image URLs to prevent memory leaks
+   * Call this periodically or when messages are deleted
+   */
+  cleanupInactiveImages(activeUrls: string[]): void {
+    const activeUrlSet = new Set(activeUrls);
+    
+    // Find URLs that are no longer active
+    const inactiveUrls = Array.from(this.activeImageUrls).filter(url => !activeUrlSet.has(url));
+    
+    // Clean up inactive URLs
+    inactiveUrls.forEach(url => {
+      this.untrackImageUrl(url);
+    });
+  }
+  
+  /**
    * Revokes a preview URL for a specific file
    */
   revokePreviewUrl(fileId: string): void {

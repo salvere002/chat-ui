@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
@@ -7,6 +7,7 @@ import { useFileUpload } from '../hooks/useFileUpload';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
 import { ConversationMessage } from '../types/api';
 import { ChatService } from '../services/chatService';
+import { fileService } from '../services/fileService';
 
 interface ChatInterfaceProps {
   selectedResponseMode: ResponseMode;
@@ -48,6 +49,43 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   // Local state for input value
   const [inputValue, setInputValue] = useState<string>('');
   
+  // Periodic cleanup of unused image URLs to prevent memory leaks
+  useEffect(() => {
+    const cleanup = () => {
+      if (activeChatMessages.length > 0) {
+        // Collect all image URLs currently in use
+        const activeUrls: string[] = [];
+        
+        activeChatMessages.forEach(message => {
+          // Add AI image URLs
+          if (message.imageUrl) {
+            activeUrls.push(message.imageUrl);
+          }
+          
+          // Add file attachment URLs
+          if (message.files) {
+            message.files.forEach(file => {
+              if (file.type.startsWith('image/')) {
+                activeUrls.push(file.url);
+              }
+            });
+          }
+        });
+        
+        // Clean up inactive images
+        fileService.cleanupInactiveImages(activeUrls);
+      }
+    };
+    
+    // Run cleanup every 30 seconds
+    const cleanupInterval = setInterval(cleanup, 30000);
+    
+    // Also run cleanup when component unmounts
+    return () => {
+      clearInterval(cleanupInterval);
+      cleanup();
+    };
+  }, [activeChatMessages]);
   
   // Combined processing state
   const combinedIsProcessing = storeIsProcessing || isFileProcessing;
