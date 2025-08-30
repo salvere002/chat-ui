@@ -16,6 +16,7 @@ export interface ChatStore {
   // Actions
   createChat: (name?: string) => string;
   deleteChat: (id: string) => void;
+  clearAllChats: () => void;
   setActiveChat: (id: string) => void;
   getChatById: (id: string) => Chat | undefined;
   addMessageToChat: (chatId: string, message: Message) => void;
