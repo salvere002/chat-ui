@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo, memo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, memo, useCallback } from 'react';
 import { Message, MessageFile } from '../types/chat'; // Import the Message and MessageFile types
 import { FaFileAlt, FaRedo, FaEdit, FaCheck, FaTimes, FaCopy, FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp } from 'react-icons/fa'; // Import required icons
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
@@ -25,6 +25,113 @@ interface MessageItemProps {
   onEditMessage?: (messageId: string, newText: string) => void;
   chatId: string;
 }
+
+interface BranchData {
+  hasBranches: boolean;
+  totalBranches: number;
+  currentBranchIndex: number;
+  actualCurrentBranchIndex: number;
+}
+
+
+// BranchNavigator Component - Handles branch navigation UI
+const BranchNavigator: React.FC<{
+  branchData: BranchData;
+  onPreviousBranch: () => void;
+  onNextBranch: () => void;
+}> = memo(({ branchData, onPreviousBranch, onNextBranch }) => {
+  const { hasBranches, totalBranches, actualCurrentBranchIndex } = branchData;
+  
+  if (!hasBranches || totalBranches <= 1) {
+    return null;
+  }
+
+  return (
+    <div className="flex items-center mt-1 px-1 text-xs gap-2">
+      <div className="flex items-center gap-1 bg-bg-secondary border border-border-secondary rounded-md p-1">
+        <button 
+          className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
+          onClick={onPreviousBranch}
+          disabled={actualCurrentBranchIndex <= 0}
+          title="Previous branch"
+        >
+          <FaChevronLeft className="text-[10px]" />
+        </button>
+        <span className="text-xs text-text-secondary font-medium min-w-[24px] text-center px-1">
+          {actualCurrentBranchIndex + 1}/{totalBranches}
+        </span>
+        <button 
+          className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
+          onClick={onNextBranch}
+          disabled={actualCurrentBranchIndex >= totalBranches - 1}
+          title="Next branch"
+        >
+          <FaChevronRight className="text-[10px]" />
+        </button>
+      </div>
+    </div>
+  );
+});
+
+// MessageActions Component - Handles message action buttons (copy, edit, regenerate)
+const MessageActions: React.FC<{
+  sender: 'user' | 'ai';
+  text?: string;
+  copied: boolean;
+  isEditing: boolean;
+  isComplete?: boolean;
+  onCopyMessage: () => void;
+  onSetIsEditing: (editing: boolean) => void;
+  onEditMessage?: (messageId: string, newText: string) => void;
+  onRegenerateResponse?: () => void;
+}> = memo(({ 
+  sender, 
+  text, 
+  copied, 
+  isEditing, 
+  isComplete,
+  onCopyMessage, 
+  onSetIsEditing, 
+  onEditMessage, 
+  onRegenerateResponse 
+}) => {
+  return (
+    <div className="flex gap-1 items-center">
+      {/* Copy button for all messages with text */}
+      {text && (
+        <button 
+          className={`flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90 ${copied ? 'text-success' : ''}`}
+          onClick={onCopyMessage}
+          title={copied ? "Copied" : "Copy text"}
+        >
+          {copied ? <span className="absolute inset-0 flex items-center justify-center text-base animate-check-mark">✓</span> : <FaCopy className="relative z-10 text-sm" />}
+        </button>
+      )}
+      
+      {/* For user messages: Create Branch button (replacing edit) */}
+      {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
+        <button 
+          className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
+          onClick={() => onSetIsEditing(true)}
+          title="Create new branch"
+        >
+          <FaEdit className="relative z-10 text-sm" />
+        </button>
+      )}
+      
+      {/* Regenerate button for user messages */}
+      {sender === 'user' && isComplete !== false && onRegenerateResponse && (
+        <button 
+          className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
+          onClick={onRegenerateResponse}
+          title="Regenerate response"
+        >
+          <FaRedo className="relative z-10 text-sm" />
+        </button>
+      )}
+    </div>
+  );
+});
 
 // CodeBlock component with copy and collapse functionality
 const CodeBlock: React.FC<{ children: string; language: string; className?: string }> = ({ 
@@ -582,7 +689,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   
   // Get store methods for branch management
   const { 
-    getBranchOptionsAtMessage, 
+    getBranchOptionsAtMessage,
     switchToBranch, 
     createBranchFromMessage,
     addMessageToChat,
@@ -613,17 +720,27 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   // Ref for textarea auto-resizing
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // Get branch options
-  const branchOptions = getBranchOptionsAtMessage(chatId, id);
+  // Memoized branch calculations
+  const branchOptions = useMemo(
+    () => getBranchOptionsAtMessage(chatId, id),
+    [getBranchOptionsAtMessage, chatId, id]
+  );
   
+  const branchData = useMemo(() => {
+    const hasBranches = branchOptions.length > 1 || message.branchPoint === true;
+    const totalBranches = Math.max(branchOptions.length, hasBranches ? 2 : 1);
+    const currentBranchIndex = branchOptions.findIndex(option => option.id === message.branchId);
+    const actualCurrentBranchIndex = currentBranchIndex >= 0 ? currentBranchIndex : 0;
+    
+    return {
+      hasBranches,
+      totalBranches,
+      currentBranchIndex,
+      actualCurrentBranchIndex
+    };
+  }, [branchOptions, message.branchPoint, message.branchId]);
   
-  // Check if this message has branches (either from getBranchOptionsAtMessage or branchPoint flag)
-  const hasBranches = branchOptions.length > 1 || message.branchPoint === true;
-  const totalBranches = Math.max(branchOptions.length, hasBranches ? 2 : 1);
-  
-  // Find current branch index
-  const currentBranchIndex = branchOptions.findIndex(option => option.id === message.branchId);
-  const actualCurrentBranchIndex = currentBranchIndex >= 0 ? currentBranchIndex : 0;
+  const { hasBranches, totalBranches, actualCurrentBranchIndex } = branchData;
   
   
   // Auto-resize the textarea based on content
@@ -647,24 +764,24 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   };
 
 
-  // Handle branch navigation
-  const handlePreviousBranch = () => {
+  // Memoized branch navigation handlers
+  const handlePreviousBranch = useCallback(() => {
     if (hasBranches && actualCurrentBranchIndex > 0 && branchOptions.length > actualCurrentBranchIndex - 1) {
       const previousBranch = branchOptions[actualCurrentBranchIndex - 1];
       if (previousBranch) {
         switchToBranch(chatId, previousBranch.id);
       }
     }
-  };
+  }, [hasBranches, actualCurrentBranchIndex, branchOptions, switchToBranch, chatId]);
 
-  const handleNextBranch = () => {
+  const handleNextBranch = useCallback(() => {
     if (hasBranches && actualCurrentBranchIndex < totalBranches - 1 && branchOptions.length > actualCurrentBranchIndex + 1) {
       const nextBranch = branchOptions[actualCurrentBranchIndex + 1];
       if (nextBranch) {
         switchToBranch(chatId, nextBranch.id);
       }
     }
-  };
+  }, [hasBranches, actualCurrentBranchIndex, totalBranches, branchOptions, switchToBranch, chatId]);
 
   // Generate AI response for new branch
   const generateAIResponseForNewBranch = async (userText: string, userFiles: any[]) => {
@@ -863,15 +980,20 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     setIsEditing(false);
   };
 
-  // Handle copy message
-  const handleCopyMessage = () => {
+  // Memoized copy message handler
+  const handleCopyMessage = useCallback(() => {
     if (text) {
       navigator.clipboard.writeText(text).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
       });
     }
-  };
+  }, [text]);
+
+  // Memoized setIsEditing callback for MessageActions
+  const handleSetIsEditing = useCallback((editing: boolean) => {
+    setIsEditing(editing);
+  }, []);
 
   // Handle textarea input change
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -1270,32 +1392,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         )}
       </div>
       
-      {/* Branch indicator - always visible when branches exist */}
-      {hasBranches && totalBranches > 1 && (
-        <div className="flex items-center mt-1 px-1 text-xs gap-2">
-          <div className="flex items-center gap-1 bg-bg-secondary border border-border-secondary rounded-md p-1">
-            <button 
-              className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
-              onClick={handlePreviousBranch}
-              disabled={actualCurrentBranchIndex <= 0}
-              title="Previous branch"
-            >
-              <FaChevronLeft className="text-[10px]" />
-            </button>
-            <span className="text-xs text-text-secondary font-medium min-w-[24px] text-center px-1">
-              {actualCurrentBranchIndex + 1}/{totalBranches}
-            </span>
-            <button 
-              className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
-              onClick={handleNextBranch}
-              disabled={actualCurrentBranchIndex >= totalBranches - 1}
-              title="Next branch"
-            >
-              <FaChevronRight className="text-[10px]" />
-            </button>
-          </div>
-        </div>
-      )}
+      <BranchNavigator
+        branchData={branchData}
+        onPreviousBranch={handlePreviousBranch}
+        onNextBranch={handleNextBranch}
+      />
       
       {/* Actions footer - only show when hovering (moved outside message-content) */}
       <div className="flex items-center mt-1 px-1 opacity-0 transition-opacity duration-150 text-xs text-text-tertiary gap-2 group-hover:opacity-100">
@@ -1308,41 +1409,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
           )}
         </div>
         
-        <div className="flex gap-1 items-center">
-          
-          {/* Copy button for all messages with text */}
-          {text && (
-            <button 
-              className={`flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90 ${copied ? 'text-success' : ''}`}
-              onClick={handleCopyMessage}
-              title={copied ? "Copied" : "Copy text"}
-            >
-              {copied ? <span className="absolute inset-0 flex items-center justify-center text-base animate-check-mark">✓</span> : <FaCopy className="relative z-10 text-sm" />}
-            </button>
-          )}
-          
-          {/* For user messages: Create Branch button (replacing edit) */}
-          {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
-            <button 
-              className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
-              onClick={() => setIsEditing(true)}
-              title="Create new branch"
-            >
-              <FaEdit className="relative z-10 text-sm" />
-            </button>
-          )}
-          
-          {/* Regenerate button for user messages */}
-          {sender === 'user' && isComplete !== false && onRegenerateResponse && (
-            <button 
-              className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
-              onClick={onRegenerateResponse}
-              title="Regenerate response"
-            >
-              <FaRedo className="relative z-10 text-sm" />
-            </button>
-          )}
-        </div>
+        <MessageActions
+          sender={sender}
+          text={text}
+          copied={copied}
+          isEditing={isEditing}
+          isComplete={isComplete}
+          onCopyMessage={handleCopyMessage}
+          onSetIsEditing={handleSetIsEditing}
+          onEditMessage={onEditMessage}
+          onRegenerateResponse={onRegenerateResponse}
+        />
       </div>
     </div>
   );

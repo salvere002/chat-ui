@@ -1,4 +1,5 @@
-import React, { useState, useRef, KeyboardEvent, ChangeEvent, useEffect, DragEvent } from 'react';
+import React, { useState, useRef, KeyboardEvent, ChangeEvent, useEffect, DragEvent, useCallback } from 'react';
+import TextareaAutosize from 'react-textarea-autosize';
 import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane, FaPause } from 'react-icons/fa';
 import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
@@ -57,36 +58,14 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const dropAreaRef = useRef<HTMLDivElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>(initialFiles);
   const [isDragging, setIsDragging] = useState(false);
-  const [textareaHeight, setTextareaHeight] = useState(48); // Initial height in pixels
 
   // Effect to sync with initialFiles prop when it changes
   useEffect(() => {
     setSelectedFiles(initialFiles);
   }, [initialFiles]);
 
-  // Auto-resize textarea
-  const adjustTextareaHeight = () => {
-    if (textAreaRef.current) {
-      const textarea = textAreaRef.current;
-      textarea.style.height = 'auto';
-      const scrollHeight = textarea.scrollHeight;
-      const minHeight = 48; // 2 lines approximately
-      const maxHeight = 400; // 6 lines approximately (triple the initial)
-      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
-      setTextareaHeight(newHeight);
-      textarea.style.height = `${newHeight}px`;
-    }
-  };
-
-  // Effect to adjust height when value changes
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [value]);
-
-
-
   // Function to handle Send/Pause button click
-  const handleButtonClick = () => {
+  const handleButtonClick = useCallback(() => {
     // If currently processing messages (not files), pause the request
     if (isProcessing && !isFileProcessing) {
       onPauseRequest();
@@ -108,16 +87,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     // Clear text input locally
     onChange('');
-    
-    // Reset textarea height after clearing
-    setTimeout(() => {
-      adjustTextareaHeight();
-    }, 0);
 
-  };
+  }, [isProcessing, isFileProcessing, onPauseRequest, selectedFiles, value, onSendMessage, onChange]);
 
   // Function to handle Enter key press
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       // Only send if not currently processing - don't allow pause via Enter key
@@ -125,21 +99,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
         handleButtonClick();
       }
     }
-  };
+  }, [isProcessing, handleButtonClick]);
 
   // Function to handle textarea input
-  const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInput = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(event.target.value);
-    adjustTextareaHeight();
-  };
+  }, [onChange]);
 
   // Function to trigger file input click
-  const handleUploadClick = () => {
+  const handleUploadClick = useCallback(() => {
     fileInputRef.current?.click();
-  };
+  }, []);
 
   // Function to handle files from any source (input or drop)
-  const processFiles = (files: FileList) => {
+  const processFiles = useCallback((files: FileList) => {
     if (!files || files.length === 0) return;
     
     const newPreviewFiles = Array.from(files)
@@ -151,42 +124,44 @@ const MessageInput: React.FC<MessageInputProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, []);
 
   // Function to handle file selection from input
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
     processFiles(event.target.files);
-  };
+  }, [processFiles]);
 
   // Function to handle removing a file
-  const handleRemoveFile = (idToRemove: string) => {
-    // Find the file to remove
-    const fileToRemove = selectedFiles.find(f => f.id === idToRemove);
-    
-    // Revoke preview URL if not a completed upload
-    if (fileToRemove && fileToRemove.status !== 'complete') {
-      fileService.revokePreviewUrl(fileToRemove.id);
-    }
-    
-    // Remove from state
-    setSelectedFiles(prev => prev.filter(file => file.id !== idToRemove));
-  };
+  const handleRemoveFile = useCallback((idToRemove: string) => {
+    setSelectedFiles(prev => {
+      // Find the file to remove
+      const fileToRemove = prev.find(f => f.id === idToRemove);
+      
+      // Revoke preview URL if not a completed upload
+      if (fileToRemove && fileToRemove.status !== 'complete') {
+        fileService.revokePreviewUrl(fileToRemove.id);
+      }
+      
+      // Return filtered array
+      return prev.filter(file => file.id !== idToRemove);
+    });
+  }, []);
 
   // Drag and drop handlers
-  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
-  };
+  }, []);
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isDragging) setIsDragging(true);
-  };
+    setIsDragging(true);
+  }, []);
 
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -194,9 +169,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
     if (e.currentTarget === dropAreaRef.current) {
       setIsDragging(false);
     }
-  };
+  }, []);
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -204,7 +179,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       processFiles(e.dataTransfer.files);
     }
-  };
+  }, [processFiles]);
 
   return (
     <div 
@@ -279,15 +254,19 @@ const MessageInput: React.FC<MessageInputProps> = ({
           style={{ display: 'none' }}
           accept={createAcceptAttribute()}
         />
-        <textarea
+        <TextareaAutosize
           ref={textAreaRef}
           value={value}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
           placeholder="Type your message or drop files..."
           disabled={isProcessing}
-          style={{ height: `${textareaHeight}px` }}
-          className="flex-1 px-2 sm:px-3 py-2 bg-transparent text-text-primary border-none font-sans text-sm sm:text-base leading-normal resize-none overflow-y-auto transition-all duration-150 focus:outline-none placeholder:text-text-tertiary"
+          minRows={2}
+          maxRows={16}
+          style={{ 
+            transition: 'height 150ms ease'
+          }}
+          className="flex-1 px-2 sm:px-3 py-2 bg-transparent text-text-primary border-none font-sans text-sm sm:text-base leading-normal resize-none overflow-y-auto focus:outline-none placeholder:text-text-tertiary"
         />
         <button
           onClick={handleButtonClick}
