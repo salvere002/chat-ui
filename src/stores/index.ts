@@ -4,6 +4,7 @@ export { default as useThemeStore } from './themeStore';
 export { default as useToastStore } from './toastStore';
 export { default as useResponseModeStore } from './responseModeStore';
 export { default as useServiceConfigStore } from './serviceConfigStore';
+export { default as useInputStore } from './inputStore';
 
 // Export selective store selectors for performance optimization
 export * from './selectors'; 

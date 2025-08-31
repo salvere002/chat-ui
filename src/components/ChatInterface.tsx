@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
-import { useChatData, useChatActions, useChatUtils, useBranchData, useToastStore } from '../stores';
+import { useChatData, useChatActions, useChatUtils, useBranchData, useToastStore, useInputStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
 import { ConversationMessage } from '../types/api';
@@ -15,7 +15,7 @@ interface ChatInterfaceProps {
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) => {
   // Get chat data and actions using selective subscriptions
-  const { activeChatId, isProcessing: storeIsProcessing } = useChatData();
+  const { activeChatId, chatSessions, activeBranchPath, isProcessing: storeIsProcessing } = useChatData();
   const { 
     addMessageToChat, 
     updateMessageInChat, 
@@ -31,8 +31,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   // Get toast functions from Zustand store
   const { showToast } = useToastStore();
 
-  // Get the messages for the currently active chat (branch-aware)
-  const activeChatMessages = activeChatId ? getCurrentBranchMessages(activeChatId) : [];
+  // Get the messages for the currently active chat (branch-aware) - memoized to prevent unnecessary re-renders
+  const activeChat = chatSessions.find(c => c.id === activeChatId);
+  const currentBranchPath = activeBranchPath.get(activeChatId || '');
+  const activeChatMessages = useMemo(() => {
+    return activeChatId ? getCurrentBranchMessages(activeChatId) : [];
+  }, [activeChatId, getCurrentBranchMessages, activeChat?.messages, currentBranchPath]);
   
   // Local state for error handling
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +49,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     isProcessing: isFileProcessing
   } = useFileUpload();
   
-  // Local state for input value
-  const [inputValue, setInputValue] = useState<string>('');
+  // Get input store methods
+  const { resetInput } = useInputStore();
   
   // Periodic cleanup of unused image URLs to prevent memory leaks
   useEffect(() => {
@@ -160,7 +164,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       // Add to chat state
       addMessageToChat(currentChatId, userMessage);
       
-      setInputValue('');
+      resetInput();
       
       resetFileUploads();
       
@@ -325,8 +329,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       
       {/* Message input area */}
       <MessageInput
-        value={inputValue}
-        onChange={setInputValue}
         onSendMessage={handleSendMessage}
         onPauseRequest={handlePauseRequest}
         isProcessing={combinedIsProcessing}

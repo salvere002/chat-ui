@@ -4,10 +4,9 @@ import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane, FaPause } from 'react-ico
 import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
 import { backend } from '../utils/config';
+import { useInputStore } from '../stores';
 
 interface MessageInputProps {
-  value: string;
-  onChange: (value: string) => void;
   onSendMessage: (text: string, files?: { id: string; file: File }[]) => void;
   onPauseRequest: () => void;
   isProcessing: boolean;
@@ -45,14 +44,14 @@ const createAcceptAttribute = (): string => {
 };
 
 const MessageInput: React.FC<MessageInputProps> = ({
-  value,
-  onChange,
   onSendMessage,
   onPauseRequest,
   isProcessing,
   isFileProcessing = false,
   initialFiles = []
 }) => {
+  // Get input value and setter from input store
+  const { inputValue: value, setInputValue: onChange, resetInput } = useInputStore();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
@@ -63,13 +62,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const valueRef = useRef(value);
   const selectedFilesRef = useRef(selectedFiles);
   const onSendMessageRef = useRef(onSendMessage);
-  const onChangeRef = useRef(onChange);
 
   // Update refs when props change
   valueRef.current = value;
   selectedFilesRef.current = selectedFiles;
   onSendMessageRef.current = onSendMessage;
-  onChangeRef.current = onChange;
 
   // Effect to sync with initialFiles prop when it changes
   useEffect(() => {
@@ -97,10 +94,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
     // Call parent's handler
     onSendMessageRef.current(textToSend, filesToSend.length > 0 ? filesToSend : undefined);
 
-    // Clear text input locally
-    onChangeRef.current('');
+    // Clear text input using store
+    resetInput();
 
-  }, [isProcessing, isFileProcessing, onPauseRequest]);
+  }, [isProcessing, isFileProcessing, onPauseRequest, resetInput]);
 
   // Function to handle Enter key press
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -121,16 +118,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
         // Call parent's handler
         onSendMessageRef.current(textToSend, filesToSend.length > 0 ? filesToSend : undefined);
 
-        // Clear text input locally
-        onChangeRef.current('');
+        // Clear text input using store
+        resetInput();
       }
     }
-  }, [isProcessing, isFileProcessing]);
+  }, [isProcessing, isFileProcessing, resetInput]);
 
   // Function to handle textarea input
   const handleInput = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChangeRef.current(event.target.value);
-  }, []);
+    onChange(event.target.value);
+  }, [onChange]);
 
   // Function to trigger file input click
   const handleUploadClick = useCallback(() => {

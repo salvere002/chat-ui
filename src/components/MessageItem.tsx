@@ -77,6 +77,207 @@ const BranchNavigator = memo<BranchNavigatorProps>(({ branchData, onPreviousBran
 
 BranchNavigator.displayName = 'BranchNavigator';
 
+// MessageHeader Component - Handles thinking section for AI messages
+const MessageHeader: React.FC<{
+  sender: 'user' | 'ai';
+  thinkingContent?: string;
+  isThinkingComplete?: boolean;
+  isComplete?: boolean;
+  thinkingCollapsed?: boolean;
+  onThinkingToggle: (collapsed: boolean) => void;
+}> = memo(({ 
+  sender, 
+  thinkingContent, 
+  isThinkingComplete, 
+  isComplete, 
+  thinkingCollapsed, 
+  onThinkingToggle 
+}) => {
+  // Only render thinking section for AI messages
+  if (sender !== 'ai' || (!thinkingContent && (thinkingContent === undefined || isThinkingComplete))) {
+    return null;
+  }
+
+  return (
+    <div className="mb-3">
+      <ThinkingSection
+        thinkingContent={thinkingContent}
+        isThinkingComplete={isThinkingComplete}
+        isStreaming={!isComplete}
+        initialCollapsed={thinkingCollapsed !== false}
+        onToggle={onThinkingToggle}
+      />
+    </div>
+  );
+});
+
+MessageHeader.displayName = 'MessageHeader';
+
+// MessageBody Component - Handles file attachments, images, text content, and edit mode
+const MessageBody: React.FC<{
+  sender: 'user' | 'ai';
+  text?: string;
+  files?: MessageFile[];
+  imageUrl?: string;
+  isComplete?: boolean;
+  isEditing: boolean;
+  editText: string;
+  wasPaused?: boolean;
+  onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+}> = memo(({ 
+  sender, 
+  text, 
+  files, 
+  imageUrl, 
+  isComplete, 
+  isEditing, 
+  editText, 
+  wasPaused, 
+  onTextareaChange, 
+  onSaveEdit, 
+  onCancelEdit, 
+  textareaRef 
+}) => {
+  const isIncomplete = sender === 'ai' && isComplete === false;
+
+  return (
+    <>
+      {/* Render user's file attachments */}
+      {files && files.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {files.map((file) => (
+            <FileAttachment key={file.id} file={file} />
+          ))}
+        </div>
+      )}
+      
+      {/* Render AI's image if present */}
+      {imageUrl && sender === 'ai' && (
+        <EmbeddedImage imageUrl={imageUrl} />
+      )}
+      
+      {/* Render text content */}
+      {text && !isEditing && (
+        <MemoizedMarkdown text={text} isIncomplete={isIncomplete} />
+      )}
+      
+      {/* Edit mode text area */}
+      {isEditing && (
+        <div className="w-full">
+          <textarea
+            ref={textareaRef}
+            className="w-full min-h-[80px] p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-lg font-sans text-sm leading-normal resize-none transition-all duration-150 focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)]"
+            value={editText}
+            onChange={onTextareaChange}
+            placeholder="Edit your message..."
+            autoFocus
+          />
+          <div className="flex gap-1 mt-2 justify-end">
+            <button className="flex items-center gap-1 px-2 py-1 bg-transparent text-text-secondary border border-border-primary rounded text-xs cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary" onClick={onCancelEdit}>
+              <FaTimes size={10} /> Cancel
+            </button>
+            <button className="flex items-center gap-1 px-2 py-1 bg-accent-primary text-text-inverse border-none rounded text-xs cursor-pointer transition-all duration-150 hover:bg-accent-hover" onClick={onSaveEdit}>
+              <FaCheck size={10} /> Save
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* If no text but still incomplete (e.g., only image incoming), show indicator */}
+      {!text && isIncomplete && (
+        <LoadingIndicator type="dots" size="small" />
+      )}
+
+      {/* If no text and was paused, show placeholder */}
+      {!text && wasPaused && sender === 'ai' && (
+        <div className="text-text-tertiary italic text-sm opacity-70">
+          Response was paused before any content was generated.
+        </div>
+      )}
+    </>
+  );
+});
+
+MessageBody.displayName = 'MessageBody';
+
+// MessageFooter Component - Handles branch navigation, timestamp, and action buttons
+const MessageFooter: React.FC<{
+  sender: 'user' | 'ai';
+  timestamp: Date;
+  wasPaused?: boolean;
+  isComplete?: boolean;
+  branchData: BranchData;
+  onPreviousBranch: () => void;
+  onNextBranch: () => void;
+  // Message actions props
+  text?: string;
+  copied: boolean;
+  isEditing: boolean;
+  onCopyMessage: () => void;
+  onSetIsEditing: (editing: boolean) => void;
+  onEditMessage?: (messageId: string, newText: string) => void;
+  onRegenerateResponse?: () => void;
+}> = memo(({ 
+  sender, 
+  timestamp, 
+  wasPaused, 
+  isComplete, 
+  branchData, 
+  onPreviousBranch, 
+  onNextBranch,
+  // Message actions
+  text,
+  copied,
+  isEditing,
+  onCopyMessage,
+  onSetIsEditing,
+  onEditMessage,
+  onRegenerateResponse
+}) => {
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  return (
+    <>
+      <BranchNavigator
+        branchData={branchData}
+        onPreviousBranch={onPreviousBranch}
+        onNextBranch={onNextBranch}
+      />
+      
+      {/* Actions footer - only show when hovering */}
+      <div className="flex items-center mt-1 px-1 opacity-0 transition-opacity duration-150 text-xs text-text-tertiary gap-2 group-hover:opacity-100">
+        <div className="mr-auto flex items-center gap-2">
+          {formatTime(timestamp)}
+          {wasPaused && sender === 'ai' && (
+            <span className="text-orange-500 text-xs opacity-70" title="Response was paused">
+              ⏸
+            </span>
+          )}
+        </div>
+        
+        <MessageActions
+          sender={sender}
+          text={text}
+          copied={copied}
+          isEditing={isEditing}
+          isComplete={isComplete}
+          onCopyMessage={onCopyMessage}
+          onSetIsEditing={onSetIsEditing}
+          onEditMessage={onEditMessage}
+          onRegenerateResponse={onRegenerateResponse}
+        />
+      </div>
+    </>
+  );
+});
+
+MessageFooter.displayName = 'MessageFooter';
+
 // MessageActions Component - Handles message action buttons (copy, edit, regenerate)
 interface MessageActionsProps {
   sender: 'user' | 'ai';
@@ -318,6 +519,53 @@ const EmbeddedImage: React.FC<{ imageUrl: string }> = memo(({ imageUrl }) => {
 });
 
 EmbeddedImage.displayName = 'EmbeddedImage';
+
+// FileAttachment Component - Handles individual file display
+interface FileAttachmentProps {
+  file: MessageFile;
+}
+
+const FileAttachment = React.memo<FileAttachmentProps>(({ file }) => {
+  useEffect(() => {
+    // Track image URLs when component mounts
+    if (file.type.startsWith('image/') && file.url.startsWith('blob:')) {
+      fileService.trackActiveImageUrl(file.url);
+    }
+    
+    return () => {
+      // Cleanup handled by periodic cleanup system
+    };
+  }, [file.url, file.type]);
+  
+  return (
+    <div className="inline-block bg-bg-secondary border border-border-secondary rounded-lg overflow-hidden" style={{maxWidth: '580px'}}>
+      {file.type.startsWith('image/') ? (
+        <img 
+          src={file.url} 
+          alt={file.name} 
+          className="w-full h-auto object-contain" 
+          style={{maxWidth: '580px', maxHeight: '320px'}}
+          loading="lazy"
+          onError={(e) => {
+            const target = e.currentTarget as HTMLImageElement;
+            target.style.display = 'none';
+            console.warn('Failed to load file attachment image:', file.url);
+          }}
+        />
+      ) : (
+        <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 text-text-primary hover:bg-bg-tertiary transition-colors duration-150">
+          <FaFileAlt className="text-accent-primary text-lg flex-shrink-0" />
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-medium truncate">{file.name}</span>
+            <span className="text-xs text-text-tertiary">{fileService.formatFileSize(file.size)}</span>
+          </div>
+        </a>
+      )}
+    </div>
+  );
+});
+
+FileAttachment.displayName = 'FileAttachment';
 
 // Memoized markdown renderer to prevent unnecessary re-renders
 const MemoizedMarkdown: React.FC<{ 
@@ -779,11 +1027,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     }
   }, [editText, isEditing]);
 
-  const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-  };
-
-
   // Memoized branch navigation handlers
   const handlePreviousBranch = useCallback(() => {
     if (hasBranches && actualCurrentBranchIndex > 0 && branchOptions.length > actualCurrentBranchIndex - 1) {
@@ -1020,55 +1263,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     setEditText(e.target.value);
   };
 
-  // Helper component to render a single file attachment
-  interface FileAttachmentProps {
-    file: MessageFile;
-  }
-  
-  const FileAttachment = memo<FileAttachmentProps>(({ file }) => {
-    useEffect(() => {
-      // Track image URLs when component mounts
-      if (file.type.startsWith('image/') && file.url.startsWith('blob:')) {
-        fileService.trackActiveImageUrl(file.url);
-      }
-      
-      return () => {
-        // Cleanup handled by periodic cleanup system
-      };
-    }, [file.url, file.type]);
-    
-    return (
-      <div className="inline-block bg-bg-secondary border border-border-secondary rounded-lg overflow-hidden" style={{maxWidth: '580px'}}>
-        {file.type.startsWith('image/') ? (
-          <img 
-            src={file.url} 
-            alt={file.name} 
-            className="w-full h-auto object-contain" 
-            style={{maxWidth: '580px', maxHeight: '320px'}}
-            loading="lazy"
-            onError={(e) => {
-              const target = e.currentTarget as HTMLImageElement;
-              target.style.display = 'none';
-              console.warn('Failed to load file attachment image:', file.url);
-            }}
-          />
-        ) : (
-          <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 text-text-primary hover:bg-bg-tertiary transition-colors duration-150">
-            <FaFileAlt className="text-accent-primary text-lg flex-shrink-0" />
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium truncate">{file.name}</span>
-              <span className="text-xs text-text-tertiary">{fileService.formatFileSize(file.size)}</span>
-            </div>
-          </a>
-        )}
-      </div>
-    );
-  });
-
-  FileAttachment.displayName = 'FileAttachment';
-
-  // Check if this is an incomplete AI message (for streaming)
-  const isIncomplete = sender === 'ai' && isComplete === false;
 
   // Memoize expensive style calculations
   const containerClasses = useMemo(() => 
@@ -1097,373 +1291,47 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         data-is-complete={isComplete !== false}
       >
       <div className={messageClasses}>
-        {/* Render thinking section for AI messages */}
-        {sender === 'ai' && (thinkingContent || (thinkingContent !== undefined && !isThinkingComplete)) && (
-          <div className="mb-3">
-            <ThinkingSection
-              thinkingContent={thinkingContent}
-              isThinkingComplete={isThinkingComplete}
-              isStreaming={!isComplete}
-              initialCollapsed={thinkingCollapsed !== false}
-              onToggle={handleThinkingToggle}
-            />
-          </div>
-        )}
+        <MessageHeader
+          sender={sender}
+          thinkingContent={thinkingContent}
+          isThinkingComplete={isThinkingComplete}
+          isComplete={isComplete}
+          thinkingCollapsed={thinkingCollapsed}
+          onThinkingToggle={handleThinkingToggle}
+        />
 
-        {/* Render user's file attachments */}
-        {files && files.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {files.map((file) => (
-              <FileAttachment key={file.id} file={file} />
-            ))}
-          </div>
-        )}
-        
-        {/* Render AI's image if present */}
-        {imageUrl && sender === 'ai' && (
-          <EmbeddedImage imageUrl={imageUrl} />
-        )}
-        
-        {/* Render text content */}
-        {text && !isEditing && (
-          <MemoizedMarkdown text={text} isIncomplete={isIncomplete} />
-        )}
-        
-        {/* Legacy ReactMarkdown block - to be removed */}
-        {false && text && !isEditing && (
-          <div className="prose prose-sm max-w-none text-current">
-            <ReactMarkdown
-              children={text}
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex]}
-              components={{
-                // Custom table components for better styling
-                table({ children, ...props }) {
-                  return (
-                    <div className="overflow-x-auto my-4 rounded-lg border border-border-secondary shadow-sm">
-                      <table className="min-w-full border-collapse bg-bg-primary" {...props}>
-                        {children}
-                      </table>
-                    </div>
-                  );
-                },
-                thead({ children, ...props }) {
-                  return (
-                    <thead className="bg-bg-secondary" {...props}>
-                      {children}
-                    </thead>
-                  );
-                },
-                tbody({ children, ...props }) {
-                  return (
-                    <tbody className="divide-y divide-border-secondary" {...props}>
-                      {children}
-                    </tbody>
-                  );
-                },
-                tr({ children, ...props }) {
-                  const isHeaderRow = props.className?.includes('thead') || false;
-                  return (
-                    <tr className={`${isHeaderRow ? '' : 'hover:bg-bg-tertiary'} transition-colors duration-150`} {...props}>
-                      {children}
-                    </tr>
-                  );
-                },
-                th({ children, ...props }) {
-                  return (
-                    <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider border-b border-border-secondary" {...props}>
-                      {children}
-                    </th>
-                  );
-                },
-                td({ children, ...props }) {
-                  return (
-                    <td className="px-4 py-3 text-sm text-text-primary whitespace-nowrap" {...props}>
-                      {children}
-                    </td>
-                  );
-                },
-                code({ node, inline, className, children, ...props }: any) {
-                  const match = /language-(.+)/.exec(className || '');
-                  
-                  // Handle chart code blocks
-                  if (!inline && match) {
-                    const language = match[1];
-                    const content = String(children).replace(/\n$/, '');
-                    
-                    
-                    // Check for image format: img{url}
-                    const imageMatch = /^img\{([^}]+)\}$/.exec(language);
-                    
-                    if (imageMatch) {
-                      const imageUrl = imageMatch[1].trim();
-                      
-                      // Validate that we have a URL
-                      if (!imageUrl) {
-                        return (
-                          <CodeBlock
-                            language={language}
-                            className={className}
-                            {...props}
-                          >
-                            {content}
-                          </CodeBlock>
-                        );
-                      }
-                      
-                      return <EmbeddedImage imageUrl={imageUrl} />;
-                    }
-                    
-                    // Check for chart format: chart{attributes} - handle both complete and truncated
-                    const completeChartMatch = /^chart\{([^}]*)\}$/.exec(language);
-                    const truncatedChartMatch = /^chart\{(.*)$/.exec(language);
-                    
-                    // Try complete match first, then truncated
-                    const chartFormatMatch = completeChartMatch || truncatedChartMatch;
-                    
-                    if (chartFormatMatch) {
-                      // Detect if this is a truncated chart block
-                      const isTruncated = !completeChartMatch && truncatedChartMatch;
-                      
-                      // Markdown table format with attributes
-                      const attributeString = chartFormatMatch[1];
-                      const attributes = parseChartAttributes(attributeString);
-                      
-                      // Parse markdown table from content
-                      const tableData = parseMarkdownTable(content);
-                      
-                      // Handle truncated attributes by inferring missing values based on table structure
-                      if (isTruncated && attributes.type) {
-                        // For truncated charts, try to infer missing x/y from table headers
-                        const firstRow = tableData[0];
-                        if (firstRow) {
-                          const columns = Object.keys(firstRow);
-                          // Smart attribute inference based on chart type and available columns
-                          if (!attributes.x) {
-                            if (columns.includes('name')) attributes.x = 'name';
-                            else if (columns.includes('month')) attributes.x = 'month'; 
-                            else if (columns.includes('date')) attributes.x = 'date';
-                            else if (columns.includes('x')) attributes.x = 'x';
-                            else attributes.x = columns[0]; // First column as fallback
-                          }
-                          
-                          if (!attributes.y) {
-                            // Chart-type specific Y-axis inference
-                            if (attributes.type === 'area' && columns.includes('desktop')) {
-                              attributes.y = 'desktop';
-                            } else if (attributes.type === 'line' && columns.includes('revenue')) {
-                              attributes.y = 'revenue';
-                            } else if (columns.includes('value')) {
-                              attributes.y = 'value';
-                            } else if (columns.includes('y')) {
-                              attributes.y = 'y';
-                            } else if (columns.includes('sales')) {
-                              attributes.y = 'sales';
-                            } else if (columns.includes('price')) {
-                              attributes.y = 'price';
-                            } else {
-                              // Use the last numeric-looking column or fallback to last column
-                              attributes.y = columns[columns.length - 1];
-                            }
-                          }
-                          
-                          // Apply default height if missing due to truncation
-                          if (!attributes.height) {
-                            attributes.height = '320';
-                          }
-                        }
-                      }
-                      
-                      // Check if we have valid data
-                      if (tableData.length === 0 || !attributes.type) {
-                        // If incomplete or no type specified, render as regular code block
-                        return (
-                          <CodeBlock
-                            language={language}
-                            className={className}
-                            {...props}
-                          >
-                            {content}
-                          </CodeBlock>
-                        );
-                      }
-                      
-                      // Memoize chartData creation
-                      const memoizedChartData = useMemo(() => {
-                        try {
-                          // Build chart configuration from attributes
-                          const config: any = {
-                            title: attributes.title || undefined,
-                            xKey: attributes.x || attributes.xKey || 'name',
-                            xLabel: attributes.xlabel || undefined,
-                            yLabel: attributes.ylabel || undefined,
-                            height: attributes.height ? parseInt(attributes.height) : 320,
-                          };
-                          
-                          // Smart multi-series detection for line and area charts
-                          if (tableData.length > 0 && (attributes.type === 'line' || attributes.type === 'area')) {
-                            const firstRow = tableData[0];
-                            const allColumns = Object.keys(firstRow);
-                            const xColumn = config.xKey;
-                            
-                            // Find all numeric columns that aren't the x-axis
-                            const numericColumns = allColumns.filter(col => {
-                              if (col === xColumn) return false; // Skip x-axis column
-                              
-                              // Check if column contains numeric data
-                              const sampleValue = firstRow[col];
-                              return !isNaN(parseFloat(sampleValue)) && isFinite(sampleValue);
-                            });
-                            
-                            // Use multiple columns for multi-series charts
-                            if (numericColumns.length > 1) {
-                              config.yKey = numericColumns;
-                            } else {
-                              config.yKey = attributes.y || attributes.yKey || numericColumns[0] || 'value';
-                            }
-                          } else {
-                            // Single series for other chart types
-                            config.yKey = attributes.y || attributes.yKey || 'value';
-                          }
-                          
-                          // Handle colors - support multiple colors separated by commas
-                          if (attributes.colors) {
-                            config.colors = attributes.colors.split(',').map(c => c.trim());
-                          } else if (attributes.color) {
-                            // Backward compatibility for single color
-                            config.colors = [attributes.color];
-                          } else {
-                            config.colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#00ff7f"];
-                          }
-                          
-                          // Remove undefined values
-                          Object.keys(config).forEach(key => {
-                            if (config[key] === undefined) {
-                              delete config[key];
-                            }
-                          });
-                          
-                          const chartData: ChartData = {
-                            type: attributes.type as any,
-                            data: tableData,
-                            config
-                          };
-                          
-                          return chartData;
-                        } catch (error) {
-                          return null;
-                        }
-                      }, [content, attributeString]);
-                      
-                      if (memoizedChartData) {
-                        const chartKey = `chart-table-${attributes.type}-${content.substring(0, 50)}`;
-                        return <ChartRenderer key={chartKey} chartData={memoizedChartData} />;
-                      } else {
-                        return (
-                          <CodeBlock
-                            language={language}
-                            className={className}
-                            {...props}
-                          >
-                            {content}
-                          </CodeBlock>
-                        );
-                      }
-                    }
-                    
-                    // Regular code block
-                    return (
-                      <CodeBlock
-                        language={language}
-                        className={className}
-                        {...props}
-                      >
-                        {String(children).replace(/\n$/, '')}
-                      </CodeBlock>
-                    );
-                  }
-                  
-                  // Inline code
-                  return (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  );
-                }
-              } as Components}
-            />
-            
-            {/* Add typing indicator if AI message is incomplete */}
-            {isIncomplete && (
-              <LoadingIndicator type="dots" size="small" />
-            )}
-          </div>
-        )}
-        
-        {/* Edit mode text area */}
-        {isEditing && (
-          <div className="w-full">
-            <textarea
-              ref={textareaRef}
-              className="w-full min-h-[80px] p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-lg font-sans text-sm leading-normal resize-none transition-all duration-150 focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)]"
-              value={editText}
-              onChange={handleTextareaChange}
-              placeholder="Edit your message..."
-              autoFocus
-            />
-            <div className="flex gap-1 mt-2 justify-end">
-              <button className="flex items-center gap-1 px-2 py-1 bg-transparent text-text-secondary border border-border-primary rounded text-xs cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary" onClick={handleCancelEdit}>
-                <FaTimes size={10} /> Cancel
-              </button>
-              <button className="flex items-center gap-1 px-2 py-1 bg-accent-primary text-text-inverse border-none rounded text-xs cursor-pointer transition-all duration-150 hover:bg-accent-hover" onClick={handleSaveEdit}>
-                <FaCheck size={10} /> Save
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* If no text but still incomplete (e.g., only image incoming), show indicator */}
-        {!text && isIncomplete && (
-          <LoadingIndicator type="dots" size="small" />
-        )}
-
-        {/* If no text and was paused, show placeholder */}
-        {!text && wasPaused && sender === 'ai' && (
-          <div className="text-text-tertiary italic text-sm opacity-70">
-            Response was paused before any content was generated.
-          </div>
-        )}
+        <MessageBody
+          sender={sender}
+          text={text}
+          files={files}
+          imageUrl={imageUrl}
+          isComplete={isComplete}
+          isEditing={isEditing}
+          editText={editText}
+          wasPaused={wasPaused}
+          onTextareaChange={handleTextareaChange}
+          onSaveEdit={handleSaveEdit}
+          onCancelEdit={handleCancelEdit}
+          textareaRef={textareaRef}
+        />
       </div>
       
-      <BranchNavigator
+      <MessageFooter
+        sender={sender}
+        timestamp={timestamp}
+        wasPaused={wasPaused}
+        isComplete={isComplete}
         branchData={branchData}
         onPreviousBranch={handlePreviousBranch}
         onNextBranch={handleNextBranch}
+        text={text}
+        copied={copied}
+        isEditing={isEditing}
+        onCopyMessage={handleCopyMessage}
+        onSetIsEditing={handleSetIsEditing}
+        onEditMessage={onEditMessage}
+        onRegenerateResponse={onRegenerateResponse}
       />
-      
-      {/* Actions footer - only show when hovering (moved outside message-content) */}
-      <div className="flex items-center mt-1 px-1 opacity-0 transition-opacity duration-150 text-xs text-text-tertiary gap-2 group-hover:opacity-100">
-        <div className="mr-auto flex items-center gap-2">
-          {formatTime(timestamp)}
-          {wasPaused && sender === 'ai' && (
-            <span className="text-orange-500 text-xs opacity-70" title="Response was paused">
-              ⏸
-            </span>
-          )}
-        </div>
-        
-        <MessageActions
-          sender={sender}
-          text={text}
-          copied={copied}
-          isEditing={isEditing}
-          isComplete={isComplete}
-          onCopyMessage={handleCopyMessage}
-          onSetIsEditing={handleSetIsEditing}
-          onEditMessage={onEditMessage}
-          onRegenerateResponse={onRegenerateResponse}
-        />
-      </div>
     </div>
   );
 };

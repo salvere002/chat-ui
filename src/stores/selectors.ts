@@ -5,6 +5,7 @@ import useChatStore from './chatStore';
 export const useChatData = () => useChatStore(useShallow((state) => ({
   activeChatId: state.activeChatId,
   chatSessions: state.chatSessions,
+  activeBranchPath: state.activeBranchPath,
   isProcessing: state.isProcessing,
   error: state.error,
 })));

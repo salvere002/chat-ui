@@ -95,10 +95,13 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     // Get current last message id
     const currentLastMessageId = messages.length > 0 ? messages[messages.length - 1].id : '';
     const shouldScrollToBottom = 
-      // If message count increased (new message added)
-      messages.length > previousMessageCount || 
-      // Or if the last message ID changed (content updated)
-      (messages.length > 0 && currentLastMessageId !== previousLastMessageId && previousLastMessageId !== '');
+      // Only scroll if message count increased (new message added)
+      messages.length > previousMessageCount ||
+      // Or if the last message content actually changed (but only if we had previous messages)
+      (messages.length > 0 && 
+       currentLastMessageId !== previousLastMessageId && 
+       previousLastMessageId !== '' &&
+       previousMessageCount > 0);
     
     if (shouldScrollToBottom) {
       // Use requestAnimationFrame for smooth scrolling without blocking UI
