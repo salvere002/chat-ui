@@ -10,7 +10,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; //
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Light theme
 import type { Components } from 'react-markdown'; // Import CodeProps directly from react-markdown
 import { fileService } from '../services/fileService';
-import useChatStore from '../stores/chatStore';
+import { useBranchActions, useChatActions, useChatUtils, useBranchData } from '../stores';
 import { ChatService } from '../services/chatService';
 import { useResponseModeStore, useThemeStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
@@ -35,11 +35,13 @@ interface BranchData {
 
 
 // BranchNavigator Component - Handles branch navigation UI
-const BranchNavigator: React.FC<{
+interface BranchNavigatorProps {
   branchData: BranchData;
   onPreviousBranch: () => void;
   onNextBranch: () => void;
-}> = memo(({ branchData, onPreviousBranch, onNextBranch }) => {
+}
+
+const BranchNavigator = memo<BranchNavigatorProps>(({ branchData, onPreviousBranch, onNextBranch }) => {
   const { hasBranches, totalBranches, actualCurrentBranchIndex } = branchData;
   
   if (!hasBranches || totalBranches <= 1) {
@@ -73,8 +75,10 @@ const BranchNavigator: React.FC<{
   );
 });
 
+BranchNavigator.displayName = 'BranchNavigator';
+
 // MessageActions Component - Handles message action buttons (copy, edit, regenerate)
-const MessageActions: React.FC<{
+interface MessageActionsProps {
   sender: 'user' | 'ai';
   text?: string;
   copied: boolean;
@@ -84,7 +88,9 @@ const MessageActions: React.FC<{
   onSetIsEditing: (editing: boolean) => void;
   onEditMessage?: (messageId: string, newText: string) => void;
   onRegenerateResponse?: () => void;
-}> = memo(({ 
+}
+
+const MessageActions = memo<MessageActionsProps>(({ 
   sender, 
   text, 
   copied, 
@@ -133,8 +139,16 @@ const MessageActions: React.FC<{
   );
 });
 
-// CodeBlock component with copy and collapse functionality
-const CodeBlock: React.FC<{ children: string; language: string; className?: string }> = ({ 
+MessageActions.displayName = 'MessageActions';
+
+// CodeBlock component with copy and collapse functionality - memo with proper TypeScript syntax
+interface CodeBlockProps {
+  children: string; 
+  language: string; 
+  className?: string;
+}
+
+const CodeBlock = memo<CodeBlockProps>(({ 
   children, 
   language, 
   className,
@@ -263,7 +277,9 @@ const CodeBlock: React.FC<{ children: string; language: string; className?: stri
       )}
     </div>
   );
-};
+});
+
+CodeBlock.displayName = 'CodeBlock';
 
 // Memoized embedded image component to prevent reloads on typing
 const EmbeddedImage: React.FC<{ imageUrl: string }> = memo(({ imageUrl }) => {
@@ -687,18 +703,22 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   // Destructure files array instead of single file
   const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed, wasPaused } = message;
   
-  // Get store methods for branch management
+  // Get store methods using selective subscriptions
   const { 
     getBranchOptionsAtMessage,
     switchToBranch, 
-    createBranchFromMessage,
+    createBranchFromMessage
+  } = useBranchActions();
+  
+  const {
     addMessageToChat,
     updateMessageInChat,
     setProcessing,
-    getCurrentBranchMessages,
-    getChatById,
     setActiveRequestController
-  } = useChatStore();
+  } = useChatActions();
+  
+  const { getChatById } = useChatUtils();
+  const { getCurrentBranchMessages } = useBranchData();
   
   // Get response mode selection for AI responses
   const { selectedResponseMode } = useResponseModeStore();
@@ -818,7 +838,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       // Include history up to the current message
       const historyMessages = currentMessageIndex >= 0 ? allBranchMessages.slice(0, currentMessageIndex + 1) : allBranchMessages;
       const history: ConversationMessage[] = historyMessages
-        .map(msg => ({
+        .map((msg: Message) => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.text,
           timestamp: msg.timestamp
@@ -837,7 +857,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
             onChunk: (chunk) => {
               // Handle thinking content streaming
               if (chunk.thinking) {
-                const currentMessage = getChatById(chatId)?.messages.find(m => m.id === aiMessageId);
+                const currentMessage = getChatById(chatId)?.messages.find((m: Message) => m.id === aiMessageId);
                 updateMessageInChat(chatId, aiMessageId, {
                   thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
                   isThinkingComplete: chunk.thinkingComplete,
@@ -1001,7 +1021,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   };
 
   // Helper component to render a single file attachment
-  const FileAttachment: React.FC<{ file: MessageFile }> = memo(({ file }) => {
+  interface FileAttachmentProps {
+    file: MessageFile;
+  }
+  
+  const FileAttachment = memo<FileAttachmentProps>(({ file }) => {
     useEffect(() => {
       // Track image URLs when component mounts
       if (file.type.startsWith('image/') && file.url.startsWith('blob:')) {
@@ -1041,19 +1065,38 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     );
   });
 
+  FileAttachment.displayName = 'FileAttachment';
+
   // Check if this is an incomplete AI message (for streaming)
   const isIncomplete = sender === 'ai' && isComplete === false;
 
+  // Memoize expensive style calculations
+  const containerClasses = useMemo(() => 
+    `group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${
+      sender === 'user' ? 'self-end items-end' : 'self-start items-start'
+    } ${
+      isEditing ? 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]' : ''
+    }`,
+    [sender, isEditing]
+  );
+
+  const messageClasses = useMemo(() => 
+    `relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${
+      isEditing ? 'w-full' : 'w-fit'
+    } ${
+      sender === 'user' 
+        ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
+        : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
+    }`,
+    [sender, isEditing]
+  );
+
   return (
     <div 
-      className={`group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${sender === 'user' ? 'self-end items-end' : 'self-start items-start'} ${isEditing ? 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]' : ''}`}
+      className={containerClasses}
         data-is-complete={isComplete !== false}
       >
-      <div className={`relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${isEditing ? 'w-full' : 'w-fit'} ${
-        sender === 'user' 
-          ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
-          : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
-      }`}>
+      <div className={messageClasses}>
         {/* Render thinking section for AI messages */}
         {sender === 'ai' && (thinkingContent || (thinkingContent !== undefined && !isThinkingComplete)) && (
           <div className="mb-3">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
-import { useChatStore, useToastStore } from '../stores';
+import { useChatData, useChatActions, useChatUtils, useBranchData, useToastStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
 import { ConversationMessage } from '../types/api';
@@ -14,20 +14,19 @@ interface ChatInterfaceProps {
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) => {
-  // Get chat state and handlers from the Zustand store
-  const {
-    activeChatId,
-    getChatById,
-    addMessageToChat,
-    updateMessageInChat,
-    isProcessing: storeIsProcessing,
-    setProcessing,
-    createChat,
-    setActiveChat,
-    getCurrentBranchMessages,
-    setActiveRequestController,
-    pauseCurrentRequest
-  } = useChatStore();
+  // Get chat data and actions using selective subscriptions
+  const { activeChatId, isProcessing: storeIsProcessing } = useChatData();
+  const { 
+    addMessageToChat, 
+    updateMessageInChat, 
+    setProcessing, 
+    createChat, 
+    setActiveChat, 
+    setActiveRequestController, 
+    pauseCurrentRequest 
+  } = useChatActions();
+  const { getChatById } = useChatUtils();
+  const { getCurrentBranchMessages } = useBranchData();
 
   // Get toast functions from Zustand store
   const { showToast } = useToastStore();
@@ -56,7 +55,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
         // Collect all image URLs currently in use
         const activeUrls: string[] = [];
         
-        activeChatMessages.forEach(message => {
+        activeChatMessages.forEach((message: Message) => {
           // Add AI image URLs
           if (message.imageUrl) {
             activeUrls.push(message.imageUrl);
@@ -64,7 +63,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           
           // Add file attachment URLs
           if (message.files) {
-            message.files.forEach(file => {
+            message.files.forEach((file: MessageFile) => {
               if (file.type.startsWith('image/')) {
                 activeUrls.push(file.url);
               }
@@ -141,7 +140,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       
       // Get conversation history for the current branch BEFORE adding current messages
       const history: ConversationMessage[] = getCurrentBranchMessages(currentChatId)
-        .map(msg => ({
+        .map((msg: Message) => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.text,
           timestamp: msg.timestamp

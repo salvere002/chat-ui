@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import MessageItem from './MessageItem';
 import { Message } from '../types/chat';
-import { useChatStore } from '../stores';
+import { useChatActions, useBranchData } from '../stores';
 import { ChatService } from '../services/chatService';
 import { useResponseModeStore } from '../stores';
 import { ConversationMessage } from '../types/api';
@@ -16,11 +16,29 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const accumulatedTextRef = useRef<string>("");
-  const { activeChatId, updateMessageInChat, setProcessing, getCurrentBranchMessages, setActiveRequestController } = useChatStore();
+  
+  // Use selective subscriptions
+  const { updateMessageInChat, setProcessing, setActiveRequestController } = useChatActions();
+  const { getCurrentBranchMessages } = useBranchData();
   const { selectedResponseMode } = useResponseModeStore();
+  
   const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
   const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
   const [previousLastMessageId, setPreviousLastMessageId] = useState<string>('');
+
+  // Use refs for stable access to store methods
+  const updateMessageInChatRef = useRef(updateMessageInChat);
+  const setProcessingRef = useRef(setProcessing);
+  const getCurrentBranchMessagesRef = useRef(getCurrentBranchMessages);
+  const setActiveRequestControllerRef = useRef(setActiveRequestController);
+  const selectedResponseModeRef = useRef(selectedResponseMode);
+
+  // Update refs when store values change
+  updateMessageInChatRef.current = updateMessageInChat;
+  setProcessingRef.current = setProcessing;
+  getCurrentBranchMessagesRef.current = getCurrentBranchMessages;
+  setActiveRequestControllerRef.current = setActiveRequestController;
+  selectedResponseModeRef.current = selectedResponseMode;
   
   // Scroll to bottom function - memoized to prevent unnecessary recreations
   const scrollToBottom = useCallback(() => {
@@ -185,33 +203,33 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   }, [messages, scrollToBottom]);
 
   // Generate or regenerate AI response based on a user message
-  const generateAIResponse = async (userMessageText: string, userMessageFiles: any[] = [], aiMessageId: string) => {
-    if (!activeChatId) return;
+  const generateAIResponse = useCallback(async (userMessageText: string, userMessageFiles: any[] = [], aiMessageId: string) => {
+    if (!chatId) return;
     
     try {
       // Set processing state and create abort controller
-      setProcessing(true);
+      setProcessingRef.current(true);
       const abortController = new AbortController();
-      setActiveRequestController(abortController);
+      setActiveRequestControllerRef.current(abortController);
       
       // Reset accumulated text
       accumulatedTextRef.current = "";
       
       // Get conversation history for the current branch (excluding the message being regenerated)
-      const allBranchMessages = getCurrentBranchMessages(activeChatId);
+      const allBranchMessages = getCurrentBranchMessagesRef.current(chatId);
       const aiMessageIndex = allBranchMessages.findIndex(msg => msg.id === aiMessageId);
       
       // Include history up to the user message before the AI message being regenerated
       const historyMessages = aiMessageIndex > 0 ? allBranchMessages.slice(0, aiMessageIndex) : allBranchMessages;
       const history: ConversationMessage[] = historyMessages
-        .map(msg => ({
+        .map((msg: Message) => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.text,
           timestamp: msg.timestamp
         }));
       
       // Use the ChatService based on selected response mode
-      if (selectedResponseMode === 'stream') {
+      if (selectedResponseModeRef.current === 'stream') {
         // Streaming API call
         await ChatService.sendStreamingMessage(
           userMessageText,
@@ -220,8 +238,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
             onChunk: (chunk) => {
               // Handle thinking content streaming
               if (chunk.thinking) {
-                const currentMessage = getCurrentBranchMessages(activeChatId).find(m => m.id === aiMessageId);
-                updateMessageInChat(activeChatId, aiMessageId, {
+                const currentMessage = getCurrentBranchMessagesRef.current(chatId).find((m: Message) => m.id === aiMessageId);
+                updateMessageInChatRef.current(chatId, aiMessageId, {
                   thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
                   isThinkingComplete: chunk.thinkingComplete,
                   thinkingCollapsed: currentMessage?.thinkingCollapsed ?? true
@@ -234,7 +252,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
                 accumulatedTextRef.current += chunk.text;
                 
                 // Update with the accumulated text
-                updateMessageInChat(activeChatId, aiMessageId, {
+                updateMessageInChatRef.current(chatId, aiMessageId, {
                   text: accumulatedTextRef.current,
                   imageUrl: chunk.imageUrl
                 });
@@ -242,13 +260,13 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
             },
             onComplete: () => {
               // Mark as complete when done
-              updateMessageInChat(activeChatId, aiMessageId, {
+              updateMessageInChatRef.current(chatId, aiMessageId, {
                 isComplete: true,
                 isThinkingComplete: true // Ensure thinking is also marked complete
               });
               // Clear processing state and abort controller
-              setProcessing(false);
-              setActiveRequestController(null);
+              setProcessingRef.current(false);
+              setActiveRequestControllerRef.current(null);
               // Reset accumulated text
               accumulatedTextRef.current = "";
             },
@@ -256,21 +274,21 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
               // Don't show error for aborted requests
               if (error.name !== 'AbortError') {
                 console.error('Regeneration error:', error.message);
-                updateMessageInChat(activeChatId, aiMessageId, {
+                updateMessageInChatRef.current(chatId, aiMessageId, {
                   text: 'Sorry, there was an error processing your request.',
                   isComplete: true
                 });
               } else {
                 // For aborted requests, mark current message as complete with existing content
-                updateMessageInChat(activeChatId, aiMessageId, {
+                updateMessageInChatRef.current(chatId, aiMessageId, {
                   isComplete: true,
                   isThinkingComplete: true,
                   wasPaused: true
                 });
               }
               // Clear processing state and abort controller
-              setProcessing(false);
-              setActiveRequestController(null);
+              setProcessingRef.current(false);
+              setActiveRequestControllerRef.current(null);
               // Reset accumulated text
               accumulatedTextRef.current = "";
             }
@@ -283,7 +301,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
         try {
           const response = await ChatService.sendMessage(userMessageText, userMessageFiles, history, abortController.signal);
           // Update AI message with complete response
-          updateMessageInChat(activeChatId, aiMessageId, {
+          updateMessageInChatRef.current(chatId, aiMessageId, {
             text: response.text,
             isComplete: true,
             thinkingContent: response.thinking,
@@ -293,41 +311,41 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
           // Handle abort vs other errors
           if (error instanceof Error && error.name === 'AbortError') {
             // For aborted requests, mark current message as complete with existing content
-            updateMessageInChat(activeChatId, aiMessageId, {
+            updateMessageInChatRef.current(chatId, aiMessageId, {
               isComplete: true,
               wasPaused: true
             });
           } else {
             // Show error and mark message as complete
             console.error('Regeneration error:', error instanceof Error ? error.message : 'Unknown error');
-            updateMessageInChat(activeChatId, aiMessageId, {
+            updateMessageInChatRef.current(chatId, aiMessageId, {
               text: 'Sorry, there was an error processing your request.',
               isComplete: true
             });
           }
         } finally {
           // Clear processing state and abort controller
-          setProcessing(false);
-          setActiveRequestController(null);
+          setProcessingRef.current(false);
+          setActiveRequestControllerRef.current(null);
         }
       }
     } catch (error) {
       // Handle errors
       console.error("Error generating AI response:", error);
-      updateMessageInChat(activeChatId, aiMessageId, {
+      updateMessageInChatRef.current(chatId, aiMessageId, {
         text: 'Sorry, there was an error processing your request.',
         isComplete: true
       });
-      setProcessing(false);
-      setActiveRequestController(null);
+      setProcessingRef.current(false);
+      setActiveRequestControllerRef.current(null);
       // Reset accumulated text
       accumulatedTextRef.current = "";
     }
-  };
+  }, [chatId]);
 
   // Handle regenerating response
-  const handleRegenerateResponse = async (userMessageId: string) => {
-    if (!activeChatId) return;
+  const handleRegenerateResponse = useCallback(async (userMessageId: string) => {
+    if (!chatId) return;
     
     // Find the user message and the following AI message (if any)
     const userMessageIndex = messages.findIndex(msg => msg.id === userMessageId);
@@ -338,10 +356,10 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     if (aiMessage.sender !== 'ai') return; // Ensure it's really an AI message
     
     // Set processing state
-    setProcessing(true);
+    setProcessingRef.current(true);
     
     // Mark the AI message as regenerating and reset thinking content
-    updateMessageInChat(activeChatId, aiMessage.id, { 
+    updateMessageInChatRef.current(chatId, aiMessage.id, { 
       text: "",
       isComplete: false,
       thinkingContent: undefined,
@@ -352,28 +370,28 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     
     // Generate new response using our shared function
     await generateAIResponse(userMessage.text, userMessage.files || [], aiMessage.id);
-  };
+  }, [chatId, messages, generateAIResponse]);
 
   // Handle editing a user message
-  const handleEditMessage = async (messageId: string, newText: string) => {
-    if (!activeChatId) return;
+  const handleEditMessage = useCallback(async (messageId: string, newText: string) => {
+    if (!chatId) return;
     
     // Find message index in the array
     const messageIndex = messages.findIndex(msg => msg.id === messageId);
     if (messageIndex < 0) return;
     
     // Update the user message
-    updateMessageInChat(activeChatId, messageId, { text: newText });
+    updateMessageInChatRef.current(chatId, messageId, { text: newText });
     
     // If there's a following AI message response, regenerate it
     if (messageIndex < messages.length - 1 && messages[messageIndex + 1].sender === 'ai') {
       const aiMessage = messages[messageIndex + 1];
       
       // Set processing state
-      setProcessing(true);
+      setProcessingRef.current(true);
       
       // Mark the AI message as regenerating and reset thinking content
-      updateMessageInChat(activeChatId, aiMessage.id, { 
+      updateMessageInChatRef.current(chatId, aiMessage.id, { 
         text: "",
         isComplete: false,
         thinkingContent: undefined,
@@ -386,7 +404,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
       const userFiles = messages[messageIndex].files || [];
       await generateAIResponse(newText, userFiles, aiMessage.id);
     }
-  };
+  }, [chatId, messages, generateAIResponse]);
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden p-0 bg-bg-primary relative scroll-smooth" ref={messageContainerRef}>

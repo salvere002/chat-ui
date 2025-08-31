@@ -59,6 +59,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>(initialFiles);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Use refs for stable access to current values in callbacks
+  const valueRef = useRef(value);
+  const selectedFilesRef = useRef(selectedFiles);
+  const onSendMessageRef = useRef(onSendMessage);
+  const onChangeRef = useRef(onChange);
+
+  // Update refs when props change
+  valueRef.current = value;
+  selectedFilesRef.current = selectedFiles;
+  onSendMessageRef.current = onSendMessage;
+  onChangeRef.current = onChange;
+
   // Effect to sync with initialFiles prop when it changes
   useEffect(() => {
     setSelectedFiles(initialFiles);
@@ -73,22 +85,22 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
 
     // Otherwise, send the message
-    const filesToSend = selectedFiles
+    const filesToSend = selectedFilesRef.current
       .filter(pf => pf.status === 'pending')
       .map(pf => ({ id: pf.id, file: pf.file }));
 
-    const textToSend = value.trim();
+    const textToSend = valueRef.current.trim();
 
     // If nothing to send or if file processing, exit
     if ((!textToSend && filesToSend.length === 0) || isFileProcessing) return;
 
     // Call parent's handler
-    onSendMessage(textToSend, filesToSend.length > 0 ? filesToSend : undefined);
+    onSendMessageRef.current(textToSend, filesToSend.length > 0 ? filesToSend : undefined);
 
     // Clear text input locally
-    onChange('');
+    onChangeRef.current('');
 
-  }, [isProcessing, isFileProcessing, onPauseRequest, selectedFiles, value, onSendMessage, onChange]);
+  }, [isProcessing, isFileProcessing, onPauseRequest]);
 
   // Function to handle Enter key press
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -96,15 +108,29 @@ const MessageInput: React.FC<MessageInputProps> = ({
       event.preventDefault();
       // Only send if not currently processing - don't allow pause via Enter key
       if (!isProcessing) {
-        handleButtonClick();
+        // Inline the send logic to avoid depending on handleButtonClick
+        const filesToSend = selectedFilesRef.current
+          .filter(pf => pf.status === 'pending')
+          .map(pf => ({ id: pf.id, file: pf.file }));
+
+        const textToSend = valueRef.current.trim();
+
+        // If nothing to send or if file processing, exit
+        if ((!textToSend && filesToSend.length === 0) || isFileProcessing) return;
+
+        // Call parent's handler
+        onSendMessageRef.current(textToSend, filesToSend.length > 0 ? filesToSend : undefined);
+
+        // Clear text input locally
+        onChangeRef.current('');
       }
     }
-  }, [isProcessing, handleButtonClick]);
+  }, [isProcessing, isFileProcessing]);
 
   // Function to handle textarea input
   const handleInput = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(event.target.value);
-  }, [onChange]);
+    onChangeRef.current(event.target.value);
+  }, []);
 
   // Function to trigger file input click
   const handleUploadClick = useCallback(() => {
