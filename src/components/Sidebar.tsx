@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Chat } from '../types/chat';
-import { useChatStore } from '../stores';
+import { useChatActions } from '../stores';
 import { FaPlus } from 'react-icons/fa';
 import { HiOutlineBars3BottomLeft, HiOutlineBars3 } from 'react-icons/hi2';
 
@@ -25,7 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   onCollapse
 }) => {
-  const { renameChatSession } = useChatStore();
+  const { renameChatSession } = useChatActions();
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingChatName, setEditingChatName] = useState('');
   const [showClearModal, setShowClearModal] = useState(false);

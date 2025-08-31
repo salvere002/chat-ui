@@ -19,6 +19,7 @@ export interface ChatStore {
   // Actions
   createChat: (name?: string) => string;
   deleteChat: (id: string) => void;
+  clearAllChats: () => void;
   setActiveChat: (id: string) => void;
   getChatById: (id: string) => Chat | undefined;
   addMessageToChat: (chatId: string, message: Message) => void;
@@ -36,7 +37,6 @@ export interface ChatStore {
   getBranchingPoints: (chatId: string) => Message[];
   getBranchOptionsAtMessage: (chatId: string, messageId: string) => BranchNode[];
   getBreadcrumb: (chatId: string) => string[];
-  clearAllChats: () => void;
   // Suggestions actions
   setSuggestions: ((chatId: string, suggestions: string[]) => void) & ((suggestions: string[]) => void);
   getSuggestions: (chatId?: string) => string[];

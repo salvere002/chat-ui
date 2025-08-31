@@ -1,45 +1,49 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
 import SuggestedQuestions from './SuggestedQuestions';
-import { useChatStore, useToastStore, useUiSettingsStore } from '../stores';
+import { useChatData, useChatActions, useChatUtils, useBranchData, useToastStore, useInputStore, useUiSettingsStore, useChatStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
 import { ConversationMessage } from '../types/api';
 import { ChatService } from '../services/chatService';
+import { fileService } from '../services/fileService';
 
 interface ChatInterfaceProps {
   selectedResponseMode: ResponseMode;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) => {
-  // Get chat state and handlers from the Zustand store
-  const {
-    activeChatId,
-    getChatById,
-    addMessageToChat,
-    updateMessageInChat,
-    isProcessing: storeIsProcessing,
-    setProcessing,
-    createChat,
-    setActiveChat,
-    getCurrentBranchMessages,
-    setActiveRequestController,
-    pauseCurrentRequest,
-    getSuggestions,
-    isSuggestionsLoading
-  } = useChatStore();
+  // Get chat data and actions using selective subscriptions
+  const { activeChatId, chatSessions, activeBranchPath, isProcessing: storeIsProcessing } = useChatData();
+  const { 
+    addMessageToChat, 
+    updateMessageInChat, 
+    setProcessing, 
+    createChat, 
+    setActiveChat, 
+    setActiveRequestController, 
+    pauseCurrentRequest
+  } = useChatActions();
+  const { getChatById } = useChatUtils();
+  const { getCurrentBranchMessages } = useBranchData();
 
   // Get toast functions from Zustand store
   const { showToast } = useToastStore();
 
   // Get UI settings from Zustand store
   const { showSuggestions } = useUiSettingsStore();
+  
+  // Get suggestions functionality from main store (not available in selectors yet)
+  const { getSuggestions, isSuggestionsLoading } = useChatStore();
 
-
-  // Get the messages for the currently active chat (branch-aware)
-  const activeChatMessages = activeChatId ? getCurrentBranchMessages(activeChatId) : [];
+  // Get the messages for the currently active chat (branch-aware) - memoized to prevent unnecessary re-renders
+  const activeChat = chatSessions.find(c => c.id === activeChatId);
+  const currentBranchPath = activeBranchPath.get(activeChatId || '');
+  const activeChatMessages = useMemo(() => {
+    return activeChatId ? getCurrentBranchMessages(activeChatId) : [];
+  }, [activeChatId, getCurrentBranchMessages, activeChat?.messages, currentBranchPath]);
   
   // Get suggestions - store handles fallbacks to defaults automatically
   const currentSuggestions = getSuggestions(activeChatId || undefined);
@@ -55,9 +59,46 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     isProcessing: isFileProcessing
   } = useFileUpload();
   
-  // Local state for input value
-  const [inputValue, setInputValue] = useState<string>('');
+  // Get input store methods
+  const { resetInput, setInputValue } = useInputStore();
   
+  // Periodic cleanup of unused image URLs to prevent memory leaks
+  useEffect(() => {
+    const cleanup = () => {
+      if (activeChatMessages.length > 0) {
+        // Collect all image URLs currently in use
+        const activeUrls: string[] = [];
+        
+        activeChatMessages.forEach((message: Message) => {
+          // Add AI image URLs
+          if (message.imageUrl) {
+            activeUrls.push(message.imageUrl);
+          }
+          
+          // Add file attachment URLs
+          if (message.files) {
+            message.files.forEach((file: MessageFile) => {
+              if (file.type.startsWith('image/')) {
+                activeUrls.push(file.url);
+              }
+            });
+          }
+        });
+        
+        // Clean up inactive images
+        fileService.cleanupInactiveImages(activeUrls);
+      }
+    };
+    
+    // Run cleanup every 30 seconds
+    const cleanupInterval = setInterval(cleanup, 30000);
+    
+    // Also run cleanup when component unmounts
+    return () => {
+      clearInterval(cleanupInterval);
+      cleanup();
+    };
+  }, [activeChatMessages]);
   
   // Combined processing state
   const combinedIsProcessing = storeIsProcessing || isFileProcessing;
@@ -118,7 +159,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       
       // Get conversation history for the current branch BEFORE adding current messages
       const history: ConversationMessage[] = getCurrentBranchMessages(currentChatId)
-        .map(msg => ({
+        .map((msg: Message) => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.text,
           timestamp: msg.timestamp
@@ -138,7 +179,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       // Add to chat state
       addMessageToChat(currentChatId, userMessage);
       
-      setInputValue('');
+      resetInput();
       
       resetFileUploads();
       
@@ -319,8 +360,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
             )}
             
             <MessageInput
-              value={inputValue}
-              onChange={setInputValue}
               onSendMessage={handleSendMessage}
               onPauseRequest={handlePauseRequest}
               isProcessing={combinedIsProcessing}
@@ -353,8 +392,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
             )}
             
             <MessageInput
-              value={inputValue}
-              onChange={setInputValue}
               onSendMessage={handleSendMessage}
               onPauseRequest={handlePauseRequest}
               isProcessing={combinedIsProcessing}

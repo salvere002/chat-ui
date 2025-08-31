@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import MessageItem from './MessageItem';
 import { Message } from '../types/chat';
-import { useChatStore } from '../stores';
+import { useChatActions, useBranchData } from '../stores';
 import { ChatService } from '../services/chatService';
 import { useResponseModeStore } from '../stores';
 import { ConversationMessage } from '../types/api';
@@ -16,11 +16,29 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const accumulatedTextRef = useRef<string>("");
-  const { activeChatId, updateMessageInChat, setProcessing, getCurrentBranchMessages, setActiveRequestController } = useChatStore();
+  
+  // Use selective subscriptions
+  const { updateMessageInChat, setProcessing, setActiveRequestController } = useChatActions();
+  const { getCurrentBranchMessages } = useBranchData();
   const { selectedResponseMode } = useResponseModeStore();
+  
   const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
   const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
   const [previousLastMessageId, setPreviousLastMessageId] = useState<string>('');
+
+  // Use refs for stable access to store methods
+  const updateMessageInChatRef = useRef(updateMessageInChat);
+  const setProcessingRef = useRef(setProcessing);
+  const getCurrentBranchMessagesRef = useRef(getCurrentBranchMessages);
+  const setActiveRequestControllerRef = useRef(setActiveRequestController);
+  const selectedResponseModeRef = useRef(selectedResponseMode);
+
+  // Update refs when store values change
+  updateMessageInChatRef.current = updateMessageInChat;
+  setProcessingRef.current = setProcessing;
+  getCurrentBranchMessagesRef.current = getCurrentBranchMessages;
+  setActiveRequestControllerRef.current = setActiveRequestController;
+  selectedResponseModeRef.current = selectedResponseMode;
   
   // Scroll to bottom function - memoized to prevent unnecessary recreations
   const scrollToBottom = useCallback(() => {
@@ -72,78 +90,149 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     }, 300);
   }, []); 
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change - optimized version
   useEffect(() => {
     // Get current last message id
     const currentLastMessageId = messages.length > 0 ? messages[messages.length - 1].id : '';
     const shouldScrollToBottom = 
-      // If message count increased (new message added)
-      messages.length > previousMessageCount || 
-      // Or if the last message ID changed (content updated)
-      (messages.length > 0 && currentLastMessageId !== previousLastMessageId && previousLastMessageId !== '');
+      // Only scroll if message count increased (new message added)
+      messages.length > previousMessageCount ||
+      // Or if the last message content actually changed (but only if we had previous messages)
+      (messages.length > 0 && 
+       currentLastMessageId !== previousLastMessageId && 
+       previousLastMessageId !== '' &&
+       previousMessageCount > 0);
     
     if (shouldScrollToBottom) {
-      // Use multiple timeouts to ensure it scrolls even if DOM updates are delayed
-      setTimeout(scrollToBottom, 50);
-      setTimeout(scrollToBottom, 150);
-      setTimeout(scrollToBottom, 300);
+      // Use requestAnimationFrame for smooth scrolling without blocking UI
+      let rafId: number;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      const attemptScroll = () => {
+        rafId = requestAnimationFrame(() => {
+          scrollToBottom();
+          attempts++;
+          
+          // Only retry if we haven't reached max attempts and container exists
+          if (attempts < maxAttempts && messageContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+            const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 10;
+            
+            if (!isScrolledToBottom) {
+              attemptScroll(); // Retry if not scrolled to bottom
+            } else {
+              // Check scroll position after successful scroll
+              requestAnimationFrame(() => checkScrollPosition());
+            }
+          } else {
+            // Final check after all attempts
+            requestAnimationFrame(() => checkScrollPosition());
+          }
+        });
+      };
+      
+      attemptScroll();
+      
+      // Cleanup function to cancel animation frame if component unmounts
+      return () => {
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+      };
     }
     
     // Update previous message info
     setPreviousMessageCount(messages.length);
     setPreviousLastMessageId(currentLastMessageId);
-    
-    // Check if we need to show the scroll button after scrolling
-    setTimeout(() => {
-      checkScrollPosition();
-    }, 350);
   }, [messages, previousMessageCount, previousLastMessageId, scrollToBottom, checkScrollPosition]);
 
-  // Also check if the message content is updating (for streaming responses)
+  // Optimized streaming scroll behavior - only scroll during active streaming
   useEffect(() => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       
       // If the last message is from AI and still processing (streaming)
       if (lastMessage.sender === 'ai' && lastMessage.isComplete === false) {
-        // Ensure we're scrolled to the bottom to see the streaming message
-        const scrollInterval = setInterval(() => {
-          scrollToBottom();
-        }, 1000); // Check every second while streaming
+        let rafId: number;
+        let timeoutId: number;
+        let isActive = true; // Flag to control whether streaming scroll should continue
         
-        return () => clearInterval(scrollInterval);
+        const smoothScrollForStreaming = () => {
+          if (!isActive) return; // Stop if effect has been cleaned up
+          
+          rafId = requestAnimationFrame(() => {
+            if (!isActive) return; // Double-check before scrolling
+            
+            // Check if user has manually scrolled up - if so, respect their choice
+            if (messageContainerRef.current) {
+              const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+              const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+              
+              // If user scrolled up more than 100px, stop auto-scrolling during streaming
+              if (distanceFromBottom > 100) {
+                return; // Don't force scroll if user has scrolled away
+              }
+            }
+            
+            scrollToBottom();
+            
+            // Schedule next scroll check, but only if still active
+            if (isActive) {
+              timeoutId = window.setTimeout(() => {
+                if (isActive) {
+                  smoothScrollForStreaming();
+                }
+              }, 500);
+            }
+          });
+        };
+        
+        // Start streaming scroll
+        smoothScrollForStreaming();
+        
+        return () => {
+          // Clean up and stop streaming scroll
+          isActive = false;
+          if (rafId) {
+            cancelAnimationFrame(rafId);
+          }
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+        };
       }
     }
   }, [messages, scrollToBottom]);
 
   // Generate or regenerate AI response based on a user message
-  const generateAIResponse = async (userMessageText: string, userMessageFiles: any[] = [], aiMessageId: string) => {
-    if (!activeChatId) return;
+  const generateAIResponse = useCallback(async (userMessageText: string, userMessageFiles: any[] = [], aiMessageId: string) => {
+    if (!chatId) return;
     
     try {
       // Set processing state and create abort controller
-      setProcessing(true);
+      setProcessingRef.current(true);
       const abortController = new AbortController();
-      setActiveRequestController(abortController);
+      setActiveRequestControllerRef.current(abortController);
       
       // Reset accumulated text
       accumulatedTextRef.current = "";
       
       // Get conversation history for the current branch (excluding the message being regenerated)
-      const allBranchMessages = getCurrentBranchMessages(activeChatId);
+      const allBranchMessages = getCurrentBranchMessagesRef.current(chatId);
       const aiMessageIndex = allBranchMessages.findIndex(msg => msg.id === aiMessageId);
       
       // Include history up to the user message before the AI message being regenerated
       const historyMessages = aiMessageIndex > 0 ? allBranchMessages.slice(0, aiMessageIndex) : allBranchMessages;
       const history: ConversationMessage[] = historyMessages
-        .map(msg => ({
+        .map((msg: Message) => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.text,
           timestamp: msg.timestamp
         }));
       
       // Use the ChatService based on selected response mode
-      if (selectedResponseMode === 'stream') {
+      if (selectedResponseModeRef.current === 'stream') {
         // Streaming API call
         await ChatService.sendStreamingMessage(
           userMessageText,
@@ -152,8 +241,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
             onChunk: (chunk) => {
               // Handle thinking content streaming
               if (chunk.thinking) {
-                const currentMessage = getCurrentBranchMessages(activeChatId).find(m => m.id === aiMessageId);
-                updateMessageInChat(activeChatId, aiMessageId, {
+                const currentMessage = getCurrentBranchMessagesRef.current(chatId).find((m: Message) => m.id === aiMessageId);
+                updateMessageInChatRef.current(chatId, aiMessageId, {
                   thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
                   isThinkingComplete: chunk.thinkingComplete,
                   thinkingCollapsed: currentMessage?.thinkingCollapsed ?? true
@@ -166,7 +255,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
                 accumulatedTextRef.current += chunk.text;
                 
                 // Update with the accumulated text
-                updateMessageInChat(activeChatId, aiMessageId, {
+                updateMessageInChatRef.current(chatId, aiMessageId, {
                   text: accumulatedTextRef.current,
                   imageUrl: chunk.imageUrl
                 });
@@ -174,13 +263,13 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
             },
             onComplete: () => {
               // Mark as complete when done
-              updateMessageInChat(activeChatId, aiMessageId, {
+              updateMessageInChatRef.current(chatId, aiMessageId, {
                 isComplete: true,
                 isThinkingComplete: true // Ensure thinking is also marked complete
               });
               // Clear processing state and abort controller
-              setProcessing(false);
-              setActiveRequestController(null);
+              setProcessingRef.current(false);
+              setActiveRequestControllerRef.current(null);
               // Reset accumulated text
               accumulatedTextRef.current = "";
             },
@@ -188,21 +277,21 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
               // Don't show error for aborted requests
               if (error.name !== 'AbortError') {
                 console.error('Regeneration error:', error.message);
-                updateMessageInChat(activeChatId, aiMessageId, {
+                updateMessageInChatRef.current(chatId, aiMessageId, {
                   text: 'Sorry, there was an error processing your request.',
                   isComplete: true
                 });
               } else {
                 // For aborted requests, mark current message as complete with existing content
-                updateMessageInChat(activeChatId, aiMessageId, {
+                updateMessageInChatRef.current(chatId, aiMessageId, {
                   isComplete: true,
                   isThinkingComplete: true,
                   wasPaused: true
                 });
               }
               // Clear processing state and abort controller
-              setProcessing(false);
-              setActiveRequestController(null);
+              setProcessingRef.current(false);
+              setActiveRequestControllerRef.current(null);
               // Reset accumulated text
               accumulatedTextRef.current = "";
             }
@@ -215,7 +304,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
         try {
           const response = await ChatService.sendMessage(userMessageText, userMessageFiles, history, abortController.signal);
           // Update AI message with complete response
-          updateMessageInChat(activeChatId, aiMessageId, {
+          updateMessageInChatRef.current(chatId, aiMessageId, {
             text: response.text,
             isComplete: true,
             thinkingContent: response.thinking,
@@ -225,41 +314,41 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
           // Handle abort vs other errors
           if (error instanceof Error && error.name === 'AbortError') {
             // For aborted requests, mark current message as complete with existing content
-            updateMessageInChat(activeChatId, aiMessageId, {
+            updateMessageInChatRef.current(chatId, aiMessageId, {
               isComplete: true,
               wasPaused: true
             });
           } else {
             // Show error and mark message as complete
             console.error('Regeneration error:', error instanceof Error ? error.message : 'Unknown error');
-            updateMessageInChat(activeChatId, aiMessageId, {
+            updateMessageInChatRef.current(chatId, aiMessageId, {
               text: 'Sorry, there was an error processing your request.',
               isComplete: true
             });
           }
         } finally {
           // Clear processing state and abort controller
-          setProcessing(false);
-          setActiveRequestController(null);
+          setProcessingRef.current(false);
+          setActiveRequestControllerRef.current(null);
         }
       }
     } catch (error) {
       // Handle errors
       console.error("Error generating AI response:", error);
-      updateMessageInChat(activeChatId, aiMessageId, {
+      updateMessageInChatRef.current(chatId, aiMessageId, {
         text: 'Sorry, there was an error processing your request.',
         isComplete: true
       });
-      setProcessing(false);
-      setActiveRequestController(null);
+      setProcessingRef.current(false);
+      setActiveRequestControllerRef.current(null);
       // Reset accumulated text
       accumulatedTextRef.current = "";
     }
-  };
+  }, [chatId]);
 
   // Handle regenerating response
-  const handleRegenerateResponse = async (userMessageId: string) => {
-    if (!activeChatId) return;
+  const handleRegenerateResponse = useCallback(async (userMessageId: string) => {
+    if (!chatId) return;
     
     // Find the user message and the following AI message (if any)
     const userMessageIndex = messages.findIndex(msg => msg.id === userMessageId);
@@ -270,10 +359,10 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     if (aiMessage.sender !== 'ai') return; // Ensure it's really an AI message
     
     // Set processing state
-    setProcessing(true);
+    setProcessingRef.current(true);
     
     // Mark the AI message as regenerating and reset thinking content
-    updateMessageInChat(activeChatId, aiMessage.id, { 
+    updateMessageInChatRef.current(chatId, aiMessage.id, { 
       text: "",
       isComplete: false,
       thinkingContent: undefined,
@@ -284,28 +373,28 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     
     // Generate new response using our shared function
     await generateAIResponse(userMessage.text, userMessage.files || [], aiMessage.id);
-  };
+  }, [chatId, messages, generateAIResponse]);
 
   // Handle editing a user message
-  const handleEditMessage = async (messageId: string, newText: string) => {
-    if (!activeChatId) return;
+  const handleEditMessage = useCallback(async (messageId: string, newText: string) => {
+    if (!chatId) return;
     
     // Find message index in the array
     const messageIndex = messages.findIndex(msg => msg.id === messageId);
     if (messageIndex < 0) return;
     
     // Update the user message
-    updateMessageInChat(activeChatId, messageId, { text: newText });
+    updateMessageInChatRef.current(chatId, messageId, { text: newText });
     
     // If there's a following AI message response, regenerate it
     if (messageIndex < messages.length - 1 && messages[messageIndex + 1].sender === 'ai') {
       const aiMessage = messages[messageIndex + 1];
       
       // Set processing state
-      setProcessing(true);
+      setProcessingRef.current(true);
       
       // Mark the AI message as regenerating and reset thinking content
-      updateMessageInChat(activeChatId, aiMessage.id, { 
+      updateMessageInChatRef.current(chatId, aiMessage.id, { 
         text: "",
         isComplete: false,
         thinkingContent: undefined,
@@ -318,7 +407,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
       const userFiles = messages[messageIndex].files || [];
       await generateAIResponse(newText, userFiles, aiMessage.id);
     }
-  };
+  }, [chatId, messages, generateAIResponse]);
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden p-0 bg-bg-primary relative scroll-smooth" ref={messageContainerRef}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, memo, useCallback } from 'react';
 import { Message, MessageFile } from '../types/chat'; // Import the Message and MessageFile types
 import { FaFileAlt, FaRedo, FaEdit, FaCheck, FaTimes, FaCopy, FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp } from 'react-icons/fa'; // Import required icons
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
@@ -10,7 +10,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; //
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Light theme
 import type { Components } from 'react-markdown'; // Import CodeProps directly from react-markdown
 import { fileService } from '../services/fileService';
-import useChatStore from '../stores/chatStore';
+import { useBranchActions, useChatActions, useChatUtils, useBranchData } from '../stores';
 import { ChatService } from '../services/chatService';
 import { useResponseModeStore, useThemeStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
@@ -26,8 +26,330 @@ interface MessageItemProps {
   chatId: string;
 }
 
-// CodeBlock component with copy and collapse functionality
-const CodeBlock: React.FC<{ children: string; language: string; className?: string }> = ({ 
+interface BranchData {
+  hasBranches: boolean;
+  totalBranches: number;
+  currentBranchIndex: number;
+  actualCurrentBranchIndex: number;
+}
+
+
+// BranchNavigator Component - Handles branch navigation UI
+interface BranchNavigatorProps {
+  branchData: BranchData;
+  onPreviousBranch: () => void;
+  onNextBranch: () => void;
+}
+
+const BranchNavigator = memo<BranchNavigatorProps>(({ branchData, onPreviousBranch, onNextBranch }) => {
+  const { hasBranches, totalBranches, actualCurrentBranchIndex } = branchData;
+  
+  if (!hasBranches || totalBranches <= 1) {
+    return null;
+  }
+
+  return (
+    <div className="flex items-center mt-1 px-1 text-xs gap-2">
+      <div className="flex items-center gap-1 bg-bg-secondary border border-border-secondary rounded-md p-1">
+        <button 
+          className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
+          onClick={onPreviousBranch}
+          disabled={actualCurrentBranchIndex <= 0}
+          title="Previous branch"
+        >
+          <FaChevronLeft className="text-[10px]" />
+        </button>
+        <span className="text-xs text-text-secondary font-medium min-w-[24px] text-center px-1">
+          {actualCurrentBranchIndex + 1}/{totalBranches}
+        </span>
+        <button 
+          className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
+          onClick={onNextBranch}
+          disabled={actualCurrentBranchIndex >= totalBranches - 1}
+          title="Next branch"
+        >
+          <FaChevronRight className="text-[10px]" />
+        </button>
+      </div>
+    </div>
+  );
+});
+
+BranchNavigator.displayName = 'BranchNavigator';
+
+// MessageHeader Component - Handles thinking section for AI messages
+const MessageHeader: React.FC<{
+  sender: 'user' | 'ai';
+  thinkingContent?: string;
+  isThinkingComplete?: boolean;
+  isComplete?: boolean;
+  thinkingCollapsed?: boolean;
+  onThinkingToggle: (collapsed: boolean) => void;
+}> = memo(({ 
+  sender, 
+  thinkingContent, 
+  isThinkingComplete, 
+  isComplete, 
+  thinkingCollapsed, 
+  onThinkingToggle 
+}) => {
+  // Only render thinking section for AI messages
+  if (sender !== 'ai' || (!thinkingContent && (thinkingContent === undefined || isThinkingComplete))) {
+    return null;
+  }
+
+  return (
+    <div className="mb-3">
+      <ThinkingSection
+        thinkingContent={thinkingContent}
+        isThinkingComplete={isThinkingComplete}
+        isStreaming={!isComplete}
+        initialCollapsed={thinkingCollapsed !== false}
+        onToggle={onThinkingToggle}
+      />
+    </div>
+  );
+});
+
+MessageHeader.displayName = 'MessageHeader';
+
+// MessageBody Component - Handles file attachments, images, text content, and edit mode
+const MessageBody: React.FC<{
+  sender: 'user' | 'ai';
+  text?: string;
+  files?: MessageFile[];
+  imageUrl?: string;
+  isComplete?: boolean;
+  isEditing: boolean;
+  editText: string;
+  wasPaused?: boolean;
+  onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+}> = memo(({ 
+  sender, 
+  text, 
+  files, 
+  imageUrl, 
+  isComplete, 
+  isEditing, 
+  editText, 
+  wasPaused, 
+  onTextareaChange, 
+  onSaveEdit, 
+  onCancelEdit, 
+  textareaRef 
+}) => {
+  const isIncomplete = sender === 'ai' && isComplete === false;
+
+  return (
+    <>
+      {/* Render user's file attachments */}
+      {files && files.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {files.map((file) => (
+            <FileAttachment key={file.id} file={file} />
+          ))}
+        </div>
+      )}
+      
+      {/* Render AI's image if present */}
+      {imageUrl && sender === 'ai' && (
+        <EmbeddedImage imageUrl={imageUrl} />
+      )}
+      
+      {/* Render text content */}
+      {text && !isEditing && (
+        <MemoizedMarkdown text={text} isIncomplete={isIncomplete} />
+      )}
+      
+      {/* Edit mode text area */}
+      {isEditing && (
+        <div className="w-full">
+          <textarea
+            ref={textareaRef}
+            className="w-full min-h-[80px] p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-lg font-sans text-sm leading-normal resize-none transition-all duration-150 focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)]"
+            value={editText}
+            onChange={onTextareaChange}
+            placeholder="Edit your message..."
+            autoFocus
+          />
+          <div className="flex gap-1 mt-2 justify-end">
+            <button className="flex items-center gap-1 px-2 py-1 bg-transparent text-text-secondary border border-border-primary rounded text-xs cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary" onClick={onCancelEdit}>
+              <FaTimes size={10} /> Cancel
+            </button>
+            <button className="flex items-center gap-1 px-2 py-1 bg-accent-primary text-text-inverse border-none rounded text-xs cursor-pointer transition-all duration-150 hover:bg-accent-hover" onClick={onSaveEdit}>
+              <FaCheck size={10} /> Save
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* If no text but still incomplete (e.g., only image incoming), show indicator */}
+      {!text && isIncomplete && (
+        <LoadingIndicator type="dots" size="small" />
+      )}
+
+      {/* If no text and was paused, show placeholder */}
+      {!text && wasPaused && sender === 'ai' && (
+        <div className="text-text-tertiary italic text-sm opacity-70">
+          Response was paused before any content was generated.
+        </div>
+      )}
+    </>
+  );
+});
+
+MessageBody.displayName = 'MessageBody';
+
+// MessageFooter Component - Handles branch navigation, timestamp, and action buttons
+const MessageFooter: React.FC<{
+  sender: 'user' | 'ai';
+  timestamp: Date;
+  wasPaused?: boolean;
+  isComplete?: boolean;
+  branchData: BranchData;
+  onPreviousBranch: () => void;
+  onNextBranch: () => void;
+  // Message actions props
+  text?: string;
+  copied: boolean;
+  isEditing: boolean;
+  onCopyMessage: () => void;
+  onSetIsEditing: (editing: boolean) => void;
+  onEditMessage?: (messageId: string, newText: string) => void;
+  onRegenerateResponse?: () => void;
+}> = memo(({ 
+  sender, 
+  timestamp, 
+  wasPaused, 
+  isComplete, 
+  branchData, 
+  onPreviousBranch, 
+  onNextBranch,
+  // Message actions
+  text,
+  copied,
+  isEditing,
+  onCopyMessage,
+  onSetIsEditing,
+  onEditMessage,
+  onRegenerateResponse
+}) => {
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  return (
+    <>
+      <BranchNavigator
+        branchData={branchData}
+        onPreviousBranch={onPreviousBranch}
+        onNextBranch={onNextBranch}
+      />
+      
+      {/* Actions footer - only show when hovering */}
+      <div className="flex items-center mt-1 px-1 opacity-0 transition-opacity duration-150 text-xs text-text-tertiary gap-2 group-hover:opacity-100">
+        <div className="mr-auto flex items-center gap-2">
+          {formatTime(timestamp)}
+          {wasPaused && sender === 'ai' && (
+            <span className="text-orange-500 text-xs opacity-70" title="Response was paused">
+              ⏸
+            </span>
+          )}
+        </div>
+        
+        <MessageActions
+          sender={sender}
+          text={text}
+          copied={copied}
+          isEditing={isEditing}
+          isComplete={isComplete}
+          onCopyMessage={onCopyMessage}
+          onSetIsEditing={onSetIsEditing}
+          onEditMessage={onEditMessage}
+          onRegenerateResponse={onRegenerateResponse}
+        />
+      </div>
+    </>
+  );
+});
+
+MessageFooter.displayName = 'MessageFooter';
+
+// MessageActions Component - Handles message action buttons (copy, edit, regenerate)
+interface MessageActionsProps {
+  sender: 'user' | 'ai';
+  text?: string;
+  copied: boolean;
+  isEditing: boolean;
+  isComplete?: boolean;
+  onCopyMessage: () => void;
+  onSetIsEditing: (editing: boolean) => void;
+  onEditMessage?: (messageId: string, newText: string) => void;
+  onRegenerateResponse?: () => void;
+}
+
+const MessageActions = memo<MessageActionsProps>(({ 
+  sender, 
+  text, 
+  copied, 
+  isEditing, 
+  isComplete,
+  onCopyMessage, 
+  onSetIsEditing, 
+  onEditMessage, 
+  onRegenerateResponse 
+}) => {
+  return (
+    <div className="flex gap-1 items-center">
+      {/* Copy button for all messages with text */}
+      {text && (
+        <button 
+          className={`flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90 ${copied ? 'text-success' : ''}`}
+          onClick={onCopyMessage}
+          title={copied ? "Copied" : "Copy text"}
+        >
+          {copied ? <span className="absolute inset-0 flex items-center justify-center text-base animate-check-mark">✓</span> : <FaCopy className="relative z-10 text-sm" />}
+        </button>
+      )}
+      
+      {/* For user messages: Create Branch button (replacing edit) */}
+      {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
+        <button 
+          className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
+          onClick={() => onSetIsEditing(true)}
+          title="Create new branch"
+        >
+          <FaEdit className="relative z-10 text-sm" />
+        </button>
+      )}
+      
+      {/* Regenerate button for user messages */}
+      {sender === 'user' && isComplete !== false && onRegenerateResponse && (
+        <button 
+          className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
+          onClick={onRegenerateResponse}
+          title="Regenerate response"
+        >
+          <FaRedo className="relative z-10 text-sm" />
+        </button>
+      )}
+    </div>
+  );
+});
+
+MessageActions.displayName = 'MessageActions';
+
+// CodeBlock component with copy and collapse functionality - memo with proper TypeScript syntax
+interface CodeBlockProps {
+  children: string; 
+  language: string; 
+  className?: string;
+}
+
+const CodeBlock = memo<CodeBlockProps>(({ 
   children, 
   language, 
   className,
@@ -156,7 +478,373 @@ const CodeBlock: React.FC<{ children: string; language: string; className?: stri
       )}
     </div>
   );
-};
+});
+
+CodeBlock.displayName = 'CodeBlock';
+
+// Memoized embedded image component to prevent reloads on typing
+const EmbeddedImage: React.FC<{ imageUrl: string }> = memo(({ imageUrl }) => {
+  useEffect(() => {
+    // Track image URL when component mounts
+    if (imageUrl.startsWith('blob:')) {
+      fileService.trackActiveImageUrl(imageUrl);
+    }
+    
+    // Cleanup function for when component unmounts or URL changes
+    return () => {
+      if (imageUrl.startsWith('blob:')) {
+        // Don't immediately revoke - let the cleanup system handle it
+        // This prevents premature revocation if the same URL is used elsewhere
+      }
+    };
+  }, [imageUrl]);
+  
+  return (
+    <div className="mb-3">
+      <img 
+        src={imageUrl} 
+        alt="Embedded image"
+        className="w-full h-auto object-contain rounded-lg"
+        style={{maxWidth: '580px', maxHeight: '320px'}} 
+        onError={(e) => {
+          // Handle broken images by hiding them
+          const target = e.currentTarget as HTMLImageElement;
+          target.style.display = 'none';
+          console.warn('Failed to load embedded image:', imageUrl);
+        }}
+        loading="lazy"
+      />
+    </div>
+  );
+});
+
+EmbeddedImage.displayName = 'EmbeddedImage';
+
+// FileAttachment Component - Handles individual file display
+interface FileAttachmentProps {
+  file: MessageFile;
+}
+
+const FileAttachment = React.memo<FileAttachmentProps>(({ file }) => {
+  useEffect(() => {
+    // Track image URLs when component mounts
+    if (file.type.startsWith('image/') && file.url.startsWith('blob:')) {
+      fileService.trackActiveImageUrl(file.url);
+    }
+    
+    return () => {
+      // Cleanup handled by periodic cleanup system
+    };
+  }, [file.url, file.type]);
+  
+  return (
+    <div className="inline-block bg-bg-secondary border border-border-secondary rounded-lg overflow-hidden" style={{maxWidth: '580px'}}>
+      {file.type.startsWith('image/') ? (
+        <img 
+          src={file.url} 
+          alt={file.name} 
+          className="w-full h-auto object-contain" 
+          style={{maxWidth: '580px', maxHeight: '320px'}}
+          loading="lazy"
+          onError={(e) => {
+            const target = e.currentTarget as HTMLImageElement;
+            target.style.display = 'none';
+            console.warn('Failed to load file attachment image:', file.url);
+          }}
+        />
+      ) : (
+        <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 text-text-primary hover:bg-bg-tertiary transition-colors duration-150">
+          <FaFileAlt className="text-accent-primary text-lg flex-shrink-0" />
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-medium truncate">{file.name}</span>
+            <span className="text-xs text-text-tertiary">{fileService.formatFileSize(file.size)}</span>
+          </div>
+        </a>
+      )}
+    </div>
+  );
+});
+
+FileAttachment.displayName = 'FileAttachment';
+
+// Memoized markdown renderer to prevent unnecessary re-renders
+const MemoizedMarkdown: React.FC<{ 
+  text: string; 
+  isIncomplete: boolean;
+}> = memo(({ text, isIncomplete }) => {
+  
+  return (
+    <div className="prose prose-sm max-w-none text-current">
+      <ReactMarkdown
+        children={text}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          // Custom table components for better styling
+          table({ children, ...props }) {
+            return (
+              <div className="overflow-x-auto my-4 rounded-lg border border-border-secondary shadow-sm">
+                <table className="min-w-full border-collapse bg-bg-primary" {...props}>
+                  {children}
+                </table>
+              </div>
+            );
+          },
+          thead({ children, ...props }) {
+            return (
+              <thead className="bg-bg-secondary" {...props}>
+                {children}
+              </thead>
+            );
+          },
+          tbody({ children, ...props }) {
+            return (
+              <tbody className="divide-y divide-border-secondary" {...props}>
+                {children}
+              </tbody>
+            );
+          },
+          tr({ children, ...props }) {
+            const isHeaderRow = props.className?.includes('thead') || false;
+            return (
+              <tr className={`${isHeaderRow ? '' : 'hover:bg-bg-tertiary'} transition-colors duration-150`} {...props}>
+                {children}
+              </tr>
+            );
+          },
+          th({ children, ...props }) {
+            return (
+              <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider border-b border-border-secondary" {...props}>
+                {children}
+              </th>
+            );
+          },
+          td({ children, ...props }) {
+            return (
+              <td className="px-4 py-3 text-sm text-text-primary whitespace-nowrap" {...props}>
+                {children}
+              </td>
+            );
+          },
+          code({ node, inline, className, children, ...props }: any) {
+            const match = /language-(.+)/.exec(className || '');
+            
+            // Handle chart code blocks
+            if (!inline && match) {
+              const language = match[1];
+              const content = String(children).replace(/\n$/, '');
+              
+              
+              // Check for image format: img{url}
+              const imageMatch = /^img\{([^}]+)\}$/.exec(language);
+              
+              if (imageMatch) {
+                const imageUrl = imageMatch[1].trim();
+                
+                // Validate that we have a URL
+                if (!imageUrl) {
+                  return (
+                    <CodeBlock
+                      language={language}
+                      className={className}
+                      {...props}
+                    >
+                      {content}
+                    </CodeBlock>
+                  );
+                }
+                
+                return <EmbeddedImage imageUrl={imageUrl} />;
+              }
+              
+              // Check for chart format: chart{attributes} - handle both complete and truncated
+              const completeChartMatch = /^chart\{([^}]*)\}$/.exec(language);
+              const truncatedChartMatch = /^chart\{(.*)$/.exec(language);
+              
+              // Try complete match first, then truncated
+              const chartFormatMatch = completeChartMatch || truncatedChartMatch;
+              
+              if (chartFormatMatch) {
+                // Detect if this is a truncated chart block
+                const isTruncated = !completeChartMatch && truncatedChartMatch;
+                
+                // Markdown table format with attributes
+                const attributeString = chartFormatMatch[1];
+                const attributes = parseChartAttributes(attributeString);
+                
+                // Parse markdown table from content
+                const tableData = parseMarkdownTable(content);
+                
+                // Handle truncated attributes by inferring missing values based on table structure
+                if (isTruncated && attributes.type) {
+                  // For truncated charts, try to infer missing x/y from table headers
+                  const firstRow = tableData[0];
+                  if (firstRow) {
+                    const columns = Object.keys(firstRow);
+                    // Smart attribute inference based on chart type and available columns
+                    if (!attributes.x) {
+                      if (columns.includes('name')) attributes.x = 'name';
+                      else if (columns.includes('month')) attributes.x = 'month'; 
+                      else if (columns.includes('date')) attributes.x = 'date';
+                      else if (columns.includes('x')) attributes.x = 'x';
+                      else attributes.x = columns[0]; // First column as fallback
+                    }
+                    
+                    if (!attributes.y) {
+                      // Chart-type specific Y-axis inference
+                      if (attributes.type === 'area' && columns.includes('desktop')) {
+                        attributes.y = 'desktop';
+                      } else if (attributes.type === 'line' && columns.includes('revenue')) {
+                        attributes.y = 'revenue';
+                      } else if (columns.includes('value')) {
+                        attributes.y = 'value';
+                      } else if (columns.includes('y')) {
+                        attributes.y = 'y';
+                      } else if (columns.includes('sales')) {
+                        attributes.y = 'sales';
+                      } else if (columns.includes('price')) {
+                        attributes.y = 'price';
+                      } else {
+                        // Use the last numeric-looking column or fallback to last column
+                        attributes.y = columns[columns.length - 1];
+                      }
+                    }
+                    
+                    // Apply default height if missing due to truncation
+                    if (!attributes.height) {
+                      attributes.height = '320';
+                    }
+                  }
+                }
+                
+                // Check if we have valid data
+                if (tableData.length === 0 || !attributes.type) {
+                  // If incomplete or no type specified, render as regular code block
+                  return (
+                    <CodeBlock
+                      language={language}
+                      className={className}
+                      {...props}
+                    >
+                      {content}
+                    </CodeBlock>
+                  );
+                }
+                
+                // Memoize chartData creation
+                const memoizedChartData = useMemo(() => {
+                  try {
+                    // Build chart configuration from attributes
+                    const config: any = {
+                      title: attributes.title || undefined,
+                      xKey: attributes.x || attributes.xKey || 'name',
+                      xLabel: attributes.xlabel || undefined,
+                      yLabel: attributes.ylabel || undefined,
+                      height: attributes.height ? parseInt(attributes.height) : 320,
+                    };
+                    
+                    // Smart multi-series detection for line and area charts
+                    if (tableData.length > 0 && (attributes.type === 'line' || attributes.type === 'area')) {
+                      const firstRow = tableData[0];
+                      const allColumns = Object.keys(firstRow);
+                      const xColumn = config.xKey;
+                      
+                      // Find all numeric columns that aren't the x-axis
+                      const numericColumns = allColumns.filter(col => {
+                        if (col === xColumn) return false; // Skip x-axis column
+                        
+                        // Check if column contains numeric data
+                        const sampleValue = firstRow[col];
+                        return !isNaN(parseFloat(sampleValue)) && isFinite(sampleValue);
+                      });
+                      
+                      // Use multiple columns for multi-series charts
+                      if (numericColumns.length > 1) {
+                        config.yKey = numericColumns;
+                      } else {
+                        config.yKey = attributes.y || attributes.yKey || numericColumns[0] || 'value';
+                      }
+                    } else {
+                      // Single series for other chart types
+                      config.yKey = attributes.y || attributes.yKey || 'value';
+                    }
+                    
+                    // Handle colors - support multiple colors separated by commas
+                    if (attributes.colors) {
+                      config.colors = attributes.colors.split(',').map(c => c.trim());
+                    } else if (attributes.color) {
+                      // Backward compatibility for single color
+                      config.colors = [attributes.color];
+                    } else {
+                      config.colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#00ff7f"];
+                    }
+                    
+                    // Remove undefined values
+                    Object.keys(config).forEach(key => {
+                      if (config[key] === undefined) {
+                        delete config[key];
+                      }
+                    });
+                    
+                    const chartData: ChartData = {
+                      type: attributes.type as any,
+                      data: tableData,
+                      config
+                    };
+                    
+                    return chartData;
+                  } catch (error) {
+                    return null;
+                  }
+                }, [content, attributeString]);
+                
+                if (memoizedChartData) {
+                  const chartKey = `chart-table-${attributes.type}-${content.substring(0, 50)}`;
+                  return <ChartRenderer key={chartKey} chartData={memoizedChartData} />;
+                } else {
+                  return (
+                    <CodeBlock
+                      language={language}
+                      className={className}
+                      {...props}
+                    >
+                      {content}
+                    </CodeBlock>
+                  );
+                }
+              }
+              
+              // Regular code block
+              return (
+                <CodeBlock
+                  language={language}
+                  className={className}
+                  {...props}
+                >
+                  {String(children).replace(/\n$/, '')}
+                </CodeBlock>
+              );
+            }
+            
+            // Inline code
+            return (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            );
+          }
+        } as Components}
+      />
+      
+      {/* Add typing indicator if AI message is incomplete */}
+      {isIncomplete && (
+        <LoadingIndicator type="dots" size="small" />
+      )}
+    </div>
+  );
+});
+
+MemoizedMarkdown.displayName = 'MemoizedMarkdown';
 
 // Utility function to parse attributes from chart{key=value;key2="quoted value"} format
 // Also handles truncated input gracefully
@@ -263,18 +951,22 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   // Destructure files array instead of single file
   const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed, wasPaused } = message;
   
-  // Get store methods for branch management
+  // Get store methods using selective subscriptions
   const { 
-    getBranchOptionsAtMessage, 
+    getBranchOptionsAtMessage,
     switchToBranch, 
-    createBranchFromMessage,
+    createBranchFromMessage
+  } = useBranchActions();
+  
+  const {
     addMessageToChat,
     updateMessageInChat,
     setProcessing,
-    getCurrentBranchMessages,
-    getChatById,
     setActiveRequestController
-  } = useChatStore();
+  } = useChatActions();
+  
+  const { getChatById } = useChatUtils();
+  const { getCurrentBranchMessages } = useBranchData();
   
   // Get response mode selection for AI responses
   const { selectedResponseMode } = useResponseModeStore();
@@ -296,17 +988,27 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   // Ref for textarea auto-resizing
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // Get branch options
-  const branchOptions = getBranchOptionsAtMessage(chatId, id);
+  // Memoized branch calculations
+  const branchOptions = useMemo(
+    () => getBranchOptionsAtMessage(chatId, id),
+    [getBranchOptionsAtMessage, chatId, id]
+  );
   
+  const branchData = useMemo(() => {
+    const hasBranches = branchOptions.length > 1 || message.branchPoint === true;
+    const totalBranches = Math.max(branchOptions.length, hasBranches ? 2 : 1);
+    const currentBranchIndex = branchOptions.findIndex(option => option.id === message.branchId);
+    const actualCurrentBranchIndex = currentBranchIndex >= 0 ? currentBranchIndex : 0;
+    
+    return {
+      hasBranches,
+      totalBranches,
+      currentBranchIndex,
+      actualCurrentBranchIndex
+    };
+  }, [branchOptions, message.branchPoint, message.branchId]);
   
-  // Check if this message has branches (either from getBranchOptionsAtMessage or branchPoint flag)
-  const hasBranches = branchOptions.length > 1 || message.branchPoint === true;
-  const totalBranches = Math.max(branchOptions.length, hasBranches ? 2 : 1);
-  
-  // Find current branch index
-  const currentBranchIndex = branchOptions.findIndex(option => option.id === message.branchId);
-  const actualCurrentBranchIndex = currentBranchIndex >= 0 ? currentBranchIndex : 0;
+  const { hasBranches, totalBranches, actualCurrentBranchIndex } = branchData;
   
   
   // Auto-resize the textarea based on content
@@ -325,29 +1027,24 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     }
   }, [editText, isEditing]);
 
-  const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-  };
-
-
-  // Handle branch navigation
-  const handlePreviousBranch = () => {
+  // Memoized branch navigation handlers
+  const handlePreviousBranch = useCallback(() => {
     if (hasBranches && actualCurrentBranchIndex > 0 && branchOptions.length > actualCurrentBranchIndex - 1) {
       const previousBranch = branchOptions[actualCurrentBranchIndex - 1];
       if (previousBranch) {
         switchToBranch(chatId, previousBranch.id);
       }
     }
-  };
+  }, [hasBranches, actualCurrentBranchIndex, branchOptions, switchToBranch, chatId]);
 
-  const handleNextBranch = () => {
+  const handleNextBranch = useCallback(() => {
     if (hasBranches && actualCurrentBranchIndex < totalBranches - 1 && branchOptions.length > actualCurrentBranchIndex + 1) {
       const nextBranch = branchOptions[actualCurrentBranchIndex + 1];
       if (nextBranch) {
         switchToBranch(chatId, nextBranch.id);
       }
     }
-  };
+  }, [hasBranches, actualCurrentBranchIndex, totalBranches, branchOptions, switchToBranch, chatId]);
 
   // Generate AI response for new branch
   const generateAIResponseForNewBranch = async (userText: string, userFiles: any[]) => {
@@ -384,7 +1081,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       // Include history up to the current message
       const historyMessages = currentMessageIndex >= 0 ? allBranchMessages.slice(0, currentMessageIndex + 1) : allBranchMessages;
       const history: ConversationMessage[] = historyMessages
-        .map(msg => ({
+        .map((msg: Message) => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.text,
           timestamp: msg.timestamp
@@ -403,7 +1100,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
             onChunk: (chunk) => {
               // Handle thinking content streaming
               if (chunk.thinking) {
-                const currentMessage = getChatById(chatId)?.messages.find(m => m.id === aiMessageId);
+                const currentMessage = getChatById(chatId)?.messages.find((m: Message) => m.id === aiMessageId);
                 updateMessageInChat(chatId, aiMessageId, {
                   thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
                   isThinkingComplete: chunk.thinkingComplete,
@@ -546,491 +1243,95 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     setIsEditing(false);
   };
 
-  // Handle copy message
-  const handleCopyMessage = () => {
+  // Memoized copy message handler
+  const handleCopyMessage = useCallback(() => {
     if (text) {
       navigator.clipboard.writeText(text).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
       });
     }
-  };
+  }, [text]);
+
+  // Memoized setIsEditing callback for MessageActions
+  const handleSetIsEditing = useCallback((editing: boolean) => {
+    setIsEditing(editing);
+  }, []);
 
   // Handle textarea input change
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setEditText(e.target.value);
   };
 
-  // Helper component to render a single file attachment
-  const FileAttachment: React.FC<{ file: MessageFile }> = ({ file }) => {
-    // Track image URLs to prevent them from being revoked
-    if (file.type.startsWith('image/')) {
-      fileService.trackActiveImageUrl(file.url);
-    }
-    
-    // Rendering FileAttachment
-    return (
-      <div className="inline-block max-w-xs bg-bg-secondary border border-border-secondary rounded-lg overflow-hidden">
-        {file.type.startsWith('image/') ? (
-          <img src={file.url} alt={file.name} className="w-full h-auto max-w-xs max-h-48 object-cover" />
-        ) : (
-          <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 text-text-primary hover:bg-bg-tertiary transition-colors duration-150">
-            <FaFileAlt className="text-accent-primary text-lg flex-shrink-0" />
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium truncate">{file.name}</span>
-              <span className="text-xs text-text-tertiary">{fileService.formatFileSize(file.size)}</span>
-            </div>
-          </a>
-        )}
-      </div>
-    );
-  };
 
-  // Check if this is an incomplete AI message (for streaming)
-  const isIncomplete = sender === 'ai' && isComplete === false;
+  // Memoize expensive style calculations
+  const containerClasses = useMemo(() => 
+    `group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${
+      sender === 'user' ? 'self-end items-end' : 'self-start items-start'
+    } ${
+      isEditing ? 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]' : ''
+    }`,
+    [sender, isEditing]
+  );
+
+  const messageClasses = useMemo(() => 
+    `relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${
+      isEditing ? 'w-full' : 'w-fit'
+    } ${
+      sender === 'user' 
+        ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
+        : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
+    }`,
+    [sender, isEditing]
+  );
 
   return (
     <div 
-      className={`group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${sender === 'user' ? 'self-end items-end' : 'self-start items-start'} ${isEditing ? 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]' : ''}`}
-      data-is-complete={isComplete !== false}
-    >
-      <div className={`relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${isEditing ? 'w-full' : 'w-fit'} ${
-        sender === 'user' 
-          ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
-          : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
-      }`}>
-        {/* Render thinking section for AI messages */}
-        {sender === 'ai' && (thinkingContent || (thinkingContent !== undefined && !isThinkingComplete)) && (
-          <div className="mb-3">
-            <ThinkingSection
-              thinkingContent={thinkingContent}
-              isThinkingComplete={isThinkingComplete}
-              isStreaming={!isComplete}
-              initialCollapsed={thinkingCollapsed !== false}
-              onToggle={handleThinkingToggle}
-            />
-          </div>
-        )}
+      className={containerClasses}
+        data-is-complete={isComplete !== false}
+      >
+      <div className={messageClasses}>
+        <MessageHeader
+          sender={sender}
+          thinkingContent={thinkingContent}
+          isThinkingComplete={isThinkingComplete}
+          isComplete={isComplete}
+          thinkingCollapsed={thinkingCollapsed}
+          onThinkingToggle={handleThinkingToggle}
+        />
 
-        {/* Render user's file attachments */}
-        {files && files.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {files.map((file) => (
-              <FileAttachment key={file.id} file={file} />
-            ))}
-          </div>
-        )}
-        
-        {/* Render AI's image if present */}
-        {imageUrl && sender === 'ai' && (
-          <div className="mb-3">
-            {/* Track this image URL to prevent revocation */}
-            {(() => { fileService.trackActiveImageUrl(imageUrl); return null; })()}
-            <img src={imageUrl} alt="AI generated" className="w-full h-auto max-w-xs max-h-48 object-cover rounded-lg" />
-          </div>
-        )}
-        
-        {/* Render text content */}
-        {text && !isEditing && (
-          <div className="prose prose-sm max-w-none text-current">
-            <ReactMarkdown
-              children={text}
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex]}
-              components={{
-                // Custom table components for better styling
-                table({ children, ...props }) {
-                  return (
-                    <div className="overflow-x-auto my-4 rounded-lg border-2 border-border-secondary shadow-md bg-bg-primary">
-                      <table className="min-w-full border-collapse" {...props}>
-                        {children}
-                      </table>
-                    </div>
-                  );
-                },
-                thead({ children, ...props }) {
-                  return (
-                    <thead className="bg-bg-elevated" {...props}>
-                      {children}
-                    </thead>
-                  );
-                },
-                tbody({ children, ...props }) {
-                  return (
-                    <tbody className="divide-y divide-border-secondary bg-bg-secondary" {...props}>
-                      {children}
-                    </tbody>
-                  );
-                },
-                tr({ children, ...props }) {
-                  const isHeaderRow = props.className?.includes('thead') || false;
-                  return (
-                    <tr className={`${isHeaderRow ? 'bg-bg-elevated' : 'bg-bg-secondary hover:bg-bg-tertiary'} transition-colors duration-150`} {...props}>
-                      {children}
-                    </tr>
-                  );
-                },
-                th({ children, ...props }) {
-                  return (
-                    <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider border-b border-border-secondary bg-bg-elevated" {...props}>
-                      {children}
-                    </th>
-                  );
-                },
-                td({ children, ...props }) {
-                  return (
-                    <td className="px-4 py-3 text-sm text-text-primary whitespace-nowrap bg-inherit" {...props}>
-                      {children}
-                    </td>
-                  );
-                },
-                code({ node, inline, className, children, ...props }: any) {
-                  const match = /language-(.+)/.exec(className || '');
-                  
-                  // Handle chart code blocks
-                  if (!inline && match) {
-                    const language = match[1];
-                    const content = String(children).replace(/\n$/, '');
-                    
-                    
-                    // Check for image format: img{url}
-                    const imageMatch = /^img\{([^}]+)\}$/.exec(language);
-                    
-                    if (imageMatch) {
-                      const imageUrl = imageMatch[1].trim();
-                      
-                      // Validate that we have a URL
-                      if (!imageUrl) {
-                        return (
-                          <CodeBlock
-                            language={language}
-                            className={className}
-                            {...props}
-                          >
-                            {content}
-                          </CodeBlock>
-                        );
-                      }
-                      
-                      return (
-                        <div className="mb-3">
-                          {/* Track this image URL to prevent revocation if it's a blob URL */}
-                          {(() => { 
-                            if (imageUrl.startsWith('blob:')) {
-                              fileService.trackActiveImageUrl(imageUrl); 
-                            }
-                            return null; 
-                          })()}
-                          <img 
-                            src={imageUrl} 
-                            className="w-full h-auto max-w-xs max-h-48 object-cover rounded-lg" 
-                            onError={(e) => {
-                              // Handle broken images by hiding them
-                              const target = e.currentTarget as HTMLImageElement;
-                              target.style.display = 'none';
-                              console.warn('Failed to load embedded image:', imageUrl);
-                            }}
-                            loading="lazy"
-                          />
-                        </div>
-                      );
-                    }
-                    
-                    // Check for chart format: chart{attributes} - handle both complete and truncated
-                    const completeChartMatch = /^chart\{([^}]*)\}$/.exec(language);
-                    const truncatedChartMatch = /^chart\{(.*)$/.exec(language);
-                    
-                    // Try complete match first, then truncated
-                    const chartFormatMatch = completeChartMatch || truncatedChartMatch;
-                    
-                    if (chartFormatMatch) {
-                      // Detect if this is a truncated chart block
-                      const isTruncated = !completeChartMatch && truncatedChartMatch;
-                      
-                      // Markdown table format with attributes
-                      const attributeString = chartFormatMatch[1];
-                      const attributes = parseChartAttributes(attributeString);
-                      
-                      // Parse markdown table from content
-                      const tableData = parseMarkdownTable(content);
-                      
-                      // Handle truncated attributes by inferring missing values based on table structure
-                      if (isTruncated && attributes.type) {
-                        // For truncated charts, try to infer missing x/y from table headers
-                        const firstRow = tableData[0];
-                        if (firstRow) {
-                          const columns = Object.keys(firstRow);
-                          // Smart attribute inference based on chart type and available columns
-                          if (!attributes.x) {
-                            if (columns.includes('name')) attributes.x = 'name';
-                            else if (columns.includes('month')) attributes.x = 'month'; 
-                            else if (columns.includes('date')) attributes.x = 'date';
-                            else if (columns.includes('x')) attributes.x = 'x';
-                            else attributes.x = columns[0]; // First column as fallback
-                          }
-                          
-                          if (!attributes.y) {
-                            // Chart-type specific Y-axis inference
-                            if (attributes.type === 'area' && columns.includes('desktop')) {
-                              attributes.y = 'desktop';
-                            } else if (attributes.type === 'line' && columns.includes('revenue')) {
-                              attributes.y = 'revenue';
-                            } else if (columns.includes('value')) {
-                              attributes.y = 'value';
-                            } else if (columns.includes('y')) {
-                              attributes.y = 'y';
-                            } else if (columns.includes('sales')) {
-                              attributes.y = 'sales';
-                            } else if (columns.includes('price')) {
-                              attributes.y = 'price';
-                            } else {
-                              // Use the last numeric-looking column or fallback to last column
-                              attributes.y = columns[columns.length - 1];
-                            }
-                          }
-                          
-                          // Apply default height if missing due to truncation
-                          if (!attributes.height) {
-                            attributes.height = '320';
-                          }
-                        }
-                      }
-                      
-                      // Check if we have valid data
-                      if (tableData.length === 0 || !attributes.type) {
-                        // If incomplete or no type specified, render as regular code block
-                        return (
-                          <CodeBlock
-                            language={language}
-                            className={className}
-                            {...props}
-                          >
-                            {content}
-                          </CodeBlock>
-                        );
-                      }
-                      
-                      // Memoize chartData creation
-                      const memoizedChartData = useMemo(() => {
-                        try {
-                          // Build chart configuration from attributes
-                          const config: any = {
-                            title: attributes.title || undefined,
-                            xKey: attributes.x || attributes.xKey || 'name',
-                            xLabel: attributes.xlabel || undefined,
-                            yLabel: attributes.ylabel || undefined,
-                            height: attributes.height ? parseInt(attributes.height) : 320,
-                          };
-                          
-                          // Smart multi-series detection for line and area charts
-                          if (tableData.length > 0 && (attributes.type === 'line' || attributes.type === 'area')) {
-                            const firstRow = tableData[0];
-                            const allColumns = Object.keys(firstRow);
-                            const xColumn = config.xKey;
-                            
-                            // Find all numeric columns that aren't the x-axis
-                            const numericColumns = allColumns.filter(col => {
-                              if (col === xColumn) return false; // Skip x-axis column
-                              
-                              // Check if column contains numeric data
-                              const sampleValue = firstRow[col];
-                              return !isNaN(parseFloat(sampleValue)) && isFinite(sampleValue);
-                            });
-                            
-                            // Use multiple columns for multi-series charts
-                            if (numericColumns.length > 1) {
-                              config.yKey = numericColumns;
-                            } else {
-                              config.yKey = attributes.y || attributes.yKey || numericColumns[0] || 'value';
-                            }
-                          } else {
-                            // Single series for other chart types
-                            config.yKey = attributes.y || attributes.yKey || 'value';
-                          }
-                          
-                          // Handle colors - support multiple colors separated by commas
-                          if (attributes.colors) {
-                            config.colors = attributes.colors.split(',').map(c => c.trim());
-                          } else if (attributes.color) {
-                            // Backward compatibility for single color
-                            config.colors = [attributes.color];
-                          } else {
-                            config.colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#00ff7f"];
-                          }
-                          
-                          // Remove undefined values
-                          Object.keys(config).forEach(key => {
-                            if (config[key] === undefined) {
-                              delete config[key];
-                            }
-                          });
-                          
-                          const chartData: ChartData = {
-                            type: attributes.type as any,
-                            data: tableData,
-                            config
-                          };
-                          
-                          return chartData;
-                        } catch (error) {
-                          return null;
-                        }
-                      }, [content, attributeString]);
-                      
-                      if (memoizedChartData) {
-                        const chartKey = `chart-table-${attributes.type}-${content.substring(0, 50)}`;
-                        return <ChartRenderer key={chartKey} chartData={memoizedChartData} />;
-                      } else {
-                        return (
-                          <CodeBlock
-                            language={language}
-                            className={className}
-                            {...props}
-                          >
-                            {content}
-                          </CodeBlock>
-                        );
-                      }
-                    }
-                    
-                    // Regular code block
-                    return (
-                      <CodeBlock
-                        language={language}
-                        className={className}
-                        {...props}
-                      >
-                        {String(children).replace(/\n$/, '')}
-                      </CodeBlock>
-                    );
-                  }
-                  
-                  // Inline code
-                  return (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  );
-                }
-              } as Components}
-            />
-            
-            {/* Add typing indicator if AI message is incomplete */}
-            {isIncomplete && (
-              <LoadingIndicator type="dots" size="small" />
-            )}
-          </div>
-        )}
-        
-        {/* Edit mode text area */}
-        {isEditing && (
-          <div className="w-full">
-            <textarea
-              ref={textareaRef}
-              className="w-full min-h-[80px] p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-lg font-sans text-sm leading-normal resize-none transition-all duration-150 focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)]"
-              value={editText}
-              onChange={handleTextareaChange}
-              placeholder="Edit your message..."
-              autoFocus
-            />
-            <div className="flex gap-1 mt-2 justify-end">
-              <button className="flex items-center gap-1 px-2 py-1 bg-transparent text-text-secondary border border-border-primary rounded text-xs cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary" onClick={handleCancelEdit}>
-                <FaTimes size={10} /> Cancel
-              </button>
-              <button className="flex items-center gap-1 px-2 py-1 bg-accent-primary text-text-inverse border-none rounded text-xs cursor-pointer transition-all duration-150 hover:bg-accent-hover" onClick={handleSaveEdit}>
-                <FaCheck size={10} /> Save
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* If no text but still incomplete (e.g., only image incoming), show indicator */}
-        {!text && isIncomplete && (
-          <LoadingIndicator type="dots" size="small" />
-        )}
-
-        {/* If no text and was paused, show placeholder */}
-        {!text && wasPaused && sender === 'ai' && (
-          <div className="text-text-tertiary italic text-sm opacity-70">
-            Response was paused before any content was generated.
-          </div>
-        )}
+        <MessageBody
+          sender={sender}
+          text={text}
+          files={files}
+          imageUrl={imageUrl}
+          isComplete={isComplete}
+          isEditing={isEditing}
+          editText={editText}
+          wasPaused={wasPaused}
+          onTextareaChange={handleTextareaChange}
+          onSaveEdit={handleSaveEdit}
+          onCancelEdit={handleCancelEdit}
+          textareaRef={textareaRef}
+        />
       </div>
       
-      {/* Branch indicator - always visible when branches exist */}
-      {hasBranches && totalBranches > 1 && (
-        <div className="flex items-center mt-1 px-1 text-xs gap-2">
-          <div className="flex items-center gap-1 bg-bg-secondary border border-border-secondary rounded-md p-1">
-            <button 
-              className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
-              onClick={handlePreviousBranch}
-              disabled={actualCurrentBranchIndex <= 0}
-              title="Previous branch"
-            >
-              <FaChevronLeft className="text-[10px]" />
-            </button>
-            <span className="text-xs text-text-secondary font-medium min-w-[24px] text-center px-1">
-              {actualCurrentBranchIndex + 1}/{totalBranches}
-            </span>
-            <button 
-              className="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
-              onClick={handleNextBranch}
-              disabled={actualCurrentBranchIndex >= totalBranches - 1}
-              title="Next branch"
-            >
-              <FaChevronRight className="text-[10px]" />
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Actions footer - only show when hovering (moved outside message-content) */}
-      <div className="flex items-center mt-1 px-1 opacity-0 transition-opacity duration-150 text-xs text-text-tertiary gap-2 group-hover:opacity-100">
-        <div className="mr-auto flex items-center gap-2">
-          {formatTime(timestamp)}
-          {wasPaused && sender === 'ai' && (
-            <span className="text-orange-500 text-xs opacity-70" title="Response was paused">
-              ⏸
-            </span>
-          )}
-        </div>
-        
-        <div className="flex gap-1 items-center">
-          
-          {/* Copy button for all messages with text */}
-          {text && (
-            <button 
-              className={`flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90 ${copied ? 'text-success' : ''}`}
-              onClick={handleCopyMessage}
-              title={copied ? "Copied" : "Copy text"}
-            >
-              {copied ? <span className="absolute inset-0 flex items-center justify-center text-base animate-check-mark">✓</span> : <FaCopy className="relative z-10 text-sm" />}
-            </button>
-          )}
-          
-          {/* For user messages: Create Branch button (replacing edit) */}
-          {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
-            <button 
-              className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
-              onClick={() => setIsEditing(true)}
-              title="Create new branch"
-            >
-              <FaEdit className="relative z-10 text-sm" />
-            </button>
-          )}
-          
-          {/* Regenerate button for user messages */}
-          {sender === 'user' && isComplete !== false && onRegenerateResponse && (
-            <button 
-              className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
-              onClick={onRegenerateResponse}
-              title="Regenerate response"
-            >
-              <FaRedo className="relative z-10 text-sm" />
-            </button>
-          )}
-        </div>
-      </div>
+      <MessageFooter
+        sender={sender}
+        timestamp={timestamp}
+        wasPaused={wasPaused}
+        isComplete={isComplete}
+        branchData={branchData}
+        onPreviousBranch={handlePreviousBranch}
+        onNextBranch={handleNextBranch}
+        text={text}
+        copied={copied}
+        isEditing={isEditing}
+        onCopyMessage={handleCopyMessage}
+        onSetIsEditing={handleSetIsEditing}
+        onEditMessage={onEditMessage}
+        onRegenerateResponse={onRegenerateResponse}
+      />
     </div>
   );
 };
