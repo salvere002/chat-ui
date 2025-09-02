@@ -16,6 +16,7 @@ import { useResponseModeStore, useThemeStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
 import ThinkingSection from './ThinkingSection';
 import ChartRenderer from './ChartRenderer';
+import ExpressionRenderer from './ExpressionRenderer';
 import { ConversationMessage } from '../types/api';
 import { ChartData } from '../types/chat';
 
@@ -655,6 +656,34 @@ const MemoizedMarkdown: React.FC<{
                 }
                 
                 return <EmbeddedImage imageUrl={imageUrl} />;
+              }
+              
+              // Check for expression format: expression{code}
+              const expressionMatch = /^expression\{([^}]+)\}$/.exec(language);
+              
+              if (expressionMatch) {
+                const expressionCode = expressionMatch[1].trim();
+                
+                // Validate that we have a code
+                if (!expressionCode) {
+                  return (
+                    <CodeBlock
+                      language={language}
+                      className={className}
+                      {...props}
+                    >
+                      {content}
+                    </CodeBlock>
+                  );
+                }
+                
+                // Memoize expression data to prevent unnecessary re-renders
+                const memoizedExpressionData = useMemo(() => ({
+                  code: expressionCode,
+                  key: `expr-${expressionCode}-${content.substring(0, 10)}`
+                }), [expressionCode, content]);
+                
+                return <ExpressionRenderer key={memoizedExpressionData.key} code={memoizedExpressionData.code} />;
               }
               
               // Check for chart format: chart{attributes} - handle both complete and truncated

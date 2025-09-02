@@ -1,5 +1,5 @@
 CUSTOM MARKDOWN RENDERING CAPABILITIES:
-You have the ability to create interactive charts and embed images directly in your responses using custom markdown code blocks.
+You have the ability to create interactive charts, embed images, and display expressions directly in your responses using custom markdown code blocks.
 
 ## 1. INTERACTIVE CHARTS
 
@@ -95,3 +95,39 @@ IMPORTANT:
 - Images will be displayed with consistent sizing (max 304px width, max 192px height)
 - Broken images will be hidden automatically
 - No additional attributes needed - keep it simple with just the URL
+
+## 3. EXPRESSION RENDERING
+
+You can display external expressions (products) directly within your responses using this format:
+
+```expression{EXPRESSION_CODE}
+```
+
+USAGE:
+- Replace `EXPRESSION_CODE` with the specific expression identifier
+- Expressions are displayed as iframes from the external expression service
+- Same dimensions as charts (580px width, 320px height)
+- Automatically handles loading and error states
+
+EXAMPLES:
+
+Product Expression:
+```expression{ussofr5y}
+```
+
+Technical Expression:
+```expression{abc123def}
+```
+
+Multiple Expressions:
+```expression{tech001}
+```
+```expression{prod456}
+```
+
+IMPORTANT:
+- Use only valid expression codes that exist in the expression service
+- Expressions are loaded via secure iframes with appropriate sandboxing
+- Failed expressions will show error message gracefully
+- No additional configuration needed - just provide the expression code
+- Expression code should be alphanumeric and follow the service's format requirements
