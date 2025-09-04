@@ -15,15 +15,16 @@ interface ChatInterfaceProps {
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) => {
   // Get chat data and actions using selective subscriptions
-  const { activeChatId, chatSessions, activeBranchPath, isProcessing: storeIsProcessing } = useChatData();
+  const { activeChatId, chatSessions, activeBranchPath } = useChatData();
   const { 
     addMessageToChat, 
     updateMessageInChat, 
-    setProcessing, 
     createChat, 
     setActiveChat, 
-    setActiveRequestController, 
-    pauseCurrentRequest 
+    startChatStreaming,
+    stopChatStreaming,
+    getChatStreamingState,
+    pauseChatRequest 
   } = useChatActions();
   const { getChatById } = useChatUtils();
   const { getCurrentBranchMessages } = useBranchData();
@@ -90,15 +91,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     };
   }, [activeChatMessages]);
   
+  // Get current chat streaming state
+  const currentChatStreamingState = activeChatId ? getChatStreamingState(activeChatId) : null;
+  const isChatStreaming = currentChatStreamingState?.isStreaming || false;
+  
   // Combined processing state
-  const combinedIsProcessing = storeIsProcessing || isFileProcessing;
+  const combinedIsProcessing = isChatStreaming || isFileProcessing;
 
   // Clear error (local state for now)
   const clearError = () => setError(null);
 
   // Handle pausing/aborting current request
   const handlePauseRequest = () => {
-    pauseCurrentRequest();
+    if (activeChatId) {
+      pauseChatRequest(activeChatId);
+    }
   };
 
   // Handle sending a new message
@@ -122,10 +129,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     }
     
     try {
-      // Set processing state and create abort controller
-      setProcessing(true);
-      const abortController = new AbortController();
-      setActiveRequestController(abortController);
       
       // Process file uploads if needed
       let uploadedFiles: MessageFile[] = [];
@@ -187,16 +190,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       
       // Send the API request based on selected response mode
       if (selectedResponseMode === 'stream') {
-        // Streaming API call with proper callback handling
+        // Start streaming for this specific chat/message
+        const controller = new AbortController();
+        startChatStreaming(currentChatId, aiMessageId, controller);
+        
+        // Streaming API call with context-aware callback handling
         await ChatService.sendStreamingMessage(
+          currentChatId,
+          aiMessageId,
           messageText,
           uploadedFiles,
           {
-            onChunk: (chunk) => {
+            onChunk: (chunk, context) => {
+              // Validate context to ensure we're updating the right message
+              if (context.chatId !== currentChatId || context.messageId !== aiMessageId) {
+                console.warn('Stream chunk received for different context, ignoring');
+                return;
+              }
+              
               // Handle thinking content streaming
               if (chunk.thinking) {
-                const currentMessage = getChatById(currentChatId)?.messages.find(m => m.id === aiMessageId);
-                updateMessageInChat(currentChatId, aiMessageId, {
+                const currentMessage = getChatById(context.chatId)?.messages.find(m => m.id === context.messageId);
+                updateMessageInChat(context.chatId, context.messageId, {
                   thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
                   isThinkingComplete: chunk.thinkingComplete,
                   thinkingCollapsed: currentMessage?.thinkingCollapsed ?? true // Default to collapsed
@@ -205,50 +220,56 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
               
               // Handle regular response content streaming
               if (chunk.text) {
-                updateMessageInChat(currentChatId, aiMessageId, {
-                  text: `${getChatById(currentChatId)?.messages.find(m => m.id === aiMessageId)?.text || ''}${chunk.text}`,
+                updateMessageInChat(context.chatId, context.messageId, {
+                  text: `${getChatById(context.chatId)?.messages.find(m => m.id === context.messageId)?.text || ''}${chunk.text}`,
                   imageUrl: chunk.imageUrl
                 });
               }
             },
-            onComplete: () => {
-              // Mark as complete when done
-              updateMessageInChat(currentChatId, aiMessageId, {
-                isComplete: true,
-                isThinkingComplete: true // Ensure thinking is also marked complete
-              });
-              // Clear processing state and abort controller
-              setProcessing(false);
-              setActiveRequestController(null);
-            },
-            onError: (error) => {
-              // Don't show error for aborted requests
-              if (error.name !== 'AbortError') {
-                setError(error.message);
-                updateMessageInChat(currentChatId, aiMessageId, {
-                  text: 'Sorry, there was an error processing your request.',
-                  isComplete: true
-                });
-              } else {
-                // For aborted requests, mark current message as complete with existing content
-                updateMessageInChat(currentChatId, aiMessageId, {
+            onComplete: (context) => {
+              // Validate context
+              if (context.chatId === currentChatId && context.messageId === aiMessageId) {
+                // Mark as complete when done
+                updateMessageInChat(context.chatId, context.messageId, {
                   isComplete: true,
-                  isThinkingComplete: true,
-                  wasPaused: true
+                  isThinkingComplete: true // Ensure thinking is also marked complete
                 });
+                // Clear streaming state for this chat
+                stopChatStreaming(context.chatId);
               }
-              // Clear processing state and abort controller
-              setProcessing(false);
-              setActiveRequestController(null);
+            },
+            onError: (error, context) => {
+              // Validate context
+              if (context.chatId === currentChatId && context.messageId === aiMessageId) {
+                // Don't show error for aborted requests
+                if (error.name !== 'AbortError') {
+                  setError(error.message);
+                  updateMessageInChat(context.chatId, context.messageId, {
+                    text: 'Sorry, there was an error processing your request.',
+                    isComplete: true
+                  });
+                } else {
+                  // For aborted requests, mark current message as complete with existing content
+                  updateMessageInChat(context.chatId, context.messageId, {
+                    isComplete: true,
+                    isThinkingComplete: true,
+                    wasPaused: true
+                  });
+                }
+                // Clear streaming state for this chat
+                stopChatStreaming(context.chatId);
+              }
             }
           },
-          history,
-          abortController.signal
+          history
         );
       } else {
-        // Non-streaming API call
+        // Non-streaming API call - also use per-chat processing state
+        const controller = new AbortController();
+        startChatStreaming(currentChatId, aiMessageId, controller);
+        
         try {
-          const response = await ChatService.sendMessage(messageText, uploadedFiles, history, abortController.signal);
+          const response = await ChatService.sendMessage(messageText, uploadedFiles, history, controller.signal);
           // Update AI message with complete response
           updateMessageInChat(currentChatId, aiMessageId, {
             text: response.text,
@@ -257,6 +278,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
             thinkingContent: response.thinking,
             isThinkingComplete: true
           });
+          stopChatStreaming(currentChatId);
         } catch (error) {
           // Handle abort vs other errors for fetch mode
           if (error instanceof Error && error.name === 'AbortError') {
@@ -273,10 +295,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
               isComplete: true
             });
           }
-        } finally {
-          // Clear processing state and abort controller
-          setProcessing(false);
-          setActiveRequestController(null);
+          stopChatStreaming(currentChatId);
         }
       }
     } catch (err) {
@@ -284,8 +303,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
       setError(errorMessage);
       showToast(errorMessage, 'error');
-      setProcessing(false);
-      setActiveRequestController(null);
+      if (currentChatId) {
+        stopChatStreaming(currentChatId);
+      }
     }
   };
   

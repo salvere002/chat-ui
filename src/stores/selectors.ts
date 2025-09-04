@@ -6,7 +6,6 @@ export const useChatData = () => useChatStore(useShallow((state) => ({
   activeChatId: state.activeChatId,
   chatSessions: state.chatSessions,
   activeBranchPath: state.activeBranchPath,
-  isProcessing: state.isProcessing,
   error: state.error,
 })));
 
@@ -19,9 +18,13 @@ export const useChatActions = () => useChatStore(useShallow((state) => ({
   addMessageToChat: state.addMessageToChat,
   updateMessageInChat: state.updateMessageInChat,
   renameChatSession: state.renameChatSession,
-  setProcessing: state.setProcessing,
-  setActiveRequestController: state.setActiveRequestController,
-  pauseCurrentRequest: state.pauseCurrentRequest,
+  // Per-conversation streaming actions
+  startChatStreaming: state.startChatStreaming,
+  stopChatStreaming: state.stopChatStreaming,
+  getChatStreamingState: state.getChatStreamingState,
+  getActiveStreamingChats: state.getActiveStreamingChats,
+  isChatStreaming: state.isChatStreaming,
+  pauseChatRequest: state.pauseChatRequest,
 })));
 
 // Branch-related actions and data
@@ -45,10 +48,11 @@ export const useChatUtils = () => useChatStore(useShallow((state) => ({
   clearError: state.clearError,
 })));
 
-// Processing state only (for components that only need to know if processing)
-export const useProcessingState = () => useChatStore(useShallow((state) => ({
-  isProcessing: state.isProcessing,
-  activeRequestController: state.activeRequestController,
+// Per-conversation streaming state
+export const useStreamingState = () => useChatStore(useShallow((state) => ({
+  getChatStreamingState: state.getChatStreamingState,
+  getActiveStreamingChats: state.getActiveStreamingChats,
+  isChatStreaming: state.isChatStreaming,
 })));
 
 // Active chat specific data

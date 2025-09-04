@@ -240,8 +240,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   const {
     addMessageToChat,
     updateMessageInChat,
-    setProcessing,
-    setActiveRequestController
+    startChatStreaming,
+    stopChatStreaming
   } = useChatActions();
   
   const { getChatById } = useChatUtils();
@@ -330,13 +330,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     if (!chatId) return;
     
     try {
-      // Set processing state and create abort controller
-      setProcessing(true);
-      const abortController = new AbortController();
-      setActiveRequestController(abortController);
-      
       // Create a unique message ID for AI response
       const aiMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Start streaming for this specific chat/message
+      const abortController = new AbortController();
+      startChatStreaming(chatId, aiMessageId, abortController);
       
       // Create initial AI message (will be updated with stream)
       // It should inherit the current branch context
@@ -373,10 +372,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         
         // Streaming API call
         await ChatService.sendStreamingMessage(
+          chatId,
+          aiMessageId,
           userText,
           userFiles,
           {
-            onChunk: (chunk) => {
+            onChunk: (chunk: any, _context: { chatId: string; messageId: string }) => {
               // Handle thinking content streaming
               if (chunk.thinking) {
                 const currentMessage = getChatById(chatId)?.messages.find((m: Message) => m.id === aiMessageId);
@@ -396,19 +397,18 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                 });
               }
             },
-            onComplete: () => {
+            onComplete: (_context: { chatId: string; messageId: string }) => {
               // Mark as complete when done
               updateMessageInChat(chatId, aiMessageId, {
                 isComplete: true,
                 isThinkingComplete: true // Ensure thinking is also marked complete
               });
-              // Clear processing state and abort controller
-              setProcessing(false);
-              setActiveRequestController(null);
+              // Clear streaming state 
+              stopChatStreaming(chatId);
               // Reset accumulated text
               accumulatedTextRef.current = '';
             },
-            onError: (error) => {
+            onError: (error: Error, _context: { chatId: string; messageId: string }) => {
               // Don't show error for aborted requests
               if (error.name !== 'AbortError') {
                 console.error('AI response error:', error.message);
@@ -424,15 +424,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
                   wasPaused: true
                 });
               }
-              // Clear processing state and abort controller
-              setProcessing(false);
-              setActiveRequestController(null);
+              // Clear streaming state
+              stopChatStreaming(chatId);
               // Reset accumulated text
               accumulatedTextRef.current = '';
             }
           },
-          history,
-          abortController.signal
+          history
         );
       } else {
         // Non-streaming API call
@@ -463,16 +461,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
             });
           }
         } finally {
-          // Clear processing state and abort controller
-          setProcessing(false);
-          setActiveRequestController(null);
+          // Clear streaming state
+          stopChatStreaming(chatId);
         }
       }
     } catch (error) {
       // Handle errors
       console.error("Error generating AI response for new branch:", error);
-      setProcessing(false);
-      setActiveRequestController(null);
+      stopChatStreaming(chatId);
     }
   };
 

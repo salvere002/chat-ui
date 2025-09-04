@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { ChatService, StreamCallbacks } from '../../services/chatService';
+import { ChatService } from '../../services/chatService';
+import { StreamCallbacks } from '../../services/adapters/BaseAdapter';
 import { Message, MessageFile } from '../../types/chat';
 import { nanoid } from 'nanoid';
 
@@ -130,7 +131,7 @@ const ChatExample: React.FC = () => {
       if (useStreaming) {
         // Define streaming callbacks
         const callbacks: StreamCallbacks = {
-          onChunk: (chunk) => {
+          onChunk: (chunk: any) => {
             if (!activeMessageRef.current) return;
             
             updateMessage(activeMessageRef.current, {
@@ -144,7 +145,7 @@ const ChatExample: React.FC = () => {
             setHasError(false);
             activeMessageRef.current = null;
           },
-          onError: (error) => {
+          onError: (error: Error) => {
             console.error('Stream error:', error);
             setIsLoading(false);
             setHasError(true);
@@ -162,7 +163,7 @@ const ChatExample: React.FC = () => {
         };
         
         // Send the message with streaming
-        await ChatService.sendStreamingMessage(userMessage.text, uploadedFiles, callbacks);
+        await ChatService.sendStreamingMessage('example-chat', aiMessage.id, userMessage.text, uploadedFiles, callbacks);
       } else {
         // Send the message without streaming
         const response = await ChatService.sendMessage(userMessage.text, uploadedFiles);
