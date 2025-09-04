@@ -94,7 +94,8 @@ const useChatStore = create<ChatStore>()(
       activeChatId: null,
       activeBranchPath: new Map(),
       branchTree: new Map(),
-      messageBranches: new Map()
+      messageBranches: new Map(),
+      suggestions: new Map()
     }));
   },
   
@@ -542,16 +543,6 @@ const useChatStore = create<ChatStore>()(
     return state.activeBranchPath.get(chatId) || ['main'];
   },
 
-  clearAllChats: () => {
-    set(() => ({
-      chatSessions: [],
-      activeChatId: null,
-      activeBranchPath: new Map(),
-      branchTree: new Map(),
-      messageBranches: new Map(),
-      suggestions: new Map()
-    }));
-  },
 
   // Suggestions actions
   setSuggestions: ((chatIdOrSuggestions: string | string[], suggestions?: string[]) => {
