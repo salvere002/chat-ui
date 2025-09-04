@@ -1,8 +1,9 @@
 import { serviceFactory, AdapterType } from './serviceFactory';
-import { StreamCallbacks, ProgressCallback } from './adapters/BaseAdapter';
+import { ProgressCallback } from './adapters/BaseAdapter';
 import { MessageRequest, MessageResponse, FileUploadResponse, ConversationMessage } from '../types/api';
 import { MessageFile } from '../types/chat';
 import { useAgentStore } from '../stores';
+import { streamManager } from './streamManager';
 
 /**
  * Chat Service - Unified API for chat functionality
@@ -37,18 +38,72 @@ export class ChatService {
   }
   
   /**
-   * Send a message and get a streaming response
+   * Send a message and get a complete response with per-conversation state management
    */
-  static async sendStreamingMessage(
+  static async sendMessageWithContext(
+    chatId: string,
+    messageId: string,
     text: string,
     files: MessageFile[] = [],
-    callbacks: StreamCallbacks,
+    history: ConversationMessage[] = []
+  ): Promise<MessageResponse> {
+    // Start tracking this request using StreamManager (even though it's not streaming)
+    const controller = streamManager.startStream(chatId, messageId);
+    
+    try {
+      const request: MessageRequest = { text, files, history };
+      const response = await this.adapter.sendMessage(request, controller.signal);
+      streamManager.stopStream(chatId, messageId);
+      return response;
+    } catch (error) {
+      streamManager.stopStream(chatId, messageId);
+      throw error;
+    }
+  }
+  
+  /**
+   * Send a message and get a streaming response with context handling
+   */
+  static async sendStreamingMessage(
+    chatId: string,
+    messageId: string,
+    text: string,
+    files: MessageFile[] = [],
+    callbacks: {
+      onChunk: (chunk: any, context: { chatId: string; messageId: string }) => void;
+      onComplete: (context: { chatId: string; messageId: string }) => void;
+      onError: (error: Error, context: { chatId: string; messageId: string }) => void;
+    },
     history: ConversationMessage[] = [],
-    abortSignal?: AbortSignal
   ): Promise<void> {
+    // Start the stream using StreamManager
+    const controller = streamManager.startStream(chatId, messageId);
+    const context = { chatId, messageId };
+    
+    // Include deepResearch setting from agent store
     const { deepResearchEnabled } = useAgentStore.getState();
     const request: MessageRequest = { text, files, history, deepResearch: deepResearchEnabled };
-    return this.adapter.sendStreamingMessage(request, callbacks, abortSignal);
+    
+    try {
+      return await this.adapter.sendStreamingMessage(
+        request, 
+        {
+          onChunk: (chunk) => callbacks.onChunk(chunk, context),
+          onComplete: () => {
+            streamManager.stopStream(chatId, messageId);
+            callbacks.onComplete(context);
+          },
+          onError: (error) => {
+            streamManager.stopStream(chatId, messageId);
+            callbacks.onError(error, context);
+          }
+        },
+        controller.signal
+      );
+    } catch (error) {
+      streamManager.stopStream(chatId, messageId);
+      throw error;
+    }
   }
   
   /**
@@ -78,6 +133,6 @@ export class ChatService {
 }
 
 // Export utilities and types
-export type { StreamCallbacks, ProgressCallback } from './adapters/BaseAdapter';
+export type { ProgressCallback } from './adapters/BaseAdapter';
 export type { AdapterType } from './serviceFactory';
 export { serviceFactory } from './serviceFactory'; 

@@ -18,7 +18,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const accumulatedTextRef = useRef<string>("");
   
   // Use selective subscriptions
-  const { updateMessageInChat, setProcessing, setActiveRequestController } = useChatActions();
+  const { updateMessageInChat, startChatStreaming, stopChatStreaming } = useChatActions();
   const { getCurrentBranchMessages } = useBranchData();
   const { selectedResponseMode } = useResponseModeStore();
   
@@ -28,16 +28,16 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
 
   // Use refs for stable access to store methods
   const updateMessageInChatRef = useRef(updateMessageInChat);
-  const setProcessingRef = useRef(setProcessing);
+  const startChatStreamingRef = useRef(startChatStreaming);
+  const stopChatStreamingRef = useRef(stopChatStreaming);
   const getCurrentBranchMessagesRef = useRef(getCurrentBranchMessages);
-  const setActiveRequestControllerRef = useRef(setActiveRequestController);
   const selectedResponseModeRef = useRef(selectedResponseMode);
 
   // Update refs when store values change
   updateMessageInChatRef.current = updateMessageInChat;
-  setProcessingRef.current = setProcessing;
+  startChatStreamingRef.current = startChatStreaming;
+  stopChatStreamingRef.current = stopChatStreaming;
   getCurrentBranchMessagesRef.current = getCurrentBranchMessages;
-  setActiveRequestControllerRef.current = setActiveRequestController;
   selectedResponseModeRef.current = selectedResponseMode;
   
   // Scroll to bottom function - memoized to prevent unnecessary recreations
@@ -210,10 +210,9 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     if (!chatId) return;
     
     try {
-      // Set processing state and create abort controller
-      setProcessingRef.current(true);
+      // Start streaming for this specific chat/message
       const abortController = new AbortController();
-      setActiveRequestControllerRef.current(abortController);
+      startChatStreamingRef.current(chatId, aiMessageId, abortController);
       
       // Reset accumulated text
       accumulatedTextRef.current = "";
@@ -235,10 +234,17 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
       if (selectedResponseModeRef.current === 'stream') {
         // Streaming API call
         await ChatService.sendStreamingMessage(
+          chatId,
+          aiMessageId,
           userMessageText,
           userMessageFiles,
           {
-            onChunk: (chunk) => {
+            onChunk: (chunk, context) => {
+              // Validate context
+              if (context.chatId !== chatId || context.messageId !== aiMessageId) {
+                return;
+              }
+              
               // Handle thinking content streaming
               if (chunk.thinking) {
                 const currentMessage = getCurrentBranchMessagesRef.current(chatId).find((m: Message) => m.id === aiMessageId);
@@ -261,43 +267,44 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
                 });
               }
             },
-            onComplete: () => {
-              // Mark as complete when done
-              updateMessageInChatRef.current(chatId, aiMessageId, {
-                isComplete: true,
-                isThinkingComplete: true // Ensure thinking is also marked complete
-              });
-              // Clear processing state and abort controller
-              setProcessingRef.current(false);
-              setActiveRequestControllerRef.current(null);
-              // Reset accumulated text
-              accumulatedTextRef.current = "";
-            },
-            onError: (error) => {
-              // Don't show error for aborted requests
-              if (error.name !== 'AbortError') {
-                console.error('Regeneration error:', error.message);
-                updateMessageInChatRef.current(chatId, aiMessageId, {
-                  text: 'Sorry, there was an error processing your request.',
-                  isComplete: true
-                });
-              } else {
-                // For aborted requests, mark current message as complete with existing content
+            onComplete: (context) => {
+              if (context.chatId === chatId && context.messageId === aiMessageId) {
+                // Mark as complete when done
                 updateMessageInChatRef.current(chatId, aiMessageId, {
                   isComplete: true,
-                  isThinkingComplete: true,
-                  wasPaused: true
+                  isThinkingComplete: true // Ensure thinking is also marked complete
                 });
+                // Clear streaming state
+                stopChatStreamingRef.current(chatId);
+                // Reset accumulated text
+                accumulatedTextRef.current = "";
               }
-              // Clear processing state and abort controller
-              setProcessingRef.current(false);
-              setActiveRequestControllerRef.current(null);
-              // Reset accumulated text
-              accumulatedTextRef.current = "";
+            },
+            onError: (error, context) => {
+              if (context.chatId === chatId && context.messageId === aiMessageId) {
+                // Don't show error for aborted requests
+                if (error.name !== 'AbortError') {
+                  console.error('Regeneration error:', error.message);
+                  updateMessageInChatRef.current(chatId, aiMessageId, {
+                    text: 'Sorry, there was an error processing your request.',
+                    isComplete: true
+                  });
+                } else {
+                  // For aborted requests, mark current message as complete with existing content
+                  updateMessageInChatRef.current(chatId, aiMessageId, {
+                    isComplete: true,
+                    isThinkingComplete: true,
+                    wasPaused: true
+                  });
+                }
+                // Clear streaming state
+                stopChatStreamingRef.current(chatId);
+                // Reset accumulated text
+                accumulatedTextRef.current = "";
+              }
             }
           },
-          history,
-          abortController.signal
+          history
         );
       } else {
         // Non-streaming API call
@@ -310,6 +317,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
             thinkingContent: response.thinking,
             isThinkingComplete: true
           });
+          stopChatStreamingRef.current(chatId);
         } catch (error) {
           // Handle abort vs other errors
           if (error instanceof Error && error.name === 'AbortError') {
@@ -326,10 +334,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
               isComplete: true
             });
           }
-        } finally {
-          // Clear processing state and abort controller
-          setProcessingRef.current(false);
-          setActiveRequestControllerRef.current(null);
+          stopChatStreamingRef.current(chatId);
         }
       }
     } catch (error) {
@@ -339,8 +344,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
         text: 'Sorry, there was an error processing your request.',
         isComplete: true
       });
-      setProcessingRef.current(false);
-      setActiveRequestControllerRef.current(null);
+      stopChatStreamingRef.current(chatId);
       // Reset accumulated text
       accumulatedTextRef.current = "";
     }
@@ -358,8 +362,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     const aiMessage = messages[userMessageIndex + 1];
     if (aiMessage.sender !== 'ai') return; // Ensure it's really an AI message
     
-    // Set processing state
-    setProcessingRef.current(true);
+    // Processing state will be set by generateAIResponse
     
     // Mark the AI message as regenerating and reset thinking content
     updateMessageInChatRef.current(chatId, aiMessage.id, { 
@@ -390,8 +393,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     if (messageIndex < messages.length - 1 && messages[messageIndex + 1].sender === 'ai') {
       const aiMessage = messages[messageIndex + 1];
       
-      // Set processing state
-      setProcessingRef.current(true);
+      // Processing state will be set by generateAIResponse
       
       // Mark the AI message as regenerating and reset thinking content
       updateMessageInChatRef.current(chatId, aiMessage.id, { 

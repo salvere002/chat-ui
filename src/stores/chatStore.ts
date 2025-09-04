@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Message, Chat, BranchNode } from '../types/chat';
 import { ChatStore } from '../types/store';
 import { configManager } from '../utils/config';
+import { streamManager } from '../services/streamManager';
 
 // Create the chat store with Zustand
 const useChatStore = create<ChatStore>()(
@@ -11,9 +12,7 @@ const useChatStore = create<ChatStore>()(
   // State
   chatSessions: [],
   activeChatId: null,
-  isProcessing: false,
   error: null,
-  activeRequestController: null,
   // Branch state
   activeBranchPath: new Map(),
   branchTree: new Map(),
@@ -52,13 +51,52 @@ const useChatStore = create<ChatStore>()(
   },
   
   deleteChat: (id: string) => {
-    set((state) => ({
-      chatSessions: state.chatSessions.filter((chat) => chat.id !== id),
-      // If the active chat is deleted, set activeChatId to null
-      activeChatId: state.activeChatId === id ? null : state.activeChatId
-    }));
+    // Stop any active streams for this chat before deletion
+    streamManager.stopAllStreamsForChat(id);
+    
+    set((state) => {
+      const remainingChats = state.chatSessions.filter((chat) => chat.id !== id);
+      
+      // Clean up branch state for the deleted chat
+      const newActiveBranchPath = new Map(state.activeBranchPath);
+      const newBranchTree = new Map(state.branchTree);
+      const newMessageBranches = new Map(state.messageBranches);
+      
+      newActiveBranchPath.delete(id);
+      newBranchTree.delete(id);
+      newMessageBranches.delete(id);
+      
+      // If the active chat is deleted, select a sensible next chat
+      let newActiveChatId = state.activeChatId;
+      if (state.activeChatId === id) {
+        // Select the most recently updated chat, or null if no chats remain
+        newActiveChatId = remainingChats.length > 0 
+          ? remainingChats.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0].id
+          : null;
+      }
+      
+      return {
+        chatSessions: remainingChats,
+        activeChatId: newActiveChatId,
+        activeBranchPath: newActiveBranchPath,
+        branchTree: newBranchTree,
+        messageBranches: newMessageBranches
+      };
+    });
   },
 
+  clearAllChats: () => {
+    // Clean up all active streams before clearing state
+    streamManager.cleanup();
+    
+    set(() => ({
+      chatSessions: [],
+      activeChatId: null,
+      activeBranchPath: new Map(),
+      branchTree: new Map(),
+      messageBranches: new Map()
+    }));
+  },
   
   setActiveChat: (id: string) => {
     set({ activeChatId: id });
@@ -136,22 +174,69 @@ const useChatStore = create<ChatStore>()(
     set({ error: null });
   },
   
-  setProcessing: (isProcessing: boolean) => {
-    set({ isProcessing });
+  // Per-conversation streaming actions
+  startChatStreaming: (chatId: string, messageId: string, controller: AbortController) => {
+    const now = new Date();
+    set((state) => ({
+      chatSessions: state.chatSessions.map((chat) => 
+        chat.id === chatId 
+          ? {
+              ...chat,
+              streamingState: {
+                isStreaming: true,
+                currentMessageId: messageId,
+                abortController: controller,
+                streamStartTime: now
+              },
+              updatedAt: now
+            }
+          : chat
+      )
+    }));
   },
 
-  setActiveRequestController: (controller: AbortController | null) => {
-    set({ activeRequestController: controller });
+  stopChatStreaming: (chatId: string) => {
+    const now = new Date();
+    set((state) => ({
+      chatSessions: state.chatSessions.map((chat) => 
+        chat.id === chatId 
+          ? {
+              ...chat,
+              streamingState: undefined,
+              updatedAt: now
+            }
+          : chat
+      )
+    }));
   },
 
-  pauseCurrentRequest: () => {
+  getChatStreamingState: (chatId: string) => {
     const state = get();
-    if (state.activeRequestController) {
-      state.activeRequestController.abort();
-      set({ 
-        activeRequestController: null, 
-        isProcessing: false 
-      });
+    const chat = state.chatSessions.find(c => c.id === chatId);
+    return chat?.streamingState || null;
+  },
+
+  getActiveStreamingChats: () => {
+    const state = get();
+    return state.chatSessions
+      .filter(chat => chat.streamingState?.isStreaming)
+      .map(chat => chat.id);
+  },
+
+  isChatStreaming: (chatId: string) => {
+    const state = get();
+    const chat = state.chatSessions.find(c => c.id === chatId);
+    return chat?.streamingState?.isStreaming || false;
+  },
+
+  pauseChatRequest: (chatId: string) => {
+    const state = get();
+    const chat = state.chatSessions.find(c => c.id === chatId);
+    if (chat?.streamingState?.isStreaming && chat.streamingState.currentMessageId) {
+      // Use StreamManager to stop the stream
+      streamManager.stopStream(chatId, chat.streamingState.currentMessageId);
+      // Update chat state (removed inconsistent second parameter)
+      get().stopChatStreaming(chatId);
     }
   },
   
