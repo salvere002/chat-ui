@@ -52,6 +52,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   // Local state for error handling
   const [error, setError] = useState<string | null>(null);
   
+  // Track input focus state for suggestions display
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  
   // Get file upload state and handlers from custom hook
   const { 
     fileUploads, 
@@ -116,6 +119,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     if (activeChatId) {
       pauseChatRequest(activeChatId);
     }
+  };
+
+  // Handle input focus change
+  const handleInputFocusChange = (focused: boolean) => {
+    setIsInputFocused(focused);
   };
 
   // Handle suggestion click
@@ -386,6 +394,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
               isFileProcessing={isFileProcessing}
               initialFiles={fileUploads}
               showTopBorder={false}
+              onFocusChange={handleInputFocusChange}
             />
           </div>
         </div>
@@ -397,7 +406,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           {/* Bottom-positioned message input with suggestions and animation */}
           <div className={`relative ${shouldAnimateTransition ? 'animate-input-to-bottom' : ''}`}>
             {/* Suggested questions overlay - positioned above input without taking space */}
-            {showSuggestions && currentSuggestions.length > 0 && !combinedIsProcessing && (
+            {showSuggestions && isInputFocused && currentSuggestions.length > 0 && !combinedIsProcessing && (
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-full max-w-4xl px-4 z-dropdown">
                 <div className="flex justify-center">
                   <div className="w-full max-w-2xl">
@@ -418,6 +427,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
               isFileProcessing={isFileProcessing}
               initialFiles={fileUploads}
               showTopBorder={true}
+              onFocusChange={handleInputFocusChange}
             />
           </div>
         </>

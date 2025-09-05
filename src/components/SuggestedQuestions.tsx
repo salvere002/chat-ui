@@ -13,7 +13,7 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="flex gap-2 px-4 py-2 overflow-x-auto scrollbar-thin scrollbar-thumb-border-secondary scrollbar-track-transparent scroll-pl-4 scroll-pr-4">
+      <div className="flex gap-2 px-4 py-2 overflow-x-auto scrollbar-thin scrollbar-thumb-border-secondary scrollbar-track-transparent scroll-pl-4 scroll-pr-4 animate-fade-in">
         <div className="flex gap-2 mx-auto">
           {[1, 2, 3].map((index) => (
             <div
@@ -33,7 +33,7 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
   }
 
   return (
-    <div className="flex gap-2 px-4 py-2 overflow-x-auto scrollbar-thin scrollbar-thumb-border-secondary scrollbar-track-transparent scroll-pl-4 scroll-pr-4">
+    <div className="flex gap-2 px-4 py-2 overflow-x-auto scrollbar-thin scrollbar-thumb-border-secondary scrollbar-track-transparent scroll-pl-4 scroll-pr-4 animate-fade-in">
       <div className="flex gap-2 mx-auto">
         {suggestions.map((suggestion, index) => (
           <button

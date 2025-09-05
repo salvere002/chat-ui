@@ -16,6 +16,7 @@ interface MessageInputProps {
   isFileProcessing?: boolean;
   initialFiles?: PreviewFile[];
   showTopBorder?: boolean;
+  onFocusChange?: (isFocused: boolean) => void;
 }
 
 // Convert allowed extensions from config to accept attribute format
@@ -53,7 +54,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
   isProcessing,
   isFileProcessing = false,
   initialFiles = [],
-  showTopBorder = true
+  showTopBorder = true,
+  onFocusChange
 }) => {
   // Get input value and setter from input store
   const { inputValue: value, setInputValue: onChange, resetInput } = useInputStore();
@@ -77,6 +79,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
   useEffect(() => {
     setSelectedFiles(initialFiles);
   }, [initialFiles]);
+
+  // Handle focus change
+  const handleFocus = useCallback(() => {
+    onFocusChange?.(true);
+  }, [onFocusChange]);
+
+  const handleBlur = useCallback(() => {
+    onFocusChange?.(false);
+  }, [onFocusChange]);
 
   // Function to handle Send/Pause button click
   const handleButtonClick = useCallback(() => {
@@ -272,6 +283,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
           value={value}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder="Type your message or drop files..."
           disabled={isProcessing}
           minRows={2}
