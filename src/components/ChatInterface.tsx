@@ -34,7 +34,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   const { showToast } = useToastStore();
 
   // Get UI settings from Zustand store
-  const { showSuggestions } = useUiSettingsStore();
+  const { showSuggestions, backgroundTexture } = useUiSettingsStore();
   
   // Get suggestions functionality from main store (not available in selectors yet)
   const { getSuggestions, isSuggestionsLoading } = useChatStore();
@@ -355,9 +355,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
     previousMessageCount.current = currentMessageCount;
   }, [activeChatMessages.length]);
 
+  // Generate texture class based on setting
+  const getTextureClass = () => {
+    if (backgroundTexture === 'off') return 'texture-off';
+    if (backgroundTexture === 'sparse') return 'texture-sparse';
+    if (backgroundTexture === 'minimal') return 'texture-minimal';
+    if (backgroundTexture === 'subtle') return 'texture-subtle';
+    return ''; // 'normal' uses default texture
+  };
+
 
   return (
-    <div className="flex flex-col h-full w-full bg-bg-primary relative overflow-hidden">
+    <div className={`flex flex-col h-full w-full bg-bg-primary ${getTextureClass()} relative overflow-hidden`}>
       {/* Single welcome state for both no chat and empty chat */}
       {showWelcome ? (
         <div className="flex flex-col h-full justify-center items-center px-4 py-8">

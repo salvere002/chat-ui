@@ -26,7 +26,9 @@ const Settings: React.FC<SettingsProps> = ({
 
   const {
     showSuggestions,
-    setShowSuggestions
+    setShowSuggestions,
+    backgroundTexture,
+    setBackgroundTexture
   } = useUiSettingsStore();
 
   // Get current configuration
@@ -148,6 +150,22 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
               </div>
             </div>
+            
+            <div className="mb-4 last:mb-0">
+              <label htmlFor="background-texture" className="block mb-2 text-sm font-medium text-text-secondary">Background Texture:</label>
+              <select
+                id="background-texture"
+                value={backgroundTexture}
+                onChange={(e) => setBackgroundTexture(e.target.value as 'off' | 'normal' | 'sparse' | 'minimal' | 'subtle')}
+                className="w-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-sans text-sm transition-all duration-150 appearance-none cursor-pointer bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27currentColor%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-[right_12px_center] bg-[length:16px] pr-7 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
+              >
+                <option value="off">Off (Solid background)</option>
+                <option value="normal">Normal (Dense pattern)</option>
+                <option value="sparse">Sparse (Less dense)</option>
+                <option value="minimal">Minimal (Very sparse)</option>
+                <option value="subtle">Subtle (Ultra minimal)</option>
+              </select>
+            </div>
           </div>
           
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border-secondary">
@@ -247,6 +265,22 @@ const Settings: React.FC<SettingsProps> = ({
                   />
                 </div>
               </div>
+            </div>
+            
+            <div className="mb-4 last:mb-0">
+              <label htmlFor="background-texture" className="block mb-2 text-sm font-medium text-text-secondary">Background Texture:</label>
+              <select
+                id="background-texture"
+                value={backgroundTexture}
+                onChange={(e) => setBackgroundTexture(e.target.value as 'off' | 'normal' | 'sparse' | 'minimal' | 'subtle')}
+                className="w-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-sans text-sm transition-all duration-150 appearance-none cursor-pointer bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27currentColor%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-[right_12px_center] bg-[length:16px] pr-7 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
+              >
+                <option value="off">Off (Solid background)</option>
+                <option value="normal">Normal (Dense pattern)</option>
+                <option value="sparse">Sparse (Less dense)</option>
+                <option value="minimal">Minimal (Very sparse)</option>
+                <option value="subtle">Subtle (Ultra minimal)</option>
+              </select>
             </div>
           </div>
           

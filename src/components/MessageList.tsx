@@ -3,7 +3,7 @@ import MessageItem from './MessageItem';
 import { Message } from '../types/chat';
 import { useChatActions, useBranchData } from '../stores';
 import { ChatService } from '../services/chatService';
-import { useResponseModeStore } from '../stores';
+import { useResponseModeStore, useUiSettingsStore } from '../stores';
 import { ConversationMessage } from '../types/api';
 
 interface MessageListProps {
@@ -21,6 +21,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const { updateMessageInChat, startChatStreaming, stopChatStreaming } = useChatActions();
   const { getCurrentBranchMessages } = useBranchData();
   const { selectedResponseMode } = useResponseModeStore();
+  const { backgroundTexture } = useUiSettingsStore();
   
   const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
   const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
@@ -39,6 +40,15 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   stopChatStreamingRef.current = stopChatStreaming;
   getCurrentBranchMessagesRef.current = getCurrentBranchMessages;
   selectedResponseModeRef.current = selectedResponseMode;
+
+  // Generate texture class based on setting
+  const getTextureClass = () => {
+    if (backgroundTexture === 'off') return 'texture-off';
+    if (backgroundTexture === 'sparse') return 'texture-sparse';
+    if (backgroundTexture === 'minimal') return 'texture-minimal';
+    if (backgroundTexture === 'subtle') return 'texture-subtle';
+    return ''; // 'normal' uses default texture
+  };
   
   // Scroll to bottom function - memoized to prevent unnecessary recreations
   const scrollToBottom = useCallback(() => {
@@ -412,7 +422,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   }, [chatId, messages, generateAIResponse]);
 
   return (
-    <div className="flex-1 overflow-y-auto overflow-x-hidden p-0 bg-bg-primary relative scroll-smooth" ref={messageContainerRef}>
+    <div className={`flex-1 overflow-y-auto overflow-x-hidden p-0 bg-bg-primary ${getTextureClass()} relative scroll-smooth`} ref={messageContainerRef}>
       <div className="flex flex-col max-w-[800px] w-full py-2 sm:py-4 px-1 sm:px-4 sm:mx-auto relative pb-32">
         {messages.map((msg, index) => (
           <MessageItem 
