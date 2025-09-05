@@ -49,7 +49,7 @@ export class ChatService {
     const controller = streamManager.startStream(chatId, messageId);
     
     try {
-      const request: MessageRequest = { text, files, history };
+      const request: MessageRequest = { text, files, history, responseMessageId: messageId };
       const response = await this.adapter.sendMessage(request, controller.signal);
       streamManager.stopStream(chatId, messageId);
       return response;
@@ -78,7 +78,7 @@ export class ChatService {
     const controller = streamManager.startStream(chatId, messageId);
     const context = { chatId, messageId };
     
-    const request: MessageRequest = { text, files, history };
+    const request: MessageRequest = { text, files, history, responseMessageId: messageId };
     
     try {
       return await this.adapter.sendStreamingMessage(

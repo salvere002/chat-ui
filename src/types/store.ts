@@ -36,6 +36,10 @@ export interface ChatStore {
   getBranchingPoints: (chatId: string) => Message[];
   getBranchOptionsAtMessage: (chatId: string, messageId: string) => BranchNode[];
   getBreadcrumb: (chatId: string) => string[];
+  // Dump/Load functionality with overloads
+  dump(chatId: string): any; // Single conversation
+  dump(): any; // All conversations
+  load(data: any, replaceExisting?: boolean, chatId?: string): string | string[];
 }
 
 // Define interface for the theme store state
