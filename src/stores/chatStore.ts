@@ -543,6 +543,226 @@ const useChatStore = create<ChatStore>()(
     return state.activeBranchPath.get(chatId) || ['main'];
   },
 
+  // Dump/Load functionality with overloads
+  dump: (chatId?: string) => {
+    const state = get();
+    
+    if (chatId) {
+      // Single conversation dump
+      const chat = state.chatSessions.find(c => c.id === chatId);
+      
+      if (!chat) {
+        throw new Error(`Chat with ID ${chatId} not found`);
+      }
+
+      return {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        type: 'single',
+        conversation: {
+          ...chat,
+          createdAt: chat.createdAt.toISOString(),
+          updatedAt: chat.updatedAt.toISOString(),
+          messages: chat.messages.map(message => ({
+            ...message,
+            timestamp: message.timestamp.toISOString()
+          }))
+        },
+        branchData: {
+          activeBranchPath: state.activeBranchPath.get(chatId) || ['main'],
+          branchTree: Array.from((state.branchTree.get(chatId) || new Map()).entries()),
+          messageBranches: Array.from((state.messageBranches.get(chatId) || new Map()).entries())
+        }
+      };
+    } else {
+      // All conversations dump
+      return {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        type: 'all',
+        conversations: state.chatSessions.map(chat => ({
+          ...chat,
+          createdAt: chat.createdAt.toISOString(),
+          updatedAt: chat.updatedAt.toISOString(),
+          messages: chat.messages.map(message => ({
+            ...message,
+            timestamp: message.timestamp.toISOString()
+          }))
+        })),
+        branchData: {
+          activeBranchPath: Array.from(state.activeBranchPath.entries()),
+          branchTree: Array.from(state.branchTree.entries()).map(([chatId, tree]) => [
+            chatId,
+            Array.from(tree.entries())
+          ]),
+          messageBranches: Array.from(state.messageBranches.entries()).map(([chatId, branches]) => [
+            chatId,
+            Array.from(branches.entries())
+          ])
+        },
+        activeChatId: state.activeChatId
+      };
+    }
+  },
+
+  load: (data: any, replaceExisting: boolean = false, chatId?: string) => {
+    if (!data.version) {
+      throw new Error('Invalid data format - missing version');
+    }
+
+    const state = get();
+
+    if (chatId) {
+      // Single conversation load - extract specific conversation from data
+      let conversationData;
+      
+      if (data.type === 'single') {
+        // Data contains single conversation
+        conversationData = data;
+      } else if (data.type === 'all' && data.conversations) {
+        // Data contains all conversations - find the specific one
+        const targetConversation = data.conversations.find((chat: any) => chat.id === chatId);
+        if (!targetConversation) {
+          throw new Error(`Chat with ID ${chatId} not found in data`);
+        }
+        
+        // Create single conversation data format
+        conversationData = {
+          version: data.version,
+          exportedAt: data.exportedAt,
+          type: 'single',
+          conversation: targetConversation,
+          branchData: {
+            activeBranchPath: data.branchData.activeBranchPath.find(([id]: [string, any]) => id === chatId)?.[1] || ['main'],
+            branchTree: data.branchData.branchTree.find(([id]: [string, any]) => id === chatId)?.[1] || [],
+            messageBranches: data.branchData.messageBranches.find(([id]: [string, any]) => id === chatId)?.[1] || []
+          }
+        };
+      } else {
+        throw new Error('Invalid data format for single conversation load');
+      }
+
+      // Load single conversation
+      if (!conversationData.conversation) {
+        throw new Error('Invalid conversation data format');
+      }
+
+      const importedChat = conversationData.conversation;
+      
+      const chat = {
+        ...importedChat,
+        createdAt: new Date(importedChat.createdAt),
+        updatedAt: new Date(importedChat.updatedAt),
+        messages: importedChat.messages.map((message: any) => ({
+          ...message,
+          timestamp: new Date(message.timestamp)
+        }))
+      };
+
+      const existingChatIndex = state.chatSessions.findIndex(c => c.id === chat.id);
+      
+      if (existingChatIndex >= 0 && !replaceExisting) {
+        throw new Error(`Chat with ID ${chat.id} already exists. Set replaceExisting to true to overwrite.`);
+      }
+
+      const branchData = conversationData.branchData;
+      const newActiveBranchPath = new Map(state.activeBranchPath);
+      const newBranchTree = new Map(state.branchTree);
+      const newMessageBranches = new Map(state.messageBranches);
+
+      newActiveBranchPath.set(chat.id, branchData.activeBranchPath);
+      newBranchTree.set(chat.id, new Map(branchData.branchTree));
+      newMessageBranches.set(chat.id, new Map(branchData.messageBranches));
+
+      set((state) => {
+        let newChatSessions;
+        
+        if (existingChatIndex >= 0 && replaceExisting) {
+          newChatSessions = [...state.chatSessions];
+          newChatSessions[existingChatIndex] = chat;
+        } else {
+          newChatSessions = [chat, ...state.chatSessions];
+        }
+
+        return {
+          chatSessions: newChatSessions,
+          activeBranchPath: newActiveBranchPath,
+          branchTree: newBranchTree,
+          messageBranches: newMessageBranches
+        };
+      });
+
+      return chat.id;
+    } else {
+      // All conversations load
+      let conversationsData;
+      
+      if (data.type === 'all') {
+        conversationsData = data;
+      } else if (data.type === 'single') {
+        // Convert single conversation to all format
+        conversationsData = {
+          version: data.version,
+          exportedAt: data.exportedAt,
+          type: 'all',
+          conversations: [data.conversation],
+          branchData: {
+            activeBranchPath: [[data.conversation.id, data.branchData.activeBranchPath]],
+            branchTree: [[data.conversation.id, data.branchData.branchTree]],
+            messageBranches: [[data.conversation.id, data.branchData.messageBranches]]
+          },
+          activeChatId: data.conversation.id
+        };
+      } else {
+        throw new Error('Invalid data format for all conversations load');
+      }
+
+      if (!conversationsData.conversations) {
+        throw new Error('Invalid conversations data format');
+      }
+
+      if (!replaceExisting && state.chatSessions.length > 0) {
+        throw new Error('Existing conversations found. Set replaceExisting to true to overwrite all conversations.');
+      }
+
+      const conversations = conversationsData.conversations.map((chat: any) => ({
+        ...chat,
+        createdAt: new Date(chat.createdAt),
+        updatedAt: new Date(chat.updatedAt),
+        messages: chat.messages.map((message: any) => ({
+          ...message,
+          timestamp: new Date(message.timestamp)
+        }))
+      }));
+
+      const branchData = conversationsData.branchData;
+      const activeBranchPath = new Map(branchData.activeBranchPath) as Map<string, string[]>;
+      const branchTree = new Map(
+        branchData.branchTree.map(([chatId, tree]: [string, any]) => [
+          chatId,
+          new Map(tree)
+        ])
+      ) as Map<string, Map<string, BranchNode>>;
+      const messageBranches = new Map(
+        branchData.messageBranches.map(([chatId, branches]: [string, any]) => [
+          chatId,
+          new Map(branches)
+        ])
+      ) as Map<string, Map<string, string[]>>;
+
+      set((state) => ({
+        ...state,
+        chatSessions: conversations,
+        activeChatId: conversationsData.activeChatId || null,
+        activeBranchPath,
+        branchTree,
+        messageBranches
+      }));
+
+      return conversations.map((chat: any) => chat.id);
+    }
+  },
+
 
   // Suggestions actions
   setSuggestions: ((chatIdOrSuggestions: string | string[], suggestions?: string[]) => {

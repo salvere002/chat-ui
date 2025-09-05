@@ -51,7 +51,7 @@ export class ChatService {
     const controller = streamManager.startStream(chatId, messageId);
     
     try {
-      const request: MessageRequest = { text, files, history };
+      const request: MessageRequest = { text, files, history, responseMessageId: messageId };
       const response = await this.adapter.sendMessage(request, controller.signal);
       streamManager.stopStream(chatId, messageId);
       return response;
@@ -82,7 +82,7 @@ export class ChatService {
     
     // Include deepResearch setting from agent store
     const { deepResearchEnabled } = useAgentStore.getState();
-    const request: MessageRequest = { text, files, history, deepResearch: deepResearchEnabled };
+    const request: MessageRequest = { text, files, history, deepResearch: deepResearchEnabled, responseMessageId: messageId };
     
     try {
       return await this.adapter.sendStreamingMessage(

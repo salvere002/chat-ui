@@ -29,6 +29,7 @@ export interface MessageRequest {
   text: string;
   files?: MessageFile[];
   history?: ConversationMessage[];
+  responseMessageId?: string; // Frontend-generated message ID for the expected response
   deepResearch?: boolean;
 }
 
