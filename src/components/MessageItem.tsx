@@ -13,12 +13,14 @@ import MessageActions from './MessageItem/MessageActions';
 import { EmbeddedImage, FileAttachment } from './MessageItem/FileComponents';
 import MemoizedMarkdown from './MessageItem/MemoizedMarkdown';
 import { formatTime } from '../utils/timeUtils';
+import { generateMessageId } from '../utils/id';
 
 interface MessageItemProps {
   message: Message;
-  onRegenerateResponse?: () => void;
+  onRegenerateResponse?: (userMessageId: string) => void | Promise<void>;
   onEditMessage?: (messageId: string, newText: string) => void;
   chatId: string;
+  canRegenerate?: boolean;
 }
 
 
@@ -225,7 +227,7 @@ MessageFooter.displayName = 'MessageFooter';
 
 
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, chatId }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, chatId, canRegenerate }) => {
   // Destructure files array instead of single file
   const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed, wasPaused } = message;
   
@@ -329,7 +331,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     
     try {
       // Create a unique message ID for AI response
-      const aiMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const aiMessageId = generateMessageId();
       
       // Create initial AI message (will be updated with stream)
       // It should inherit the current branch context
@@ -381,7 +383,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     // Create a new version of this message in a new branch
     // The new message should have a new ID but replace the original in the new branch
     const newMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // New unique ID
+      id: generateMessageId(), // New unique ID
       text: editText.trim(),
       sender: message.sender,
       timestamp: new Date(), // New timestamp
@@ -432,6 +434,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setEditText(e.target.value);
   };
+
+  // Stable regenerate click handler that invokes parent with this message id
+  const handleRegenerateClick = useCallback(() => {
+    if (onRegenerateResponse) {
+      onRegenerateResponse(id);
+    }
+  }, [onRegenerateResponse, id]);
 
 
   // Memoize expensive style calculations
@@ -500,10 +509,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         onCopyMessage={handleCopyMessage}
         onSetIsEditing={handleSetIsEditing}
         onEditMessage={onEditMessage}
-        onRegenerateResponse={onRegenerateResponse}
+        onRegenerateResponse={canRegenerate ? handleRegenerateClick : undefined}
       />
     </div>
   );
 };
 
-export default MessageItem;
+export default memo(MessageItem);

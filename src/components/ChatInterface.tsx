@@ -7,6 +7,7 @@ import { useFileUpload } from '../hooks/useFileUpload';
 import { useStreamingMessage } from '../hooks/useStreamingMessage';
 import { useImageUrlCache } from '../hooks/useImageUrlCache';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
+import { generateMessageId } from '../utils/id';
 import { ConversationMessage } from '../types/api';
 import { fileService } from '../services/fileService';
 import { buildHistory } from '../utils/messageUtils';
@@ -152,7 +153,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       }
       
       // Create a unique message ID
-      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const messageId = generateMessageId();
       
       // Get conversation history for the current branch BEFORE adding current messages
       const history: ConversationMessage[] = buildHistory(getCurrentBranchMessages(currentChatId));
@@ -176,7 +177,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       resetFileUploads();
       
       // Create a unique message ID for AI response
-      const aiMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const aiMessageId = generateMessageId();
       
       // Create initial AI message (will be updated with stream)
       const aiMessage: Message = {

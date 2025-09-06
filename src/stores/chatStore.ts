@@ -3,6 +3,10 @@ import { persist } from 'zustand/middleware';
 import { Message, Chat, BranchNode } from '../types/chat';
 import { ChatStore } from '../types/store';
 import { streamManager } from '../services/streamManager';
+import { generateChatId, generateBranchId } from '../utils/id';
+
+// In-memory cache for branch messages per chat to avoid recomputation
+const branchMessagesCache = new Map<string, { pathKey: string; updatedAt: number; messages: Message[] }>();
 
 // Create the chat store with Zustand
 const useChatStore = create<ChatStore>()(
@@ -19,7 +23,7 @@ const useChatStore = create<ChatStore>()(
   
   // Actions
   createChat: (name?: string) => {
-    const newChatId = `chat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const newChatId = generateChatId();
     const now = new Date();
     const newChat: Chat = {
       id: newChatId,
@@ -49,6 +53,8 @@ const useChatStore = create<ChatStore>()(
   deleteChat: (id: string) => {
     // Stop any active streams for this chat before deletion
     streamManager.stopAllStreamsForChat(id);
+    // Invalidate branch cache for this chat
+    branchMessagesCache.delete(id);
     
     set((state) => {
       const remainingChats = state.chatSessions.filter((chat) => chat.id !== id);
@@ -84,6 +90,8 @@ const useChatStore = create<ChatStore>()(
   clearAllChats: () => {
     // Clean up all active streams before clearing state
     streamManager.cleanup();
+    // Clear cache
+    branchMessagesCache.clear();
     
     set(() => ({
       chatSessions: [],
@@ -189,6 +197,13 @@ const useChatStore = create<ChatStore>()(
     if (!chat) return [];
     
     const currentBranchPath = state.activeBranchPath.get(chatId) || ['main'];
+    const pathKey = currentBranchPath.join('>');
+    const updatedAt = chat.updatedAt.getTime();
+
+    const cached = branchMessagesCache.get(chatId);
+    if (cached && cached.pathKey === pathKey && cached.updatedAt === updatedAt) {
+      return cached.messages;
+    }
     
     
     // For proper tree structure, we need to build the path correctly
@@ -243,12 +258,13 @@ const useChatStore = create<ChatStore>()(
       }
     }
     
+    branchMessagesCache.set(chatId, { pathKey, updatedAt, messages: result });
     return result;
   },
   
   createBranchFromMessage: (chatId: string, messageId: string, newMessage: Message) => {
     const state = get();
-    const newBranchId = `branch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const newBranchId = generateBranchId();
     
     // Fix: Find the source message to get its parent relationship
     const sourceMessage = state.chatSessions.find(c => c.id === chatId)?.messages.find(m => m.id === messageId);

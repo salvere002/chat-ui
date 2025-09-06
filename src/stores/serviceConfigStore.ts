@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AdapterType } from '../services/serviceFactory';
+import { AdapterType, serviceFactory } from '../services/serviceFactory';
 import { configManager } from '../utils/config';
 
 export interface ServiceConfig {
@@ -41,21 +41,7 @@ const getDefaultConfig = (): Record<AdapterType, ServiceConfig> => {
   };
 };
 
-// Function to configure service factory
-const configureServiceFactory = (config: ServiceConfig) => {
-  // Import serviceFactory to configure the service
-  import('../services/serviceFactory').then(({ serviceFactory }) => {
-    serviceFactory.switchAdapter(config.adapterType, config.baseUrl);
-  });
-};
-
-// Function to configure service factory synchronously
-const configureServiceFactorySync = (config: ServiceConfig) => {
-  // Use dynamic import but return the promise for awaiting
-  return import('../services/serviceFactory').then(({ serviceFactory }) => {
-    serviceFactory.switchAdapter(config.adapterType, config.baseUrl);
-  });
-};
+// Use a single static serviceFactory to configure adapters
 
 const useServiceConfigStore = create<ServiceConfigStore>()(
   persist(
@@ -87,7 +73,7 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
           
           // If updating the current adapter's config, reconfigure ChatService
           if (adapterType === state.currentAdapterType) {
-            configureServiceFactory(newConfig);
+            serviceFactory.switchAdapter(newConfig.adapterType, newConfig.baseUrl);
           }
           
           return { configs: newConfigs };
@@ -99,7 +85,7 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
         
         // Configure ChatService with the new current config
         const config = get().configs[adapterType];
-        configureServiceFactory(config);
+        serviceFactory.switchAdapter(config.adapterType, config.baseUrl);
       }
     }),
     {
@@ -114,9 +100,13 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
 
 // Initialize ServiceFactory on first load
 if (typeof window !== 'undefined') {
-  const state = useServiceConfigStore.getState();
-  const currentConfig = state.getCurrentConfig();
-  configureServiceFactorySync(currentConfig).catch(console.error);
+  try {
+    const state = useServiceConfigStore.getState();
+    const currentConfig = state.getCurrentConfig();
+    serviceFactory.switchAdapter(currentConfig.adapterType, currentConfig.baseUrl);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 export default useServiceConfigStore; 

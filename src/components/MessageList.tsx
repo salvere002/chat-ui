@@ -57,21 +57,19 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
     setPreviousMessageCount(messages.length);
   }, [messages.length, previousMessageCount, scrollToBottom, checkScrollButton]);
 
-  // Streaming content auto-scroll
+  // Streaming content auto-scroll (event-driven, no interval)
+  const lastMessage = messages[messages.length - 1];
+  const lastMessageId = lastMessage?.id;
+  const lastMessageText = lastMessage?.text;
+  const lastMessageIsStreaming = lastMessage?.sender === 'ai' && lastMessage?.isComplete === false;
+
   useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    const isStreaming = lastMessage?.sender === 'ai' && !lastMessage?.isComplete;
-    
-    if (isStreaming) {
-      const interval = setInterval(() => {
-        if (shouldAutoScroll()) {
-          scrollToBottom();
-        }
-      }, 200);
-      
-      return () => clearInterval(interval);
+    if (lastMessageIsStreaming && shouldAutoScroll()) {
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
     }
-  }, [messages, scrollToBottom, shouldAutoScroll]);
+  }, [lastMessageId, lastMessageText, lastMessageIsStreaming, shouldAutoScroll, scrollToBottom]);
 
   // Handle scroll events for button visibility
   useEffect(() => {
@@ -168,21 +166,24 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden p-0 bg-bg-primary relative scroll-smooth" ref={messageContainerRef}>
       <div className="flex flex-col max-w-[800px] mx-auto w-full py-2 sm:py-4 px-2 sm:px-4 relative">
-        {messages.map((msg, index) => (
-          <MessageItem 
-            key={msg.id} 
-            message={msg} 
-            chatId={chatId || ''}
-            onRegenerateResponse={
-              msg.sender === 'user' && 
-              index < messages.length - 1 && 
-              messages[index + 1].sender === 'ai' 
-                ? () => handleRegenerateResponse(msg.id) 
-                : undefined
-            }
-            onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
-          />
-        ))}
+        {messages.map((msg, index) => {
+          const canRegenerate = (
+            msg.sender === 'user' &&
+            index < messages.length - 1 &&
+            messages[index + 1].sender === 'ai'
+          );
+
+          return (
+            <MessageItem
+              key={msg.id}
+              message={msg}
+              chatId={chatId || ''}
+              canRegenerate={canRegenerate}
+              onRegenerateResponse={handleRegenerateResponse}
+              onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
+            />
+          );
+        })}
         <div ref={messagesEndRef} /> {/* Element to scroll to */}
       </div>
       

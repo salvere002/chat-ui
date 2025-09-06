@@ -47,8 +47,4 @@ export const useChatUtils = () => useChatStore(useShallow((state) => ({
 // Streaming state access (use streamManager directly)
 // Note: Components should import streamManager directly for streaming state
 
-// Active chat specific data
-export const useActiveChatData = () => useChatStore(useShallow((state) => ({
-  activeChatId: state.activeChatId,
-  activeChatMessages: state.activeChatId ? state.getCurrentBranchMessages(state.activeChatId) : [],
-})));
+// Note: Avoid computing arrays in selectors to preserve shallow-compare benefits.
