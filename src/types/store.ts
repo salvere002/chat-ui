@@ -1,4 +1,4 @@
-import { Message, Chat, ResponseMode, BranchNode, StreamingState, Agent, Model } from './chat';
+import { Message, Chat, ResponseMode, BranchNode, Agent, Model } from './chat';
 
 // Define interface for the chat store state
 export interface ChatStore {
@@ -24,13 +24,9 @@ export interface ChatStore {
   updateMessageInChat: (chatId: string, messageId: string, updates: Partial<Message>) => void;
   renameChatSession: (chatId: string, newName: string) => void;
   clearError: () => void;
-  // Per-conversation streaming actions
-  startChatStreaming: (chatId: string, messageId: string, controller: AbortController) => void;
-  stopChatStreaming: (chatId: string, completed?: boolean) => void;
-  getChatStreamingState: (chatId: string) => StreamingState | null;
-  getActiveStreamingChats: () => string[];
-  isChatStreaming: (chatId: string) => boolean;
+  // Streaming actions (simplified - use streamManager directly)
   pauseChatRequest: (chatId: string) => void;
+  isChatStreaming: (chatId: string) => boolean;
   // Branch actions
   getCurrentBranchMessages: (chatId: string) => Message[];
   createBranchFromMessage: (chatId: string, messageId: string, newMessage: Message) => string;

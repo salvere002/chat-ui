@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useRef, useMemo, memo, useCallback } from 'react';
 import { Message, MessageFile } from '../types/chat'; // Import the Message and MessageFile types
 import { FaCheck, FaTimes } from 'react-icons/fa'; // Import required icons
-import { useBranchActions, useChatActions, useChatUtils, useBranchData } from '../stores';
-import { ChatService } from '../services/chatService';
+import { useBranchActions, useChatActions, useBranchData } from '../stores';
+import { useStreamingMessage } from '../hooks/useStreamingMessage';
 import { useResponseModeStore } from '../stores';
 import LoadingIndicator from './LoadingIndicator';
 import ThinkingSection from './ThinkingSection';
 import { ConversationMessage } from '../types/api';
 import BranchNavigator, { BranchData } from './MessageItem/BranchNavigator';
+import { buildHistory } from '../utils/messageUtils';
 import MessageActions from './MessageItem/MessageActions';
 import { EmbeddedImage, FileAttachment } from './MessageItem/FileComponents';
 import MemoizedMarkdown from './MessageItem/MemoizedMarkdown';
+import { formatTime } from '../utils/timeUtils';
 
 interface MessageItemProps {
   message: Message;
@@ -180,9 +182,6 @@ const MessageFooter: React.FC<{
   onEditMessage,
   onRegenerateResponse
 }) => {
-  const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-  };
 
   return (
     <>
@@ -238,16 +237,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   
   const {
     addMessageToChat,
-    updateMessageInChat,
-    startChatStreaming,
-    stopChatStreaming
+    updateMessageInChat
   } = useChatActions();
-  
-  const { getChatById } = useChatUtils();
   const { getCurrentBranchMessages } = useBranchData();
   
   // Get response mode selection for AI responses
   const { selectedResponseMode } = useResponseModeStore();
+  
+  // Get streaming message handler
+  const { sendStreamingMessage } = useStreamingMessage(selectedResponseMode);
   
   // Local state for edit mode
   const [isEditing, setIsEditing] = useState(false);
@@ -332,10 +330,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       // Create a unique message ID for AI response
       const aiMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       
-      // Start streaming for this specific chat/message
-      const abortController = new AbortController();
-      startChatStreaming(chatId, aiMessageId, abortController);
-      
       // Create initial AI message (will be updated with stream)
       // It should inherit the current branch context
       const aiMessage: Message = {
@@ -357,122 +351,23 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       
       // Include history up to the current message
       const historyMessages = currentMessageIndex >= 0 ? allBranchMessages.slice(0, currentMessageIndex + 1) : allBranchMessages;
-      const history: ConversationMessage[] = historyMessages
-        .map((msg: Message) => ({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.text,
-          timestamp: msg.timestamp
-        }));
+      const history: ConversationMessage[] = buildHistory(historyMessages);
       
-      // Use the ChatService based on selected response mode
-      if (selectedResponseMode === 'stream') {
-        // Reset accumulated text
-        accumulatedTextRef.current = '';
-        
-        // Streaming API call
-        await ChatService.sendStreamingMessage(
-          chatId,
-          aiMessageId,
-          userText,
-          userFiles,
-          {
-            onChunk: (chunk: any, _context: { chatId: string; messageId: string }) => {
-              // Handle thinking content streaming
-              if (chunk.thinking) {
-                const currentMessage = getChatById(chatId)?.messages.find((m: Message) => m.id === aiMessageId);
-                updateMessageInChat(chatId, aiMessageId, {
-                  thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
-                  isThinkingComplete: chunk.thinkingComplete,
-                  thinkingCollapsed: currentMessage?.thinkingCollapsed ?? true // Default to collapsed
-                });
-              }
-              
-              // Handle regular response content streaming
-              if (chunk.text) {
-                accumulatedTextRef.current += chunk.text;
-                updateMessageInChat(chatId, aiMessageId, {
-                  text: accumulatedTextRef.current,
-                  imageUrl: chunk.imageUrl
-                });
-              }
-            },
-            onComplete: (_context: { chatId: string; messageId: string }) => {
-              // Mark as complete when done
-              updateMessageInChat(chatId, aiMessageId, {
-                isComplete: true,
-                isThinkingComplete: true // Ensure thinking is also marked complete
-              });
-              // Clear streaming state 
-              stopChatStreaming(chatId);
-              // Reset accumulated text
-              accumulatedTextRef.current = '';
-            },
-            onError: (error: Error, _context: { chatId: string; messageId: string }) => {
-              // Don't show error for aborted requests
-              if (error.name !== 'AbortError') {
-                console.error('AI response error:', error.message);
-                updateMessageInChat(chatId, aiMessageId, {
-                  text: 'Sorry, there was an error processing your request.',
-                  isComplete: true
-                });
-              } else {
-                // For aborted requests, mark current message as complete with existing content
-                updateMessageInChat(chatId, aiMessageId, {
-                  isComplete: true,
-                  isThinkingComplete: true,
-                  wasPaused: true
-                });
-              }
-              // Clear streaming state
-              stopChatStreaming(chatId);
-              // Reset accumulated text
-              accumulatedTextRef.current = '';
-            }
-          },
-          history
-        );
-      } else {
-        // Non-streaming API call
-        try {
-          const response = await ChatService.sendMessage(userText, userFiles, history, abortController.signal);
-          // Update AI message with complete response
-          updateMessageInChat(chatId, aiMessageId, {
-            text: response.text,
-            imageUrl: response.imageUrl,
-            isComplete: true,
-            thinkingContent: response.thinking,
-            isThinkingComplete: true
-          });
-        } catch (error) {
-          // Handle abort vs other errors
-          if (error instanceof Error && error.name === 'AbortError') {
-            // For aborted requests, mark current message as complete with existing content
-            updateMessageInChat(chatId, aiMessageId, {
-              isComplete: true,
-              wasPaused: true
-            });
-          } else {
-            // Show error and mark message as complete
-            console.error('AI response error:', error instanceof Error ? error.message : 'Unknown error');
-            updateMessageInChat(chatId, aiMessageId, {
-              text: 'Sorry, there was an error processing your request.',
-              isComplete: true
-            });
-          }
-        } finally {
-          // Clear streaming state
-          stopChatStreaming(chatId);
-        }
-      }
+      // Use the centralized streaming hook
+      await sendStreamingMessage({
+        chatId,
+        messageId: aiMessageId,
+        userText,
+        userFiles,
+        history
+      });
     } catch (error) {
       // Handle errors
       console.error("Error generating AI response for new branch:", error);
-      stopChatStreaming(chatId);
+      // Error handling completed - streaming automatically stopped by streamManager
     }
   };
 
-  // Helper to get current message text (for streaming)  
-  const accumulatedTextRef = useRef<string>('');
 
   // Handle creating new branch (replacing edit functionality)
   const handleCreateBranch = () => {

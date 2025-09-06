@@ -3,6 +3,7 @@ import { Chat } from '../types/chat';
 import { useChatActions } from '../stores';
 import { FaPlus } from 'react-icons/fa';
 import { HiOutlineBars3BottomLeft, HiOutlineBars3 } from 'react-icons/hi2';
+import { formatChatDate } from '../utils/timeUtils';
 
 interface SidebarProps {
   chats: Chat[];
@@ -104,33 +105,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     setShowClearModal(false);
   };
   // Format the date to a readable string
-  const formatDate = (date: Date) => {
-    const today = new Date();
-    const chatDate = new Date(date);
-    
-    // Check if the date is today
-    if (
-      chatDate.getDate() === today.getDate() &&
-      chatDate.getMonth() === today.getMonth() &&
-      chatDate.getFullYear() === today.getFullYear()
-    ) {
-      return chatDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    
-    // Check if the date is yesterday
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-    if (
-      chatDate.getDate() === yesterday.getDate() &&
-      chatDate.getMonth() === yesterday.getMonth() &&
-      chatDate.getFullYear() === yesterday.getFullYear()
-    ) {
-      return 'Yesterday';
-    }
-    
-    // Otherwise show the date
-    return chatDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  };
   
   return (
     <>
@@ -268,7 +242,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     {getChatTitle(chat, index)}
                   </div>
                   <div className="text-xs text-text-tertiary mt-1 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
-                    {formatDate(chat.updatedAt)}
+                    {formatChatDate(chat.updatedAt)}
                   </div>
                 </>
               )}

@@ -309,6 +309,9 @@ export class ApiClient {
       // Create a combined signal that responds to both user abort and timeout
       let combinedSignal = timeoutController.signal;
       
+      // Store listener references for cleanup
+      const listeners: { signal: AbortSignal; handler: () => void }[] = [];
+      
       if (abortSignal) {
         // If AbortSignal.any is supported, use it
         if (typeof AbortSignal.any === 'function') {
@@ -321,6 +324,12 @@ export class ApiClient {
           const abortHandler = () => combinedController.abort();
           abortSignal.addEventListener('abort', abortHandler);
           timeoutController.signal.addEventListener('abort', abortHandler);
+          
+          // Store listeners for cleanup
+          listeners.push(
+            { signal: abortSignal, handler: abortHandler },
+            { signal: timeoutController.signal, handler: abortHandler }
+          );
         }
       }
       
@@ -348,6 +357,10 @@ export class ApiClient {
         }
       } finally {
         clearTimeout(timeoutId);
+        // Cleanup listeners
+        listeners.forEach(({ signal, handler }) => {
+          signal.removeEventListener('abort', handler);
+        });
       }
       
       // Apply response interceptors regardless of status
@@ -372,6 +385,21 @@ export class ApiClient {
         const processedError = await this.applyErrorInterceptors(apiError, processedRequest);
         if (processedError instanceof Response) {
           response = processedError;
+          // Re-check status after interceptor processing
+          if (!response.ok) {
+            // Create new error for the processed response
+            let newErrorData;
+            try {
+              newErrorData = await response.json();
+            } catch (e) {
+              newErrorData = { message: response.statusText };
+            }
+            throw new ApiError(
+              newErrorData.message || 'Request failed after error handling',
+              response.status,
+              newErrorData
+            );
+          }
         } else {
           throw apiError;
         }
@@ -439,6 +467,9 @@ export class ApiClient {
       // Create a combined signal that responds to both user abort and timeout
       let combinedSignal = timeoutController.signal;
       
+      // Store listener references for cleanup
+      const listeners: { signal: AbortSignal; handler: () => void }[] = [];
+      
       if (abortSignal) {
         // If AbortSignal.any is supported, use it
         if (typeof AbortSignal.any === 'function') {
@@ -451,6 +482,12 @@ export class ApiClient {
           const abortHandler = () => combinedController.abort();
           abortSignal.addEventListener('abort', abortHandler);
           timeoutController.signal.addEventListener('abort', abortHandler);
+          
+          // Store listeners for cleanup
+          listeners.push(
+            { signal: abortSignal, handler: abortHandler },
+            { signal: timeoutController.signal, handler: abortHandler }
+          );
         }
       }
 
@@ -459,6 +496,11 @@ export class ApiClient {
         signal: combinedSignal,
       });
       clearTimeout(timeoutId);
+      
+      // Cleanup listeners after fetch completes
+      listeners.forEach(({ signal, handler }) => {
+        signal.removeEventListener('abort', handler);
+      });
 
       response = await this.applyStreamResponseInterceptors(response, processedRequest);
 

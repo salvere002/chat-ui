@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AdapterType } from '../services/chatService';
+import { AdapterType } from '../services/serviceFactory';
 import { configManager } from '../utils/config';
 
 export interface ServiceConfig {
@@ -41,25 +41,19 @@ const getDefaultConfig = (): Record<AdapterType, ServiceConfig> => {
   };
 };
 
-// Function to configure ChatService
-const configureChatService = (config: ServiceConfig) => {
-  // Import ChatService dynamically to avoid circular dependencies
-  import('../services/chatService').then(({ ChatService }) => {
-    ChatService.configure({
-      adapterType: config.adapterType,
-      baseUrl: config.baseUrl
-    });
+// Function to configure service factory
+const configureServiceFactory = (config: ServiceConfig) => {
+  // Import serviceFactory to configure the service
+  import('../services/serviceFactory').then(({ serviceFactory }) => {
+    serviceFactory.switchAdapter(config.adapterType, config.baseUrl);
   });
 };
 
-// Function to configure ChatService synchronously
-const configureChatServiceSync = (config: ServiceConfig) => {
+// Function to configure service factory synchronously
+const configureServiceFactorySync = (config: ServiceConfig) => {
   // Use dynamic import but return the promise for awaiting
-  return import('../services/chatService').then(({ ChatService }) => {
-    ChatService.configure({
-      adapterType: config.adapterType,
-      baseUrl: config.baseUrl
-    });
+  return import('../services/serviceFactory').then(({ serviceFactory }) => {
+    serviceFactory.switchAdapter(config.adapterType, config.baseUrl);
   });
 };
 
@@ -93,7 +87,7 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
           
           // If updating the current adapter's config, reconfigure ChatService
           if (adapterType === state.currentAdapterType) {
-            configureChatService(newConfig);
+            configureServiceFactory(newConfig);
           }
           
           return { configs: newConfigs };
@@ -105,7 +99,7 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
         
         // Configure ChatService with the new current config
         const config = get().configs[adapterType];
-        configureChatService(config);
+        configureServiceFactory(config);
       }
     }),
     {
@@ -118,11 +112,11 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
   )
 );
 
-// Initialize ChatService on first load
+// Initialize ServiceFactory on first load
 if (typeof window !== 'undefined') {
   const state = useServiceConfigStore.getState();
   const currentConfig = state.getCurrentConfig();
-  configureChatServiceSync(currentConfig).catch(console.error);
+  configureServiceFactorySync(currentConfig).catch(console.error);
 }
 
 export default useServiceConfigStore; 

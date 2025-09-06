@@ -18,13 +18,9 @@ export const useChatActions = () => useChatStore(useShallow((state) => ({
   addMessageToChat: state.addMessageToChat,
   updateMessageInChat: state.updateMessageInChat,
   renameChatSession: state.renameChatSession,
-  // Per-conversation streaming actions
-  startChatStreaming: state.startChatStreaming,
-  stopChatStreaming: state.stopChatStreaming,
-  getChatStreamingState: state.getChatStreamingState,
-  getActiveStreamingChats: state.getActiveStreamingChats,
-  isChatStreaming: state.isChatStreaming,
+  // Streaming actions (simplified)
   pauseChatRequest: state.pauseChatRequest,
+  isChatStreaming: state.isChatStreaming,
 })));
 
 // Branch-related actions and data
@@ -48,12 +44,8 @@ export const useChatUtils = () => useChatStore(useShallow((state) => ({
   clearError: state.clearError,
 })));
 
-// Per-conversation streaming state
-export const useStreamingState = () => useChatStore(useShallow((state) => ({
-  getChatStreamingState: state.getChatStreamingState,
-  getActiveStreamingChats: state.getActiveStreamingChats,
-  isChatStreaming: state.isChatStreaming,
-})));
+// Streaming state access (use streamManager directly)
+// Note: Components should import streamManager directly for streaming state
 
 // Active chat specific data
 export const useActiveChatData = () => useChatStore(useShallow((state) => ({
