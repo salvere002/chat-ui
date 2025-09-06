@@ -170,70 +170,16 @@ const useChatStore = create<ChatStore>()(
     set({ error: null });
   },
   
-  // Per-conversation streaming actions
-  startChatStreaming: (chatId: string, messageId: string, controller: AbortController) => {
-    const now = new Date();
-    set((state) => ({
-      chatSessions: state.chatSessions.map((chat) => 
-        chat.id === chatId 
-          ? {
-              ...chat,
-              streamingState: {
-                isStreaming: true,
-                currentMessageId: messageId,
-                abortController: controller,
-                streamStartTime: now
-              },
-              updatedAt: now
-            }
-          : chat
-      )
-    }));
-  },
-
-  stopChatStreaming: (chatId: string) => {
-    const now = new Date();
-    set((state) => ({
-      chatSessions: state.chatSessions.map((chat) => 
-        chat.id === chatId 
-          ? {
-              ...chat,
-              streamingState: undefined,
-              updatedAt: now
-            }
-          : chat
-      )
-    }));
-  },
-
-  getChatStreamingState: (chatId: string) => {
-    const state = get();
-    const chat = state.chatSessions.find(c => c.id === chatId);
-    return chat?.streamingState || null;
-  },
-
-  getActiveStreamingChats: () => {
-    const state = get();
-    return state.chatSessions
-      .filter(chat => chat.streamingState?.isStreaming)
-      .map(chat => chat.id);
+  // Streaming actions (simplified - use streamManager as single source)
+  pauseChatRequest: (chatId: string) => {
+    const messageId = streamManager.getCurrentStreamingMessageId(chatId);
+    if (messageId) {
+      streamManager.stopStream(chatId, messageId);
+    }
   },
 
   isChatStreaming: (chatId: string) => {
-    const state = get();
-    const chat = state.chatSessions.find(c => c.id === chatId);
-    return chat?.streamingState?.isStreaming || false;
-  },
-
-  pauseChatRequest: (chatId: string) => {
-    const state = get();
-    const chat = state.chatSessions.find(c => c.id === chatId);
-    if (chat?.streamingState?.isStreaming && chat.streamingState.currentMessageId) {
-      // Use StreamManager to stop the stream
-      streamManager.stopStream(chatId, chat.streamingState.currentMessageId);
-      // Update chat state (removed inconsistent second parameter)
-      get().stopChatStreaming(chatId);
-    }
+    return streamManager.isStreamingInChat(chatId);
   },
   
   // Branch management methods

@@ -2,12 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
-import { useChatData, useChatActions, useChatUtils, useBranchData, useToastStore, useInputStore } from '../stores';
+import { useChatData, useChatActions, useBranchData, useToastStore, useInputStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
+import { useStreamingMessage } from '../hooks/useStreamingMessage';
+import { useImageUrlCache } from '../hooks/useImageUrlCache';
 import { ResponseMode, Message, MessageFile } from '../types/chat';
 import { ConversationMessage } from '../types/api';
-import { ChatService } from '../services/chatService';
 import { fileService } from '../services/fileService';
+import { buildHistory } from '../utils/messageUtils';
+import { streamManager } from '../services/streamManager';
 
 interface ChatInterfaceProps {
   selectedResponseMode: ResponseMode;
@@ -18,15 +21,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   const { activeChatId, chatSessions, activeBranchPath } = useChatData();
   const { 
     addMessageToChat, 
-    updateMessageInChat, 
     createChat, 
-    setActiveChat, 
-    startChatStreaming,
-    stopChatStreaming,
-    getChatStreamingState,
+    setActiveChat,
     pauseChatRequest 
   } = useChatActions();
-  const { getChatById } = useChatUtils();
   const { getCurrentBranchMessages } = useBranchData();
 
   // Get toast functions from Zustand store
@@ -44,56 +42,67 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   
   // Get file upload state and handlers from custom hook
   const { 
-    fileUploads, 
     uploadFiles, 
     resetFileUploads,
-    isProcessing: isFileProcessing
+    isProcessing: isFileProcessing,
+    selectedFiles,
+    handleFileRemove,
+    processFiles
   } = useFileUpload();
   
   // Get input store methods
   const { resetInput } = useInputStore();
   
-  // Periodic cleanup of unused image URLs to prevent memory leaks
+  // Get streaming message handler
+  const { sendStreamingMessage } = useStreamingMessage(selectedResponseMode);
+  
+  // Optimized cleanup with caching and smart intervals
+  const { urls: activeImageUrls, hasImages, changed } = useImageUrlCache(activeChatMessages);
+
   useEffect(() => {
-    const cleanup = () => {
-      if (activeChatMessages.length > 0) {
-        // Collect all image URLs currently in use
-        const activeUrls: string[] = [];
-        
-        activeChatMessages.forEach((message: Message) => {
-          // Add AI image URLs
-          if (message.imageUrl) {
-            activeUrls.push(message.imageUrl);
-          }
-          
-          // Add file attachment URLs
-          if (message.files) {
-            message.files.forEach((file: MessageFile) => {
-              if (file.type.startsWith('image/')) {
-                activeUrls.push(file.url);
-              }
-            });
-          }
-        });
-        
-        // Clean up inactive images
-        fileService.cleanupInactiveImages(activeUrls);
+    // Early return if no images to manage
+    if (!hasImages) return;
+
+    let cleanupInterval: number;
+    let isTabVisible = !document.hidden;
+
+    const handleVisibilityChange = () => {
+      isTabVisible = !document.hidden;
+    };
+
+    const performCleanup = () => {
+      // Only cleanup if tab is visible and URLs have changed
+      if (isTabVisible && activeImageUrls.length > 0) {
+        fileService.cleanupInactiveImages(activeImageUrls);
       }
     };
-    
-    // Run cleanup every 30 seconds
-    const cleanupInterval = setInterval(cleanup, 30000);
-    
-    // Also run cleanup when component unmounts
+
+    // Dynamic interval based on activity
+    const getCleanupInterval = () => {
+      if (!isTabVisible) return 60000; // 1 minute when tab not visible
+      if (activeChatMessages.length > 100) return 45000; // More frequent for large chats
+      return 30000; // Default 30 seconds
+    };
+
+    // Initial cleanup if URLs changed
+    if (changed) {
+      performCleanup();
+    }
+
+    // Set up interval cleanup
+    cleanupInterval = window.setInterval(performCleanup, getCleanupInterval());
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       clearInterval(cleanupInterval);
-      cleanup();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [activeChatMessages]);
+  }, [activeImageUrls, hasImages, changed, activeChatMessages.length]);
   
-  // Get current chat streaming state
-  const currentChatStreamingState = activeChatId ? getChatStreamingState(activeChatId) : null;
-  const isChatStreaming = currentChatStreamingState?.isStreaming || false;
+  // Get current chat streaming state from streamManager
+  const isChatStreaming = activeChatId ? streamManager.isStreamingInChat(activeChatId) : false;
   
   // Combined processing state
   const combinedIsProcessing = isChatStreaming || isFileProcessing;
@@ -146,12 +155,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       
       // Get conversation history for the current branch BEFORE adding current messages
-      const history: ConversationMessage[] = getCurrentBranchMessages(currentChatId)
-        .map((msg: Message) => ({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.text,
-          timestamp: msg.timestamp
-        }));
+      const history: ConversationMessage[] = buildHistory(getCurrentBranchMessages(currentChatId));
 
       // Create and add user message to the chat
       const userMessage: Message = {
@@ -188,124 +192,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       // Add initial empty AI message to the chat
       addMessageToChat(currentChatId, aiMessage);
       
-      // Send the API request based on selected response mode
-      if (selectedResponseMode === 'stream') {
-        // Start streaming for this specific chat/message
-        const controller = new AbortController();
-        startChatStreaming(currentChatId, aiMessageId, controller);
-        
-        // Streaming API call with context-aware callback handling
-        await ChatService.sendStreamingMessage(
-          currentChatId,
-          aiMessageId,
-          messageText,
-          uploadedFiles,
-          {
-            onChunk: (chunk, context) => {
-              // Validate context to ensure we're updating the right message
-              if (context.chatId !== currentChatId || context.messageId !== aiMessageId) {
-                console.warn('Stream chunk received for different context, ignoring');
-                return;
-              }
-              
-              // Handle thinking content streaming
-              if (chunk.thinking) {
-                const currentMessage = getChatById(context.chatId)?.messages.find(m => m.id === context.messageId);
-                updateMessageInChat(context.chatId, context.messageId, {
-                  thinkingContent: `${currentMessage?.thinkingContent || ''}${chunk.thinking}`,
-                  isThinkingComplete: chunk.thinkingComplete,
-                  thinkingCollapsed: currentMessage?.thinkingCollapsed ?? true // Default to collapsed
-                });
-              }
-              
-              // Handle regular response content streaming
-              if (chunk.text) {
-                updateMessageInChat(context.chatId, context.messageId, {
-                  text: `${getChatById(context.chatId)?.messages.find(m => m.id === context.messageId)?.text || ''}${chunk.text}`,
-                  imageUrl: chunk.imageUrl
-                });
-              }
-            },
-            onComplete: (context) => {
-              // Validate context
-              if (context.chatId === currentChatId && context.messageId === aiMessageId) {
-                // Mark as complete when done
-                updateMessageInChat(context.chatId, context.messageId, {
-                  isComplete: true,
-                  isThinkingComplete: true // Ensure thinking is also marked complete
-                });
-                // Clear streaming state for this chat
-                stopChatStreaming(context.chatId);
-              }
-            },
-            onError: (error, context) => {
-              // Validate context
-              if (context.chatId === currentChatId && context.messageId === aiMessageId) {
-                // Don't show error for aborted requests
-                if (error.name !== 'AbortError') {
-                  setError(error.message);
-                  updateMessageInChat(context.chatId, context.messageId, {
-                    text: 'Sorry, there was an error processing your request.',
-                    isComplete: true
-                  });
-                } else {
-                  // For aborted requests, mark current message as complete with existing content
-                  updateMessageInChat(context.chatId, context.messageId, {
-                    isComplete: true,
-                    isThinkingComplete: true,
-                    wasPaused: true
-                  });
-                }
-                // Clear streaming state for this chat
-                stopChatStreaming(context.chatId);
-              }
-            }
-          },
-          history
-        );
-      } else {
-        // Non-streaming API call - also use per-chat processing state
-        const controller = new AbortController();
-        startChatStreaming(currentChatId, aiMessageId, controller);
-        
-        try {
-          const response = await ChatService.sendMessage(messageText, uploadedFiles, history, controller.signal);
-          // Update AI message with complete response
-          updateMessageInChat(currentChatId, aiMessageId, {
-            text: response.text,
-            imageUrl: response.imageUrl,
-            isComplete: true,
-            thinkingContent: response.thinking,
-            isThinkingComplete: true
-          });
-          stopChatStreaming(currentChatId);
-        } catch (error) {
-          // Handle abort vs other errors for fetch mode
-          if (error instanceof Error && error.name === 'AbortError') {
-            // For aborted requests, mark current message as complete with existing content
-            updateMessageInChat(currentChatId, aiMessageId, {
-              isComplete: true,
-              wasPaused: true
-            });
-          } else {
-            // Show error and mark message as complete
-            setError(error instanceof Error ? error.message : 'Unknown error occurred');
-            updateMessageInChat(currentChatId, aiMessageId, {
-              text: 'Sorry, there was an error processing your request.',
-              isComplete: true
-            });
-          }
-          stopChatStreaming(currentChatId);
-        }
-      }
+      // Send the API request using the centralized streaming hook
+      await sendStreamingMessage({
+        chatId: currentChatId,
+        messageId: aiMessageId,
+        userText: messageText,
+        userFiles: uploadedFiles,
+        history
+      });
     } catch (err) {
       // Handle any unexpected errors
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
       setError(errorMessage);
       showToast(errorMessage, 'error');
-      if (currentChatId) {
-        stopChatStreaming(currentChatId);
-      }
+      // Error handling is now managed by the streaming hook
     }
   };
   
@@ -353,7 +253,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
         onPauseRequest={handlePauseRequest}
         isProcessing={combinedIsProcessing}
         isFileProcessing={isFileProcessing}
-        initialFiles={fileUploads}
+        selectedFiles={selectedFiles}
+        onFileRemove={handleFileRemove}
+        onProcessFiles={processFiles}
       />
     </div>
   );

@@ -1,29 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { FaSun, FaMoon, FaCog, FaBars, FaTimes } from 'react-icons/fa';
 import { ToastContainer } from './components/Toast';
-import { useThemeStore, useChatStore, useResponseModeStore } from './stores';
-import useServiceConfigStore from './stores/serviceConfigStore';
+import { useThemeStore, useResponseModeStore, useChatStore } from './stores';
+import { useShallow } from 'zustand/react/shallow';
 import Settings from './components/Settings';
 
 const App: React.FC = () => {
   // Use the theme store
   const { theme, toggleTheme } = useThemeStore();
   
-  // Use the service config store and ensure initialization
-  const { getCurrentConfig } = useServiceConfigStore();
   
-  // Use the chat store for chat state management
-  const {
-    chatSessions,
-    activeChatId,
-    setActiveChat,
-    createChat,
-    deleteChat,
-    clearAllChats
-  } = useChatStore();
+  // Use selective subscriptions for sidebar-specific data
+  const sidebarData = useChatStore(useShallow(state => ({
+    chatSessions: state.chatSessions,
+    activeChatId: state.activeChatId
+  })));
+  
+  const sidebarActions = useChatStore(useShallow(state => ({
+    setActiveChat: state.setActiveChat,
+    createChat: state.createChat,
+    deleteChat: state.deleteChat,
+    clearAllChats: state.clearAllChats
+  })));
   
   // Use the response mode store for response mode selection
   const { selectedResponseMode, setSelectedResponseMode } = useResponseModeStore();
@@ -37,49 +38,49 @@ const App: React.FC = () => {
   // State for sidebar collapse/expand (desktop only)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
-  // Initialize the service on app load
-  useEffect(() => {
-    const initializeService = async () => {
-      try {
-        const config = getCurrentConfig();
-        const { ChatService } = await import('./services/chatService');
-        ChatService.configure({
-          adapterType: config.adapterType,
-          baseUrl: config.baseUrl
-        });
-      } catch (error) {
-        console.error('Failed to initialize chat service:', error);
-      }
-    };
-
-    initializeService();
-  }, [getCurrentConfig]);
+  // Service initialization is handled automatically by serviceConfigStore
   
-  // Handler for creating a new chat
-  const handleNewChat = () => {
-    const newChatId = createChat('New Conversation');
-    setActiveChat(newChatId);
-  };
+  // Removed handleNewChat - using handleNewChatAndClose instead
   
-  // Click handlers
-  const handleThemeClick = () => {
+  // Memoized click handlers
+  const handleThemeClick = useCallback(() => {
     toggleTheme();
-  };
+  }, [toggleTheme]);
   
-  const handleSettingsClick = () => {
+  const handleSettingsClick = useCallback(() => {
     setShowSettings(true);
-  };
+  }, []);
   
-  const handleSidebarToggle = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  const handleSettingsClose = useCallback(() => {
+    setShowSettings(false);
+  }, []);
   
-  const handleSidebarCollapse = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarOpen(prev => !prev);
+  }, []);
+  
+  const handleSidebarCollapse = useCallback(() => {
+    setSidebarCollapsed(prev => !prev);
+  }, []);
+  
+  const handleMobileSidebarClose = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
+  
+  // Memoized sidebar event handlers
+  const handleChatSelected = useCallback((chatId: string) => {
+    sidebarActions.setActiveChat(chatId);
+    setSidebarOpen(false); // Close sidebar on mobile after selection
+  }, [sidebarActions]);
+
+  const handleNewChatAndClose = useCallback(() => {
+    const newChatId = sidebarActions.createChat('New Conversation');
+    sidebarActions.setActiveChat(newChatId);
+    setSidebarOpen(false); // Close sidebar on mobile after creating new chat
+  }, [sidebarActions]);
   
   return (
-    <div className={`flex flex-col h-screen w-screen bg-bg-primary text-text-primary relative overflow-hidden ${theme}-theme`}>
+    <div className="flex flex-col h-screen w-screen bg-bg-primary text-text-primary relative overflow-hidden">
       {/* Header bar with title and controls */}
       <div className="flex items-center justify-between px-4 py-3 bg-bg-secondary border-b border-border-primary z-sticky">
         <div className="flex items-center gap-3">
@@ -120,7 +121,7 @@ const App: React.FC = () => {
       {/* Settings modal */}
       {showSettings && (
         <Settings 
-          onClose={() => setShowSettings(false)}
+          onClose={handleSettingsClose}
           selectedResponseMode={selectedResponseMode}
           onResponseModeChange={setSelectedResponseMode}
         />
@@ -135,7 +136,7 @@ const App: React.FC = () => {
         {sidebarOpen && (
           <div 
             className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-modal"
-            onClick={() => setSidebarOpen(false)}
+            onClick={handleMobileSidebarClose}
           />
         )}
         
@@ -143,18 +144,12 @@ const App: React.FC = () => {
         <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-modal lg:z-auto transition-transform duration-300 ease-in-out lg:block`}>
           <ErrorBoundary>
             <Sidebar
-              chats={chatSessions}
-              activeChatId={activeChatId}
-              onChatSelected={(chatId) => {
-                setActiveChat(chatId);
-                setSidebarOpen(false); // Close sidebar on mobile after selection
-              }}
-              onNewChat={() => {
-                handleNewChat();
-                setSidebarOpen(false); // Close sidebar on mobile after creating new chat
-              }}
-              onDeleteChat={deleteChat}
-              onClearAllChats={clearAllChats}
+              chats={sidebarData.chatSessions}
+              activeChatId={sidebarData.activeChatId}
+              onChatSelected={handleChatSelected}
+              onNewChat={handleNewChatAndClose}
+              onDeleteChat={sidebarActions.deleteChat}
+              onClearAllChats={sidebarActions.clearAllChats}
               collapsed={sidebarCollapsed}
               onCollapse={handleSidebarCollapse}
             />

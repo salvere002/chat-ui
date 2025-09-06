@@ -42,14 +42,6 @@ export interface PreviewFile {
 // Define type for file upload state tracked within ChatInterface
 export type FileUploadState = PreviewFile;
 
-// Streaming state for individual conversations
-export interface StreamingState {
-  isStreaming: boolean;
-  currentMessageId: string;
-  abortController: AbortController;
-  streamStartTime: Date;
-}
-
 // Chat session type
 export interface Chat {
   id: string;
@@ -58,8 +50,6 @@ export interface Chat {
   name?: string; // Include name for compatibility 
   createdAt: Date;
   updatedAt: Date;
-  // Per-conversation streaming state
-  streamingState?: StreamingState;
 }
 
 // Branch node metadata

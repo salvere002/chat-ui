@@ -581,10 +581,4 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
   );
 };
 
-export default React.memo(ChartRenderer, (prevProps, nextProps) => {
-  // Only re-render if chartData actually changed (deep comparison)
-  return (
-    JSON.stringify(prevProps.chartData) === JSON.stringify(nextProps.chartData) &&
-    prevProps.className === nextProps.className
-  );
-});
+export default React.memo(ChartRenderer);

@@ -6,8 +6,12 @@ import { fileService } from '../services/fileService';
 interface UseFileUploadReturn {
   fileUploads: FileUploadState[];
   isProcessing: boolean;
+  // New unified file selection/preview methods
+  selectedFiles: PreviewFile[];
   handleFileSelect: (files: FileList | null) => void;
   handleFileRemove: (fileId: string) => void;
+  processFiles: (files: FileList) => void;
+  // Existing upload methods
   uploadFiles: (filesToUpload: { id: string; file: File }[]) => Promise<{
     successfullyUploadedFilesData: MessageFile[];
     filesForUserMessage: MessageFile[];
@@ -26,6 +30,8 @@ export function useFileUpload(): UseFileUploadReturn {
   const [fileUploads, setFileUploads] = useState<FileUploadState[]>([]);
   // Add processing state to track if uploads are in progress
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  // Unified selected files state (alias for fileUploads for backward compatibility)
+  const selectedFiles = fileUploads;
   
   // Cleanup on unmount
   useEffect(() => {
@@ -34,14 +40,22 @@ export function useFileUpload(): UseFileUploadReturn {
     };
   }, []);
   
+  // Process files from any source (input or drop) - consolidated logic
+  const processFiles = useCallback((files: FileList) => {
+    if (!files || files.length === 0) return;
+    
+    const newPreviewFiles = Array.from(files)
+      .map(file => fileService.createPreviewFile(file));
+    
+    // Add to existing files
+    setFileUploads(prev => [...prev, ...newPreviewFiles]);
+  }, []);
+
   // Handle file selection
   const handleFileSelect = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return;
-    
-    const newPreviewFiles = Array.from(files).map(file => fileService.createPreviewFile(file));
-    
-    setFileUploads(prev => [...prev, ...newPreviewFiles]);
-  }, []);
+    processFiles(files);
+  }, [processFiles]);
   
   // Handle file removal
   const handleFileRemove = useCallback((fileId: string) => {
@@ -193,8 +207,12 @@ export function useFileUpload(): UseFileUploadReturn {
   return {
     fileUploads,
     isProcessing,
+    // New unified file selection/preview methods
+    selectedFiles,
     handleFileSelect,
     handleFileRemove,
+    processFiles,
+    // Existing upload methods
     uploadFiles,
     resetFileUploads,
     handleUploadProgress,

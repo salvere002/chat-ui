@@ -1,4 +1,4 @@
-import { serviceFactory, AdapterType } from './serviceFactory';
+import { serviceFactory } from './serviceFactory';
 import { ProgressCallback } from './adapters/BaseAdapter';
 import { MessageRequest, MessageResponse, FileUploadResponse, ConversationMessage } from '../types/api';
 import { MessageFile } from '../types/chat';
@@ -9,22 +9,11 @@ import { streamManager } from './streamManager';
  * Uses the adapter pattern to support different backend implementations
  */
 export class ChatService {
-  private static adapter = serviceFactory.getAdapter();
-
   /**
-   * Configure the chat service with a specific adapter type
+   * Get the current adapter from serviceFactory (single source of truth)
    */
-  static configure(config: { adapterType: AdapterType; baseUrl?: string }) {
-    // If baseUrl is provided, update the default API client
-    if (config.baseUrl) {
-      serviceFactory.updateDefaultApiClient(config.baseUrl);
-    }
-    
-    // Switch to the specified adapter type, passing along baseUrl
-    this.adapter = serviceFactory.switchAdapter(
-      config.adapterType,
-      config.baseUrl
-    );
+  private static getAdapter() {
+    return serviceFactory.getAdapter();
   }
 
   /**
@@ -32,7 +21,7 @@ export class ChatService {
    */
   static async sendMessage(text: string, files: MessageFile[] = [], history: ConversationMessage[] = [], abortSignal?: AbortSignal): Promise<MessageResponse> {
     const request: MessageRequest = { text, files, history };
-    return this.adapter.sendMessage(request, abortSignal);
+    return this.getAdapter().sendMessage(request, abortSignal);
   }
   
   /**
@@ -50,7 +39,7 @@ export class ChatService {
     
     try {
       const request: MessageRequest = { text, files, history, responseMessageId: messageId };
-      const response = await this.adapter.sendMessage(request, controller.signal);
+      const response = await this.getAdapter().sendMessage(request, controller.signal);
       streamManager.stopStream(chatId, messageId);
       return response;
     } catch (error) {
@@ -81,7 +70,7 @@ export class ChatService {
     const request: MessageRequest = { text, files, history, responseMessageId: messageId };
     
     try {
-      return await this.adapter.sendStreamingMessage(
+      return await this.getAdapter().sendStreamingMessage(
         request, 
         {
           onChunk: (chunk) => callbacks.onChunk(chunk, context),
@@ -110,21 +99,21 @@ export class ChatService {
     file: File,
     onProgress: ProgressCallback
   ): Promise<FileUploadResponse> {
-    return this.adapter.uploadFile(fileId, file, onProgress);
+    return this.getAdapter().uploadFile(fileId, file, onProgress);
   }
   
   /**
    * Get all uploaded files
    */
   static async getFiles(): Promise<FileUploadResponse[]> {
-    return this.adapter.getFiles();
+    return this.getAdapter().getFiles();
   }
   
   /**
    * Get a single uploaded file by ID
    */
   static async getFile(fileId: string): Promise<FileUploadResponse> {
-    return this.adapter.getFile(fileId);
+    return this.getAdapter().getFile(fileId);
   }
 }
 

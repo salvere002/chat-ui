@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ThemeStore } from '../types/store';
 import { configManager } from '../utils/config';
+import { applyTheme } from '../utils/themeUtils';
 
 // Create the theme store with Zustand
 const useThemeStore = create<ThemeStore>((set) => ({
@@ -31,25 +32,11 @@ const useThemeStore = create<ThemeStore>((set) => ({
     set((state) => {
       const newTheme = state.theme === 'light' ? 'dark' : 'light';
       
-      // Apply theme to DOM
-      const root = window.document.documentElement;
-      
-      // Remove any existing theme classes
-      root.classList.remove('light-theme', 'dark-theme');
-      document.body.classList.remove('light-theme', 'dark-theme');
-      
-      // Add the new theme classes
-      const themeClass = newTheme === 'light' ? 'light-theme' : 'dark-theme';
-      root.classList.add(themeClass);
-      document.body.classList.add(themeClass);
+      // Apply theme to DOM using centralized utility
+      applyTheme(newTheme);
       
       // Save to localStorage
       localStorage.setItem('chat-theme', newTheme);
-      
-      // Force a repaint to ensure all components apply the theme
-      document.body.style.display = 'none';
-      document.body.offsetHeight; // Force a reflow
-      document.body.style.display = '';
       
       return { theme: newTheme };
     });
@@ -59,21 +46,7 @@ const useThemeStore = create<ThemeStore>((set) => ({
 // Apply the theme when the store is initialized
 if (typeof window !== 'undefined') {
   const theme = useThemeStore.getState().theme;
-  const root = window.document.documentElement;
-  
-  // Remove any existing theme classes
-  root.classList.remove('light-theme', 'dark-theme');
-  document.body.classList.remove('light-theme', 'dark-theme');
-  
-  // Add the new theme classes
-  const themeClass = theme === 'light' ? 'light-theme' : 'dark-theme';
-  root.classList.add(themeClass);
-  document.body.classList.add(themeClass);
-
-  // Force a repaint to ensure all components apply the theme
-  document.body.style.display = 'none';
-  document.body.offsetHeight; // Force a reflow
-  document.body.style.display = '';
+  applyTheme(theme);
 }
 
 export default useThemeStore; 

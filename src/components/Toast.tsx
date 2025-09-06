@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useToastStore } from '../stores';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -12,18 +12,8 @@ interface ToastProps {
   isVisible: boolean;
 }
 
-const Toast: React.FC<ToastProps> = ({ message, type, duration = 3000, onClose, isVisible }) => {
-  // Handle auto-closing of toast after duration
-  useEffect(() => {
-    if (isVisible && duration > 0) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, duration);
-      
-      // Clear timeout on component unmount
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, duration, onClose]);
+const Toast: React.FC<ToastProps> = ({ message, type, onClose, isVisible }) => {
+  // Timer logic is handled by the toast store to avoid duplication
   
   if (!isVisible) return null;
   

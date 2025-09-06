@@ -1,4 +1,4 @@
-import React, { useState, useRef, KeyboardEvent, ChangeEvent, useEffect, DragEvent, useCallback } from 'react';
+import React, { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent, useCallback } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane, FaPause } from 'react-icons/fa';
 import { PreviewFile } from '../types/chat';
@@ -11,7 +11,9 @@ interface MessageInputProps {
   onPauseRequest: () => void;
   isProcessing: boolean;
   isFileProcessing?: boolean;
-  initialFiles?: PreviewFile[];
+  selectedFiles: PreviewFile[];
+  onFileRemove: (fileId: string) => void;
+  onProcessFiles: (files: FileList) => void;
 }
 
 // Convert allowed extensions from config to accept attribute format
@@ -48,15 +50,17 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onPauseRequest,
   isProcessing,
   isFileProcessing = false,
-  initialFiles = []
+  selectedFiles,
+  onFileRemove,
+  onProcessFiles
 }) => {
   // Get input value and setter from input store
   const { inputValue: value, setInputValue: onChange, resetInput } = useInputStore();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
-  const [selectedFiles, setSelectedFiles] = useState<PreviewFile[]>(initialFiles);
   const [isDragging, setIsDragging] = useState(false);
+  
 
   // Use refs for stable access to current values in callbacks
   const valueRef = useRef(value);
@@ -68,10 +72,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   selectedFilesRef.current = selectedFiles;
   onSendMessageRef.current = onSendMessage;
 
-  // Effect to sync with initialFiles prop when it changes
-  useEffect(() => {
-    setSelectedFiles(initialFiles);
-  }, [initialFiles]);
 
   // Function to handle Send/Pause button click
   const handleButtonClick = useCallback(() => {
@@ -134,42 +134,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
     fileInputRef.current?.click();
   }, []);
 
-  // Function to handle files from any source (input or drop)
-  const processFiles = useCallback((files: FileList) => {
-    if (!files || files.length === 0) return;
-    
-    const newPreviewFiles = Array.from(files)
-      .map(file => fileService.createPreviewFile(file));
-    
-    // Add to existing files
-    setSelectedFiles(prev => [...prev, ...newPreviewFiles]);
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, []);
-
   // Function to handle file selection from input
   const handleFileChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
-    processFiles(event.target.files);
-  }, [processFiles]);
-
-  // Function to handle removing a file
-  const handleRemoveFile = useCallback((idToRemove: string) => {
-    setSelectedFiles(prev => {
-      // Find the file to remove
-      const fileToRemove = prev.find(f => f.id === idToRemove);
-      
-      // Revoke preview URL if not a completed upload
-      if (fileToRemove && fileToRemove.status !== 'complete') {
-        fileService.revokePreviewUrl(fileToRemove.id);
-      }
-      
-      // Return filtered array
-      return prev.filter(file => file.id !== idToRemove);
-    });
-  }, []);
+    onProcessFiles(event.target.files);
+    
+    // Clear the input to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [onProcessFiles]);
 
   // Drag and drop handlers
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -200,9 +174,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
     setIsDragging(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFiles(e.dataTransfer.files);
+      onProcessFiles(e.dataTransfer.files);
     }
-  }, [processFiles]);
+  }, [onProcessFiles]);
 
   return (
     <div 
@@ -249,7 +223,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               </div>
               {/* Remove Button (only if pending) */}
               {pf.status === 'pending' && (
-                <button onClick={() => handleRemoveFile(pf.id)} className="absolute -top-1 -right-1 w-4 h-4 bg-error text-text-inverse rounded-full flex items-center justify-center text-xs cursor-pointer transition-all duration-150 hover:bg-error/80" aria-label="Remove file">
+                <button onClick={() => onFileRemove(pf.id)} className="absolute -top-1 -right-1 w-4 h-4 bg-error text-text-inverse rounded-full flex items-center justify-center text-xs cursor-pointer transition-all duration-150 hover:bg-error/80" aria-label="Remove file">
                   <FaTimes size={8} />
                 </button>
               )}
