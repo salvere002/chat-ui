@@ -54,6 +54,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   
   // Track input focus state for suggestions display
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Get file upload state and handlers from custom hook
   const { 
@@ -123,12 +124,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
 
   // Handle input focus change
   const handleInputFocusChange = (focused: boolean) => {
-    setIsInputFocused(focused);
+    if (focused) {
+      // Clear any pending blur timeout
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+        focusTimeoutRef.current = null;
+      }
+      setIsInputFocused(true);
+    } else {
+      // Delay hiding suggestions to allow clicks to register
+      focusTimeoutRef.current = setTimeout(() => {
+        setIsInputFocused(false);
+      }, 150);
+    }
   };
 
   // Handle suggestion click
   const handleSuggestionClick = (suggestion: string) => {
     setInputValue(suggestion);
+    // Hide suggestions after clicking
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+      focusTimeoutRef.current = null;
+    }
+    setIsInputFocused(false);
   };
 
   // Handle sending a new message
@@ -342,6 +361,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
   const previousMessageCount = useRef(0);
   const [shouldAnimateTransition, setShouldAnimateTransition] = useState(false);
   
+  // Cleanup focus timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const currentMessageCount = activeChatMessages.length;
     
