@@ -48,7 +48,7 @@ export class ServiceFactory {
     
     // Auto-use mock adapter in development if configured
     if (this.config.useMockInDev && process.env.NODE_ENV === 'development') {
-      this.config.adapterType = 'rest';
+      this.config.adapterType = 'mock';
     }
   }
   
