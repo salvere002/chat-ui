@@ -1,17 +1,27 @@
 export type Theme = 'light' | 'dark';
 
+// Apply theme by toggling a single class on <html> and temporarily disabling
+// transitions to avoid staggered "waterfall" color changes across deep trees.
 export const applyTheme = (theme: Theme) => {
   if (typeof window === 'undefined') return;
-  
+
   const root = window.document.documentElement;
-  const themeClass = theme === 'light' ? 'light-theme' : 'dark-theme';
-  
-  // Remove any existing theme classes from root
-  root.classList.remove('light-theme', 'dark-theme');
-  
-  // Add the new theme class to root only
-  root.classList.add(themeClass);
-  
-  // CSS cascades from root, no need for body class duplication
-  // No forced reflow - let CSS transitions handle the change smoothly
+
+  // Temporarily disable transitions/animations during theme flip
+  root.classList.add('theme-changing');
+
+  // Toggle only the dark theme class; light uses :root variables by default
+  if (theme === 'dark') {
+    root.classList.add('dark-theme');
+  } else {
+    root.classList.remove('dark-theme');
+  }
+
+  // Remove the transition-disabling class on the next frame
+  // Using two rAFs ensures styles are applied before re-enabling transitions.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      root.classList.remove('theme-changing');
+    });
+  });
 };

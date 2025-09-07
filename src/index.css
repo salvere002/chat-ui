@@ -240,3 +240,10 @@ html {
   word-wrap: normal;
   overflow-wrap: normal;
 }
+
+/* Disable transitions/animations during theme switch to avoid "waterfall" */
+.theme-changing, .theme-changing * {
+  transition: none !important;
+  transition-delay: 0ms !important;
+  animation: none !important;
+}
