@@ -214,7 +214,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             chat.id === activeChatId ? 'bg-accent-light border-accent-primary before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-accent-primary' : ''
           }`}
           style={{
-            transition: 'all 150ms ease-out, opacity 300ms ease-in-out, transform 300ms ease-in-out',
+            // Avoid delaying color/background transitions (theme switch should be instant)
+            transition: 'opacity 300ms ease-in-out, transform 300ms ease-in-out',
             transitionDelay: collapsed ? '0ms' : `${index * 25}ms`
           }}
           onClick={() => onChatSelected(chat.id)}
