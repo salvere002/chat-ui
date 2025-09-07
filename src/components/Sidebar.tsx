@@ -108,40 +108,51 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   return (
     <>
-    <div className={`flex flex-col ${collapsed ? 'w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-all duration-300 ease-in-out`}>
-      <div className={`w-full h-full overflow-hidden ${collapsed ? '' : 'min-w-[280px]'}`}>
+    <div className={`flex flex-col ${collapsed ? 'w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-[width] duration-300 ease-in-out`} style={{ willChange: 'width', contain: 'layout paint' }}>
+      <div className={`w-full h-full overflow-hidden`}>
       <div className="bg-bg-secondary border-b border-border-primary border-r border-border-primary overflow-hidden">
         <div className="p-4 relative" style={{ height: '112px' }}>
           {/* Header row - absolutely positioned when collapsed to not affect layout */}
-          <div className={`flex items-center justify-between w-full transition-all duration-300 ease-in-out ${
+          <div className={`flex items-center w-full transition-opacity duration-150 ease-in-out ${
             collapsed 
               ? 'absolute top-4 left-4 right-4 opacity-0 pointer-events-none' 
               : 'opacity-100 mb-3'
           }`} style={{ height: '32px' }}>
             <h2 className="text-lg font-semibold text-text-primary m-0 whitespace-nowrap">Conversations</h2>
-            <button 
-              className={`flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-w-resize transition-all duration-300 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary active:scale-[0.98] flex-shrink-0 ${
-                collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
-              }`}
-              onClick={onCollapse}
-              aria-label="Collapse sidebar"
-              title="Collapse Sidebar"
-            >
-              <HiOutlineBars3BottomLeft className="w-7 h-7" />
-            </button>
           </div>
+
+          {/* Collapse icon for expanded state - fixed to top-right */}
+          <button 
+            className={`flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-w-resize transition-colors duration-150 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary ${
+              collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
+            style={{ 
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              transition: 'opacity 150ms ease-in-out',
+              willChange: 'opacity',
+              transform: 'translateZ(0)'
+            }}
+            onClick={onCollapse}
+            aria-label="Collapse sidebar"
+            title="Collapse Sidebar"
+          >
+            <HiOutlineBars3BottomLeft className="w-7 h-7" />
+          </button>
           
           {/* Collapse icon for collapsed state - centered horizontally */}
           <button 
-            className={`flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-e-resize transition-all duration-300 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary active:scale-[0.98] ${
+            className={`flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-e-resize transition-colors duration-150 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary ${
               collapsed ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
             style={{ 
               position: 'absolute',
               top: '16px',
               left: '16px',
-              transition: 'opacity 300ms ease-in-out',
-              transitionDelay: collapsed ? '150ms' : '0ms'
+              transition: 'opacity 200ms ease-in-out',
+              willChange: 'opacity',
+              transform: 'translateZ(0)'
             }}
             onClick={onCollapse}
             aria-label="Expand sidebar"
@@ -160,10 +171,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             style={{ 
               position: 'absolute',
               top: '56px',
-              left: collapsed ? '16px' : '40px',
+              left: '16px',
+              transform: collapsed ? 'translateX(0)' : 'translateX(24px)',
               width: collapsed ? '32px' : '200px',
               minWidth: '32px',
-              transition: 'width 300ms ease-out, left 300ms ease-out'
+              transition: 'width 300ms ease-out, transform 300ms ease-out',
+              willChange: 'transform, width'
             }}
             onClick={onNewChat}
             aria-label="Start new chat"
@@ -187,16 +200,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
       
       <div className="flex-1 border-r border-border-primary min-h-0 flex flex-col">
-        {/* Conversation list - always rendered but with opacity transitions */}
+        {/* Conversation list - always rendered; items handle their own fade */}
         <div 
-          className={`flex-1 overflow-y-auto overflow-x-hidden p-2 min-h-0 flex flex-col transition-all duration-300 ease-in-out ${
-            collapsed 
-              ? 'opacity-0 pointer-events-none' 
-              : 'opacity-100'
-          }`} 
+          className={`flex-1 overflow-y-auto overflow-x-hidden p-2 min-h-0 flex flex-col ${collapsed ? 'pointer-events-none' : ''}`}
           style={{
             maxHeight: 'calc(100vh - 200px)',
-            transitionDelay: collapsed ? '0ms' : '150ms'
+            contain: 'paint',
+            contentVisibility: 'auto'
           }}
         >
           <div className="min-w-[240px] w-full flex-1">
@@ -215,8 +225,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           }`}
           style={{
             // Avoid delaying color/background transitions (theme switch should be instant)
-            transition: 'opacity 300ms ease-in-out, transform 300ms ease-in-out',
-            transitionDelay: collapsed ? '0ms' : `${index * 25}ms`
+            transition: 'opacity 260ms ease-out, transform 260ms ease-out',
+            transitionDelay: collapsed ? '0ms' : `${300 + index * 25}ms`,
+            opacity: collapsed ? 0 : 1,
+            transform: collapsed ? 'translateY(4px)' : 'translateY(0)',
+            willChange: 'opacity, transform'
           }}
           onClick={() => onChatSelected(chat.id)}
         >
@@ -282,13 +295,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             >
               <button
                 onClick={handleClearAll}
-                className={`absolute inset-x-3 top-3 bottom-3 text-xs font-medium rounded-md flex items-center justify-center gap-2 bg-transparent text-text-tertiary border border-border-primary hover:bg-bg-tertiary hover:text-error hover:border-error transition-all duration-300 ease-in-out ${
+                className={`absolute inset-x-3 top-3 bottom-3 text-xs font-medium rounded-md flex items-center justify-center gap-2 bg-transparent text-text-tertiary border border-border-primary hover:bg-bg-tertiary hover:text-error hover:border-error transition-opacity duration-300 ease-in-out ${
                   collapsed 
                     ? 'opacity-0 pointer-events-none' 
                     : 'opacity-100'
                 }`}
                 style={{
-                  transitionDelay: collapsed ? '0ms' : `${chats.length * 25 + 100}ms`
+                  transitionDelay: collapsed ? '0ms' : `${300 + chats.length * 25 + 100}ms`
                 }}
                 title="Clear all conversations"
               >
