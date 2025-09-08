@@ -4,13 +4,21 @@ import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { FaSun, FaMoon, FaCog, FaBars, FaTimes } from 'react-icons/fa';
 import { ToastContainer } from './components/Toast';
-import { useThemeStore, useResponseModeStore, useChatStore } from './stores';
+import { useThemeStore, useResponseModeStore, useChatStore, useUiSettingsStore } from './stores';
 import { useShallow } from 'zustand/react/shallow';
 import Settings from './components/Settings';
 
 const App: React.FC = () => {
   // Use the theme store
   const { theme, toggleTheme } = useThemeStore();
+  const { backgroundTexture } = useUiSettingsStore();
+  
+  // Generate texture class based on setting
+  const getTextureClass = () => {
+    if (backgroundTexture === 'off') return 'texture-off';
+    if (backgroundTexture === 'subtle') return 'texture-subtle';
+    return '';
+  };
   
   
   // Use selective subscriptions for sidebar-specific data
@@ -93,7 +101,7 @@ const App: React.FC = () => {
   }, [sidebarActions]);
   
   return (
-    <div className="flex flex-col h-screen w-screen bg-bg-primary text-text-primary relative overflow-hidden">
+    <div className={`flex flex-col h-screen w-screen bg-bg-primary ${getTextureClass()} text-text-primary relative overflow-hidden`}>
       {/* Header bar with title and controls */}
       <div className="flex items-center justify-between px-4 py-3 bg-bg-secondary border-b border-border-primary z-sticky">
         <div className="flex items-center gap-3">

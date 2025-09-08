@@ -4,7 +4,7 @@ import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane, FaPause } from 'react-ico
 import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
 import { backend } from '../utils/config';
-import { useInputStore, useUiSettingsStore } from '../stores';
+import { useInputStore } from '../stores';
 import AgentSelector from './AgentSelector';
 import ModelSelector from './ModelSelector';
 import DeepResearchToggle from './DeepResearchToggle';
@@ -64,8 +64,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   // Get input value and setter from input store
   const { inputValue: value, setInputValue: onChange, resetInput } = useInputStore();
   
-  // Get UI settings
-  const { backgroundTexture } = useUiSettingsStore();
+  // Background texture is centralized at the app root
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
@@ -92,14 +91,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     onFocusChange?.(false);
   }, [onFocusChange]);
 
-  // Generate texture class based on setting
-  const getTextureClass = () => {
-    if (backgroundTexture === 'off') return 'texture-off';
-    if (backgroundTexture === 'sparse') return 'texture-sparse';
-    if (backgroundTexture === 'minimal') return 'texture-minimal';
-    if (backgroundTexture === 'subtle') return 'texture-subtle';
-    return ''; // 'normal' uses default texture
-  };
+  // No per-component texture classes here
 
   // Function to handle Send/Pause button click
   const handleButtonClick = useCallback(() => {
@@ -209,7 +201,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div 
-      className={`flex flex-col px-1 py-3 sm:p-4 bg-bg-primary ${getTextureClass()} ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
+      className={`flex flex-col px-1 py-3 sm:p-4 ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
       ref={dropAreaRef}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}

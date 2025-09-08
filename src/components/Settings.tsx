@@ -179,19 +179,27 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
             
             <div className="mb-4 last:mb-0">
-              <label htmlFor="background-texture" className="block mb-2 text-sm font-medium text-text-secondary">Background Texture:</label>
-              <select
-                id="background-texture"
-                value={backgroundTexture}
-                onChange={(e) => setBackgroundTexture(e.target.value as 'off' | 'normal' | 'sparse' | 'minimal' | 'subtle')}
-                className="w-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-sans text-sm transition-all duration-150 appearance-none cursor-pointer bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27currentColor%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-[right_12px_center] bg-[length:16px] pr-7 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
-              >
-                <option value="off">Off (Solid background)</option>
-                <option value="normal">Normal (Dense pattern)</option>
-                <option value="sparse">Sparse (Less dense)</option>
-                <option value="minimal">Minimal (Very sparse)</option>
-                <option value="subtle">Subtle (Ultra minimal)</option>
-              </select>
+              <div className="flex items-center justify-between">
+                <div>
+                  <label htmlFor="background-texture" className="text-sm font-medium text-text-secondary">Background Texture</label>
+                  <p className="text-xs text-text-tertiary mt-1">Enable subtle background styling</p>
+                </div>
+                <div 
+                  className="relative inline-flex items-center cursor-pointer"
+                  onClick={() => setBackgroundTexture(backgroundTexture === 'off' ? 'subtle' : 'off')}
+                >
+                  <div className={`relative w-11 h-6 rounded-full transition-all duration-200 ${backgroundTexture === 'subtle' ? 'bg-accent-primary' : 'bg-bg-tertiary'}`}>
+                    <div className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-200 shadow-sm ${backgroundTexture === 'subtle' ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                  </div>
+                  <input
+                    id="background-texture"
+                    type="checkbox"
+                    checked={backgroundTexture === 'subtle'}
+                    onChange={() => {}} // Handled by div onClick
+                    className="sr-only"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           
@@ -321,19 +329,27 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
             
             <div className="mb-4 last:mb-0">
-              <label htmlFor="background-texture" className="block mb-2 text-sm font-medium text-text-secondary">Background Texture:</label>
-              <select
-                id="background-texture"
-                value={backgroundTexture}
-                onChange={(e) => setBackgroundTexture(e.target.value as 'off' | 'normal' | 'sparse' | 'minimal' | 'subtle')}
-                className="w-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-sans text-sm transition-all duration-150 appearance-none cursor-pointer bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27currentColor%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-[right_12px_center] bg-[length:16px] pr-7 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
-              >
-                <option value="off">Off (Solid background)</option>
-                <option value="normal">Normal (Dense pattern)</option>
-                <option value="sparse">Sparse (Less dense)</option>
-                <option value="minimal">Minimal (Very sparse)</option>
-                <option value="subtle">Subtle (Ultra minimal)</option>
-              </select>
+              <div className="flex items-center justify-between">
+                <div>
+                  <label htmlFor="background-texture" className="text-sm font-medium text-text-secondary">Background Texture</label>
+                  <p className="text-xs text-text-tertiary mt-1">Enable subtle background styling</p>
+                </div>
+                <div 
+                  className="relative inline-flex items-center cursor-pointer"
+                  onClick={() => setBackgroundTexture(backgroundTexture === 'off' ? 'subtle' : 'off')}
+                >
+                  <div className={`relative w-11 h-6 rounded-full transition-all duration-200 ${backgroundTexture === 'subtle' ? 'bg-accent-primary' : 'bg-bg-tertiary'}`}>
+                    <div className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-200 shadow-sm ${backgroundTexture === 'subtle' ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                  </div>
+                  <input
+                    id="background-texture"
+                    type="checkbox"
+                    checked={backgroundTexture === 'subtle'}
+                    onChange={() => {}} // Handled by div onClick
+                    className="sr-only"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           

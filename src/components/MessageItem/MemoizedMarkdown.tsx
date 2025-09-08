@@ -18,7 +18,6 @@ interface MemoizedMarkdownProps {
 }
 
 const MemoizedMarkdown: React.FC<MemoizedMarkdownProps> = memo(({ text, isIncomplete }) => {
-  
   return (
     <div className="prose prose-sm max-w-none text-current">
       <ReactMarkdown
@@ -30,7 +29,7 @@ const MemoizedMarkdown: React.FC<MemoizedMarkdownProps> = memo(({ text, isIncomp
           table({ children, ...props }) {
             return (
               <div className="overflow-x-auto my-4 rounded-lg border border-border-secondary shadow-sm">
-                <table className="min-w-full border-collapse bg-bg-primary" {...props}>
+                <table className={`min-w-full border-collapse bg-bg-primary`} {...props}>
                   {children}
                 </table>
               </div>

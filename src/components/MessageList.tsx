@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import MessageItem from './MessageItem';
 import { Message } from '../types/chat';
-import { useChatActions, useBranchData, useResponseModeStore, useUiSettingsStore } from '../stores';
+import { useChatActions, useBranchData, useResponseModeStore } from '../stores';
 import { useStreamingMessage } from '../hooks/useStreamingMessage';
 import { ConversationMessage } from '../types/api';
 import { buildHistory, createAiMessageReset } from '../utils/messageUtils';
@@ -21,7 +21,6 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const { updateMessageInChat } = useChatActions();
   const { getCurrentBranchMessages } = useBranchData();
   const { selectedResponseMode } = useResponseModeStore();
-  const { backgroundTexture } = useUiSettingsStore();
   
   // Get streaming message handler
   const { sendStreamingMessage } = useStreamingMessage(selectedResponseMode);
@@ -39,14 +38,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   getCurrentBranchMessagesRef.current = getCurrentBranchMessages;
   selectedResponseModeRef.current = selectedResponseMode;
 
-  // Generate texture class based on setting
-  const getTextureClass = () => {
-    if (backgroundTexture === 'off') return 'texture-off';
-    if (backgroundTexture === 'sparse') return 'texture-sparse';
-    if (backgroundTexture === 'minimal') return 'texture-minimal';
-    if (backgroundTexture === 'subtle') return 'texture-subtle';
-    return ''; // 'normal' uses default texture
-  };
+  // Background texture is centralized at the app root
   
   // Simplified scroll button visibility check
   const checkScrollButton = useCallback(() => {
@@ -173,7 +165,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   }, [chatId, messages, generateAIResponse]);
 
   return (
-    <div className={`flex-1 overflow-y-auto overflow-x-hidden p-0 bg-bg-primary ${getTextureClass()} relative scroll-smooth`} ref={messageContainerRef}>
+    <div className={`flex-1 overflow-y-auto overflow-x-hidden p-0 relative scroll-smooth`} ref={messageContainerRef}>
       <div className="flex flex-col max-w-[800px] w-full py-2 sm:py-4 px-1 sm:px-4 sm:mx-auto relative pb-32">
         {messages.map((msg, index) => {
           const canRegenerate = (

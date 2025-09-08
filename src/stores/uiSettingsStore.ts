@@ -8,7 +8,7 @@ const useUiSettingsStore = create<UiSettingsStore>()(
     (set) => ({
       // Default settings
       showSuggestions: true,
-      backgroundTexture: 'normal' as const,
+      backgroundTexture: 'off' as const,
       
       // Actions
       setShowSuggestions: (show: boolean) => {
@@ -19,7 +19,7 @@ const useUiSettingsStore = create<UiSettingsStore>()(
         set((state) => ({ showSuggestions: !state.showSuggestions }));
       },
       
-      setBackgroundTexture: (texture: 'off' | 'normal' | 'sparse' | 'minimal' | 'subtle') => {
+      setBackgroundTexture: (texture: 'off' | 'subtle') => {
         set({ backgroundTexture: texture });
       }
     }),
