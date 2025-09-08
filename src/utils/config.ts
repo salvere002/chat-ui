@@ -59,6 +59,41 @@ export class ConfigManager {
   }
 
   /**
+   * Get UI defaults block (with safe fallbacks)
+   */
+  public getUiDefaults() {
+    const ui = this.getUiConfig() as any;
+    return ui?.defaults || {};
+  }
+
+  /**
+   * Default response mode: 'stream' | 'fetch'
+   */
+  public getDefaultResponseMode(): 'stream' | 'fetch' {
+    const defaults = this.getUiDefaults();
+    const val = defaults.responseMode;
+    return val === 'fetch' ? 'fetch' : 'stream';
+  }
+
+  /**
+   * Default toggle for showing suggestions
+   */
+  public getDefaultShowSuggestions(): boolean {
+    const defaults = this.getUiDefaults();
+    const val = defaults.showSuggestions;
+    return typeof val === 'boolean' ? val : true;
+  }
+
+  /**
+   * Default background texture enabled (boolean)
+   */
+  public getDefaultBackgroundTextureEnabled(): boolean {
+    const defaults = this.getUiDefaults();
+    const val = (defaults as any).backgroundTexture;
+    return typeof val === 'boolean' ? val : false;
+  }
+
+  /**
    * Get development configuration
    */
   public getDevConfig() {

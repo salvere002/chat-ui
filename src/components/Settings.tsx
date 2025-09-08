@@ -186,15 +186,15 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
                 <div 
                   className="relative inline-flex items-center cursor-pointer"
-                  onClick={() => setBackgroundTexture(backgroundTexture === 'off' ? 'subtle' : 'off')}
+                  onClick={() => setBackgroundTexture(!backgroundTexture)}
                 >
-                  <div className={`relative w-11 h-6 rounded-full transition-all duration-200 ${backgroundTexture === 'subtle' ? 'bg-accent-primary' : 'bg-bg-tertiary'}`}>
-                    <div className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-200 shadow-sm ${backgroundTexture === 'subtle' ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                  <div className={`relative w-11 h-6 rounded-full transition-all duration-200 ${backgroundTexture ? 'bg-accent-primary' : 'bg-bg-tertiary'}`}>
+                    <div className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-200 shadow-sm ${backgroundTexture ? 'translate-x-5' : 'translate-x-0'}`}></div>
                   </div>
                   <input
                     id="background-texture"
                     type="checkbox"
-                    checked={backgroundTexture === 'subtle'}
+                    checked={backgroundTexture}
                     onChange={() => {}} // Handled by div onClick
                     className="sr-only"
                   />
@@ -336,15 +336,15 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
                 <div 
                   className="relative inline-flex items-center cursor-pointer"
-                  onClick={() => setBackgroundTexture(backgroundTexture === 'off' ? 'subtle' : 'off')}
+                  onClick={() => setBackgroundTexture(!backgroundTexture)}
                 >
-                  <div className={`relative w-11 h-6 rounded-full transition-all duration-200 ${backgroundTexture === 'subtle' ? 'bg-accent-primary' : 'bg-bg-tertiary'}`}>
-                    <div className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-200 shadow-sm ${backgroundTexture === 'subtle' ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                  <div className={`relative w-11 h-6 rounded-full transition-all duration-200 ${backgroundTexture ? 'bg-accent-primary' : 'bg-bg-tertiary'}`}>
+                    <div className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-200 shadow-sm ${backgroundTexture ? 'translate-x-5' : 'translate-x-0'}`}></div>
                   </div>
                   <input
                     id="background-texture"
                     type="checkbox"
-                    checked={backgroundTexture === 'subtle'}
+                    checked={backgroundTexture}
                     onChange={() => {}} // Handled by div onClick
                     className="sr-only"
                   />

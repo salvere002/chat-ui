@@ -15,9 +15,7 @@ const App: React.FC = () => {
   
   // Generate texture class based on setting
   const getTextureClass = () => {
-    if (backgroundTexture === 'off') return 'texture-off';
-    if (backgroundTexture === 'subtle') return 'texture-subtle';
-    return '';
+    return backgroundTexture ? 'texture-subtle' : 'texture-off';
   };
   
   

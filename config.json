@@ -17,7 +17,12 @@
         "What can you help me with?",
         "Tell me a fun fact",
         "How do I learn programming?"
-      ]
+      ],
+      "defaults": {
+        "responseMode": "stream",
+        "showSuggestions": true,
+        "backgroundTexture": true
+      }
     },
     "dev": {
       "port": 3000

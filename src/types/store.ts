@@ -102,10 +102,10 @@ export interface ModelStore {
 export interface UiSettingsStore {
   // Settings
   showSuggestions: boolean;
-  backgroundTexture: 'off' | 'subtle';
+  backgroundTexture: boolean;
   
   // Actions
   setShowSuggestions: (show: boolean) => void;
   toggleSuggestions: () => void;
-  setBackgroundTexture: (texture: 'off' | 'subtle') => void;
+  setBackgroundTexture: (texture: boolean) => void;
 } 
