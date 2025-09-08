@@ -18,6 +18,7 @@ interface ServiceConfigStore {
   getCurrentConfig: () => ServiceConfig;
   updateConfig: (adapterType: AdapterType, updates: Partial<ServiceConfig>) => void;
   setCurrentAdapterType: (adapterType: AdapterType) => void;
+  resetToDefaults: () => void;
 }
 
 // Get default config from static configuration
@@ -86,6 +87,20 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
         // Configure ChatService with the new current config
         const config = get().configs[adapterType];
         serviceFactory.switchAdapter(config.adapterType, config.baseUrl);
+      },
+      
+      resetToDefaults: () => {
+        const defaultConfigs = getDefaultConfig();
+        const defaultAdapterType = (configManager.getServicesConfig().adapterType as AdapterType) || 'rest';
+        
+        set({ 
+          configs: defaultConfigs,
+          currentAdapterType: defaultAdapterType
+        });
+        
+        // Configure ChatService with the reset current config
+        const currentConfig = defaultConfigs[defaultAdapterType];
+        serviceFactory.switchAdapter(currentConfig.adapterType, currentConfig.baseUrl);
       }
     }),
     {

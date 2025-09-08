@@ -19,7 +19,8 @@ const Settings: React.FC<SettingsProps> = ({
     currentAdapterType,
     getCurrentConfig,
     updateConfig,
-    setCurrentAdapterType
+    setCurrentAdapterType,
+    resetToDefaults
   } = useServiceConfigStore();
 
   // Get current configuration
@@ -29,6 +30,7 @@ const Settings: React.FC<SettingsProps> = ({
   // Form state
   const [backendUrl, setBackendUrl] = useState(currentConfig.baseUrl);
   const [adapterType, setAdapterType] = useState<AdapterType>(currentAdapterType);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Update form when adapter type changes
   useEffect(() => {
@@ -56,6 +58,24 @@ const Settings: React.FC<SettingsProps> = ({
     }
   };
   
+  // Handle reset to defaults
+  const handleReset = () => {
+    setShowResetConfirm(true);
+  };
+
+  const confirmReset = () => {
+    resetToDefaults();
+    const state = useServiceConfigStore.getState();
+    const newCurrentConfig = state.getCurrentConfig();
+    setAdapterType(state.currentAdapterType);
+    setBackendUrl(newCurrentConfig.baseUrl);
+    setShowResetConfirm(false);
+  };
+
+  const cancelReset = () => {
+    setShowResetConfirm(false);
+  };
+
   // Handle click outside to close
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -127,10 +147,36 @@ const Settings: React.FC<SettingsProps> = ({
           
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border-secondary">
             <button type="submit" className="px-5 py-3 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]">Save Changes</button>
-            <button type="button" className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary" onClick={onClose}>Cancel</button>
+            <button type="button" className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary" onClick={handleReset}>Reset to Defaults</button>
           </div>
         </form>
       </div>
+      
+      {/* Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-modal p-4 animate-fade-in">
+          <div className="bg-bg-primary rounded-lg w-full max-w-md p-6 shadow-lg animate-slide-up">
+            <h3 className="text-lg font-semibold text-text-primary mb-4">Reset to Default Settings?</h3>
+            <p className="text-text-secondary mb-6 text-sm leading-relaxed">
+              This will reset all connection settings to their default values. Any custom configurations will be lost.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button 
+                className="px-4 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"
+                onClick={cancelReset}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-red-500 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-red-600 hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
+                onClick={confirmReset}
+              >
+                Reset Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
