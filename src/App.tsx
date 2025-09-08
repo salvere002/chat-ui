@@ -61,7 +61,7 @@ const App: React.FC = () => {
   }, [toggleTheme]);
   
   const handleSettingsClick = useCallback(() => {
-    setShowSettings(true);
+    setShowSettings(prev => !prev);
   }, []);
   
   const handleSettingsClose = useCallback(() => {

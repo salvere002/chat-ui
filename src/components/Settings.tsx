@@ -95,7 +95,14 @@ const Settings: React.FC<SettingsProps> = ({
   // Different rendering based on mode
   if (isSidebar) {
     return (
-      <div className="w-[400px] h-full bg-bg-elevated border-l border-border-primary flex flex-col overflow-hidden">        
+      <div className="w-[400px] h-full bg-bg-elevated border-l border-border-primary flex flex-col overflow-hidden relative">
+        <button 
+          className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary text-2xl cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary hover:rotate-90 z-10" 
+          onClick={onClose}
+          aria-label="Close settings"
+        >
+          ×
+        </button>
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 bg-bg-elevated">
           <div className="mb-6 last:mb-0">
             <h3 className="text-base font-semibold text-text-primary m-0 mb-4 pb-3 border-b border-border-secondary">Connection</h3>
@@ -188,10 +195,36 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
           </div>
           
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border-secondary">
-            <button type="submit" className="px-5 py-3 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]">Save Changes</button>
-            <button type="button" className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary" onClick={onClose}>Cancel</button>
-          </div>
+          {!showResetConfirm && (
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border-secondary">
+              <button type="submit" className="px-5 py-3 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]">Save Changes</button>
+              <button type="button" className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary" onClick={handleReset}>Reset to Defaults</button>
+            </div>
+          )}
+          
+          {/* Reset Confirmation within Sidebar */}
+          {showResetConfirm && (
+            <div className="mt-6 pt-4 border-t border-border-secondary bg-bg-secondary rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-text-primary mb-3">Reset to Default Settings?</h3>
+              <p className="text-text-secondary mb-4 text-sm leading-relaxed">
+                This will reset all connection settings to their default values. Any custom configurations will be lost.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button 
+                  className="px-4 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"
+                  onClick={cancelReset}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="px-4 py-2 bg-red-500 text-white border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-red-600 hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
+                  onClick={confirmReset}
+                >
+                  Reset Settings
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     );
