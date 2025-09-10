@@ -1,6 +1,5 @@
 import React from 'react';
 import { useChatStore } from '../stores';
-import './ChatList.css';
 
 const ChatList: React.FC = () => {
   const { chatSessions, activeChatId, setActiveChat, createChat, deleteChat } = useChatStore();

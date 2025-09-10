@@ -241,6 +241,32 @@ html {
   overflow-wrap: normal;
 }
 
+/* Ensure lists render with markers and readable spacing */
+.prose ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Add minimal paragraph spacing if typography plugin styles are unavailable */
+.prose p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
 /* Disable transitions/animations during theme switch to avoid "waterfall" */
 .theme-changing, .theme-changing * {
   transition: none !important;

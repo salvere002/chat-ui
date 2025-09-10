@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
 import type { Components } from 'react-markdown';
 import { ChartData } from '../../types/chat';
@@ -22,7 +23,9 @@ const MemoizedMarkdown: React.FC<MemoizedMarkdownProps> = memo(({ text, isIncomp
     <div className="prose prose-sm max-w-none text-current">
       <ReactMarkdown
         children={text}
-        remarkPlugins={[remarkGfm, remarkMath]}
+        // remark-breaks converts single newlines to <br> to preserve line-by-line spacing
+        // Cast plugins to any to avoid unified type version mismatches at compile time
+        remarkPlugins={[remarkGfm as any, remarkMath as any, remarkBreaks as any]}
         rehypePlugins={[rehypeKatex]}
         components={{
           // Custom table components for better styling
