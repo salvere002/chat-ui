@@ -5,6 +5,7 @@ export { default as useToastStore } from './toastStore';
 export { default as useResponseModeStore } from './responseModeStore';
 export { default as useServiceConfigStore } from './serviceConfigStore';
 export { default as useInputStore } from './inputStore';
+export { default as useMcpStore } from './mcpStore';
 
 // Export selective store selectors for performance optimization
 export * from './selectors'; 
