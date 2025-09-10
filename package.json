@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@modelcontextprotocol/sdk": "^1.17.5",
     "@types/axios": "^0.14.4",
     "@types/react": "^19.1.1",
     "@types/react-dom": "^19.1.2",
