@@ -58,28 +58,30 @@ export const useMcpData = () => useMcpStore(useShallow((state) => ({
 })));
 
 // Get only active (enabled and successfully connected) MCP servers
-export const useActiveMcpServers = () => useMcpStore(useShallow((state) => {
-  const activeServers = Object.values(state.servers).filter(
-    server => server.enabled && server.status === 'ok'
-  );
-  return activeServers;
+// Return only keys for active servers to minimize re-renders
+export const useActiveMcpServerKeys = () => useMcpStore(useShallow((state) => {
+  const keys = Object.keys(state.servers);
+  const activeKeys: string[] = [];
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    const s = state.servers[k];
+    if (s?.enabled && s.status === 'ok') activeKeys.push(k);
+  }
+  return activeKeys;
 }));
 
 // Get all available tools from active MCP servers
-export const useActiveMcpTools = () => useMcpStore(useShallow((state) => {
-  const allTools: Array<{ serverKey: string; serverName?: string; tool: MCPToolInfo }> = [];
-  Object.values(state.servers).forEach(server => {
-    if (server.enabled && server.status === 'ok' && server.tools) {
-      server.tools.forEach(tool => {
-        allTools.push({
-          serverKey: server.key,
-          serverName: server.name,
-          tool
-        });
-      });
+// Return a light-weight lookup of tools by server key
+export const useActiveMcpToolsByServer = () => useMcpStore(useShallow((state) => {
+  const result: Record<string, MCPToolInfo[]> = {};
+  const servers = state.servers;
+  for (const key in servers) {
+    const s = servers[key];
+    if (s?.enabled && s.status === 'ok' && Array.isArray(s.tools)) {
+      result[key] = s.tools;
     }
-  });
-  return allTools;
+  }
+  return result;
 }));
 
 // MCP actions

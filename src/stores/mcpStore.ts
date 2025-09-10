@@ -28,20 +28,15 @@ export type MCPServerItem = {
 };
 
 type MCPStore = {
-  rawJson: string;
   parsed?: MCPConfig;
   servers: Record<string, MCPServerItem>;
 
-  setRawJson: (text: string) => void;
-  resetRawToParsed: () => void;
-  saveJson: () => Promise<void>;
+  saveJson: (rawJson: string) => Promise<void>;
   setEnabled: (key: string, enabled: boolean) => void;
   refreshServer: (key: string) => Promise<void>;
   refreshAll: () => Promise<void>;
   hydrateFromParsed: (parsed: MCPConfig) => void;
 };
-
-const DEFAULT_JSON = '';
 
 const normalizeConnect = (c?: string): 'streamable-http' | 'sse' | undefined => {
   if (!c) return undefined;
@@ -78,18 +73,8 @@ const buildServers = (
 const useMcpStore = create<MCPStore>()(
   persist(
     (set, get) => ({
-      rawJson: DEFAULT_JSON,
       parsed: { mcpServers: {} },
       servers: {},
-
-      setRawJson: (text) => set({ rawJson: text }),
-
-      resetRawToParsed: () => {
-        const { parsed } = get();
-        const fallback = { mcpServers: {} } as MCPConfig;
-        const json = JSON.stringify(parsed ?? fallback, null, 2);
-        set({ rawJson: json });
-      },
 
       hydrateFromParsed: (parsed) => {
         set((state) => ({
@@ -98,8 +83,7 @@ const useMcpStore = create<MCPStore>()(
         }));
       },
 
-      saveJson: async () => {
-        const { rawJson } = get();
+      saveJson: async (rawJson: string) => {
         let parsed: MCPConfig | undefined;
         
         // Handle empty string or whitespace-only content
@@ -185,7 +169,7 @@ const useMcpStore = create<MCPStore>()(
     }),
     {
       name: 'mcp-store',
-      partialize: (state) => ({ rawJson: state.rawJson, parsed: state.parsed, servers: state.servers }),
+      partialize: (state) => ({ parsed: state.parsed, servers: state.servers }),
     }
   )
 );

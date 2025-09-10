@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import useMcpStore from '../stores/mcpStore';
+import { useShallow } from 'zustand/react/shallow';
 
 import { MCPToolInfo } from '../services/mcpService';
 
@@ -174,8 +175,11 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label
 };
 
 const ServerCard: React.FC<{ serverKey: string }> = ({ serverKey }) => {
-  const { servers, setEnabled, refreshServer } = useMcpStore();
-  const item = servers[serverKey];
+  const item = useMcpStore((state) => state.servers[serverKey]);
+  const { setEnabled, refreshServer } = useMcpStore(useShallow((state) => ({
+    setEnabled: state.setEnabled,
+    refreshServer: state.refreshServer,
+  })));
   if (!item) return null;
   const isLoading = item.status === 'connecting';
   const hasError = item.status === 'error';
@@ -237,19 +241,24 @@ const ServerCard: React.FC<{ serverKey: string }> = ({ serverKey }) => {
 };
 
 const SettingsMcpTab: React.FC = () => {
-  const { rawJson, setRawJson, saveJson, servers, refreshAll, parsed, resetRawToParsed } = useMcpStore();
+  const { parsed, saveJson, refreshAll } = useMcpStore(useShallow((state) => ({
+    parsed: state.parsed,
+    saveJson: state.saveJson,
+    refreshAll: state.refreshAll,
+  })));
+  const serverKeys = useMcpStore(useShallow((state) => Object.keys(state.servers)));
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const serverKeys = useMemo(() => Object.keys(servers), [servers]);
+  const [draftJson, setDraftJson] = useState<string>('');
 
   useEffect(() => {
     setError(null);
-  }, [rawJson]);
+  }, [draftJson]);
 
   const handleSave = async () => {
     setError(null);
     try {
-      await saveJson();
+      await saveJson(draftJson);
       setIsEditing(false);
     } catch (e: any) {
       setError(e?.message || 'Invalid JSON');
@@ -266,7 +275,12 @@ const SettingsMcpTab: React.FC = () => {
         <div className="flex items-center gap-2 mb-4 flex-shrink-0">
           <button
             className="px-4 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"
-            onClick={() => { resetRawToParsed(); setIsEditing(true); }}
+            onClick={() => {
+              const initial = JSON.stringify(parsed ?? { mcpServers: {} }, null, 2);
+              setDraftJson(initial);
+              setIsEditing(true);
+              setError(null);
+            }}
           >
             Edit JSON
           </button>
@@ -283,7 +297,7 @@ const SettingsMcpTab: React.FC = () => {
       {isEditing && (
         <div className="flex flex-col h-full min-h-0">
           <div className="flex-1 min-h-0">
-            <JsonEditor value={rawJson} onChange={setRawJson} error={error} />
+            <JsonEditor value={draftJson} onChange={setDraftJson} error={error} />
           </div>
           <div className="flex items-center gap-2 mt-4 flex-shrink-0">
             <button
@@ -294,7 +308,7 @@ const SettingsMcpTab: React.FC = () => {
             </button>
             <button
               className="px-4 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"
-              onClick={() => { resetRawToParsed(); setIsEditing(false); setError(null); }}
+              onClick={() => { setIsEditing(false); setError(null); }}
             >
               Cancel
             </button>
