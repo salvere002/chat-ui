@@ -50,6 +50,7 @@
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "remark-breaks": "^3.0.0"
   }
 }
