@@ -8,6 +8,24 @@ const COOKIE_SECURE = process.env.COOKIE_SECURE === 'true'; // Set this env var 
 export function createProxyConfig(): Record<string, any> {
   return {
     '^/api/proxy/': {
+      // Choose target per-request to avoid cross-request bleed
+      router: (req: any) => {
+        try {
+          const requestUrl = req.url || '';
+          const regex = /^\/api\/proxy\/([^/]+)(\/.*)?$/;
+          const parts = requestUrl.match(regex);
+          if (parts && parts[1]) {
+            const encodedTarget = parts[1];
+            const targetUrl = decodeURIComponent(encodedTarget);
+            const target = new URL(targetUrl);
+            return target.origin;
+          }
+        } catch (e) {
+          console.error('Proxy router error:', e);
+        }
+        // Fallback target (will likely 404 if used)
+        return 'http://localhost:5001';
+      },
       configure: (proxy: any, options: any) => {
         proxy.on('proxyReq', (proxyReq: any, req: any, res: any) => {
           const requestUrl = req.url || '';
@@ -29,20 +47,6 @@ export function createProxyConfig(): Record<string, any> {
               
               // Set Host header for the target server
               proxyReq.setHeader('Host', target.host);
-              
-              // Set the target for this request
-              if (options.target) {
-                if (typeof options.target === 'string') {
-                  options.target = target.origin;
-                } else {
-                  (options.target as any).host = target.host;
-                  (options.target as any).hostname = target.hostname;
-                  (options.target as any).protocol = target.protocol;
-                  if (target.port) {
-                    (options.target as any).port = target.port;
-                  }
-                }
-              }
               
               // The path needs to include both the target path and the remaining path
               const targetPath = target.pathname === '/' ? '' : target.pathname;
