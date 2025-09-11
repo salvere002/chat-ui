@@ -168,9 +168,9 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   }, [chatId, messages, generateAIResponse]);
 
   return (
-    <div className="flex-1 min-h-0 bg-bg-primary relative">
+    <div className="flex-1 min-h-0 relative">
       <div
-        className="flex-1 overflow-y-auto overflow-x-hidden p-0 bg-bg-primary relative scroll-smooth"
+        className="h-full overflow-y-auto overflow-x-hidden p-0 relative scroll-smooth"
         ref={messageContainerRef}
       >
         <div className="flex flex-col max-w-[800px] mx-auto w-full py-2 sm:py-4 px-2 sm:px-4 relative">
