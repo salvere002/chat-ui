@@ -323,6 +323,10 @@ html {
   overflow-wrap: normal;
 }
 
+/* Trim top/bottom spacing inside message bubbles for tighter layout */
+.message-bubble .prose > :first-child { margin-top: 0 !important; }
+.message-bubble .prose > :last-child { margin-bottom: 0 !important; }
+
 /* Ensure lists render with markers and readable spacing */
 .prose ul {
   list-style: disc;
