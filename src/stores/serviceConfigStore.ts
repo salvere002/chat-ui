@@ -108,20 +108,25 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
       partialize: (state) => ({
         configs: state.configs,
         currentAdapterType: state.currentAdapterType
-      })
+      }),
+      // After hydration, configure the serviceFactory with the persisted config
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Failed to rehydrate service-config-store:', error);
+          return;
+        }
+        try {
+          if (!state) return;
+          const currentConfig = state.getCurrentConfig();
+          serviceFactory.switchAdapter(currentConfig.adapterType, currentConfig.baseUrl);
+        } catch (e) {
+          console.error('Error applying hydrated service config:', e);
+        }
+      }
     }
   )
 );
 
-// Initialize ServiceFactory on first load
-if (typeof window !== 'undefined') {
-  try {
-    const state = useServiceConfigStore.getState();
-    const currentConfig = state.getCurrentConfig();
-    serviceFactory.switchAdapter(currentConfig.adapterType, currentConfig.baseUrl);
-  } catch (e) {
-    console.error(e);
-  }
-}
+// Note: Initial adapter initialization is handled after hydration via onRehydrateStorage
 
 export default useServiceConfigStore; 

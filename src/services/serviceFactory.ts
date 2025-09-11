@@ -113,17 +113,21 @@ export class ServiceFactory {
   public switchAdapter(adapterType: AdapterType, apiBaseUrl?: string): BaseAdapter {
     // Update configuration
     this.config.adapterType = adapterType;
-    
+
     if (apiBaseUrl) {
       this.config.apiBaseUrl = apiBaseUrl;
     }
-    
-    // Remove the existing adapter to force recreation with new settings
-    if (this.adapters.has(adapterType)) {
-      this.adapters.delete(adapterType);
+
+    // Clear all existing adapters to avoid multiple active adapters
+    this.adapters.clear();
+
+    // Drop existing ApiClient for this baseUrl to avoid interceptor leakage
+    const clientKey = this.config.apiBaseUrl;
+    if (clientKey && this.apiClients.has(clientKey)) {
+      this.apiClients.delete(clientKey);
     }
-    
-    // Create and return the adapter
+
+    // Create and return the fresh adapter
     this.createAdapter(adapterType);
     return this.getAdapter();
   }
@@ -175,6 +179,3 @@ export class ServiceFactory {
 }
 
 export const serviceFactory = ServiceFactory.getInstance();
-
-// Export a default adapter instance for convenience
-export const defaultAdapter = serviceFactory.getAdapter(); 
