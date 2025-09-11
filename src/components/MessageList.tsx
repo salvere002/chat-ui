@@ -126,7 +126,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   }, [chatId, messages, generateAIResponse]);
 
   return (
-    <div className="flex-1 min-h-0 bg-bg-primary relative">
+    <div className="flex-1 min-h-0 relative">
       <Virtuoso
         ref={virtuosoRef}
         className="overflow-x-hidden"
