@@ -454,7 +454,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   ), [sender, isEditing]);
 
   const messageClasses = useMemo(() => clsx(
-    'relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm',
+    'relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm message-bubble',
     isEditing ? 'w-full' : 'w-fit',
     sender === 'user' 
       ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
