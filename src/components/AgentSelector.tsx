@@ -1,6 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FaUser, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { useAgentStore } from '../stores';
+import {
+  useFloating,
+  offset,
+  flip,
+  shift,
+  autoUpdate,
+  useClick,
+  useDismiss,
+  useRole,
+  useInteractions,
+  FloatingPortal,
+  FloatingFocusManager,
+} from '@floating-ui/react';
 
 const AgentSelector: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,7 +25,18 @@ const AgentSelector: React.FC = () => {
   } = useAgentStore();
   const displayAgent = getEffectiveAgent();
   const selectableAgents = getSelectableAgents();
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { refs, floatingStyles, context } = useFloating({
+    open: isOpen,
+    onOpenChange: setIsOpen,
+    middleware: [offset(6), flip({ padding: 8 }), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+    placement: 'top-start',
+  });
+
+  const click = useClick(context, { event: 'click', toggle: true, ignoreMouse: false });
+  const dismiss = useDismiss(context, { outsidePress: true, escapeKey: true });
+  const role = useRole(context, { role: 'menu' });
+  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
 
   const handleAgentSelect = (agentId: string) => {
     setSelectedAgent(agentId);
@@ -21,28 +45,11 @@ const AgentSelector: React.FC = () => {
 
   const toggleDropdown = () => {
     if (deepResearchEnabled) return; // Disable dropdown in deep research mode
-    setIsOpen(!isOpen);
+    setIsOpen((v) => !v);
   };
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
   return (
-    <div className="relative inline-block" ref={dropdownRef}>
+    <div className="relative inline-block">
       <button
         className={`flex items-center justify-between px-2 py-1 bg-bg-elevated border border-border-secondary rounded-full transition-all duration-200 text-xs w-[90px] sm:w-[130px] gap-0.5 min-h-[24px] focus:outline-none focus:border-accent-primary focus:shadow-[0_0_0_2px_var(--color-accent-light)] ${
           deepResearchEnabled 
@@ -50,6 +57,8 @@ const AgentSelector: React.FC = () => {
             : 'cursor-pointer hover:bg-bg-secondary hover:border-border-hover'
         }`}
         onClick={toggleDropdown}
+        ref={refs.setReference}
+        {...getReferenceProps()}
         type="button"
         disabled={deepResearchEnabled}
       >
@@ -60,9 +69,14 @@ const AgentSelector: React.FC = () => {
       </button>
 
       {isOpen && !deepResearchEnabled && (
-        <div 
-          className="absolute bottom-full left-0 mb-1 min-w-[180px] bg-bg-elevated border border-border-secondary rounded-lg shadow-lg z-[9999] max-h-[300px] overflow-y-auto"
-        >
+        <FloatingPortal>
+          <FloatingFocusManager context={context} modal={false} initialFocus={-1}>
+            <div
+              ref={refs.setFloating}
+              style={floatingStyles}
+              className="min-w-[180px] bg-bg-elevated text-text-primary border border-border-secondary rounded-lg shadow-lg z-[9999] max-h-[300px] overflow-y-auto"
+              {...getFloatingProps()}
+            >
           {selectableAgents.map((agent, index, array) => (
             <div
               key={agent.id}
@@ -98,7 +112,9 @@ const AgentSelector: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
+            </div>
+          </FloatingFocusManager>
+        </FloatingPortal>
       )}
     </div>
   );

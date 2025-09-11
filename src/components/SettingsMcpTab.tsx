@@ -1,107 +1,58 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import useMcpStore from '../stores/mcpStore';
 import { useShallow } from 'zustand/react/shallow';
 
 import { MCPToolInfo } from '../services/mcpService';
 
+import {
+  useFloating,
+  offset,
+  flip,
+  shift,
+  autoUpdate,
+  useHover,
+  useFocus,
+  useDismiss,
+  useRole,
+  useInteractions,
+  FloatingPortal,
+} from '@floating-ui/react';
+
 const ToolBadge: React.FC<{ tool: MCPToolInfo; isSidebar?: boolean }> = ({ tool, isSidebar = false }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ 
-    top: 0, 
-    left: 0, 
-    transform: 'translateX(-50%) translateY(-100%)',
-    arrowLeft: '50%' as string | undefined,
-    arrowTop: undefined as string | undefined
+  const [open, setOpen] = useState(false);
+  const { refs, floatingStyles, context } = useFloating({
+    open,
+    onOpenChange: setOpen,
+    middleware: [offset(6), flip({ padding: 8 }), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+    placement: isSidebar ? 'right' : 'top',
   });
-  const badgeRef = useRef<HTMLSpanElement>(null);
+  const hover = useHover(context, { move: false, delay: { open: 80, close: 80 } });
+  const focus = useFocus(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context, { role: 'tooltip' });
+  const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, dismiss, role]);
 
-  const handleMouseEnter = () => {
-    if (badgeRef.current && (tool.description || tool.title || tool.inputSchema)) {
-      const rect = badgeRef.current.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const tooltipWidth = isSidebar ? 384 : 512; // Wider for sidebar
-      
-      if (isSidebar) {
-        // For sidebar: position to the left with more space
-        const left = rect.left - tooltipWidth - 8;
-        const top = rect.top + rect.height / 2;
-        
-        // Check if tooltip fits on the left
-        if (left > 16) {
-          setTooltipPosition({
-            top,
-            left,
-            transform: 'translateY(-50%)',
-            arrowLeft: undefined as string | undefined,
-            arrowTop: '50%'
-          });
-        } else {
-          // Fallback to right side if left doesn't fit
-          setTooltipPosition({
-            top,
-            left: rect.right + 8,
-            transform: 'translateY(-50%)',
-            arrowLeft: undefined as string | undefined,
-            arrowTop: '50%'
-          });
-        }
-      } else {
-        // Original panel mode positioning
-        const badgeCenter = rect.left + rect.width / 2;
-        let left = badgeCenter;
-        let transform = 'translateX(-50%) translateY(-100%)';
-        let arrowLeft = '50%';
-        
-        // Check if tooltip would overflow on the right
-        if (left + tooltipWidth / 2 > viewportWidth - 16) {
-          left = viewportWidth - 16;
-          transform = 'translateX(-100%) translateY(-100%)';
-          arrowLeft = `${((badgeCenter - left) / tooltipWidth) * 100 + 100}%`;
-        }
-        // Check if tooltip would overflow on the left
-        else if (left - tooltipWidth / 2 < 16) {
-          left = 16;
-          transform = 'translateX(0%) translateY(-100%)';
-          arrowLeft = `${((badgeCenter - left) / tooltipWidth) * 100}%`;
-        }
-        
-        setTooltipPosition({
-          top: rect.top - 8,
-          left,
-          transform,
-          arrowLeft,
-          arrowTop: undefined as string | undefined
-        });
-      }
-      setShowTooltip(true);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setShowTooltip(false);
-  };
+  const hasContent = Boolean(tool.description || tool.title || tool.inputSchema);
 
   return (
     <>
       <span
-        ref={badgeRef}
+        ref={refs.setReference}
         className="inline-flex items-center px-2 py-1 rounded-md text-[11px] bg-bg-primary border border-border-primary text-text-secondary cursor-help transition-colors duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        {...getReferenceProps()}
       >
         {tool.name}
       </span>
-      {showTooltip && (tool.description || tool.title || tool.inputSchema) && (
-        <div
-          className="fixed pointer-events-none z-tooltip transition-opacity duration-200"
-          style={{
-            top: tooltipPosition.top,
-            left: tooltipPosition.left,
-            transform: tooltipPosition.transform
-          }}
-        >
-          <div className={`px-3 py-3 bg-bg-elevated text-text-primary text-xs rounded-md shadow-lg border border-border-primary w-max ${isSidebar ? 'max-w-sm' : 'max-w-lg'}`}>
+      {open && hasContent && (
+        <FloatingPortal>
+          <div
+            ref={refs.setFloating}
+            style={floatingStyles}
+            className={`px-3 py-3 bg-bg-elevated text-text-primary text-xs rounded-md shadow-lg border border-border-primary w-max pointer-events-none z-tooltip ${isSidebar ? 'max-w-sm' : 'max-w-lg'}`}
+            {...getFloatingProps()}
+          >
             <div className="font-medium mb-2">{tool.title || tool.name}</div>
             {tool.description && (
               <div className="text-text-secondary leading-relaxed mb-3 whitespace-pre-wrap">
@@ -131,32 +82,8 @@ const ToolBadge: React.FC<{ tool: MCPToolInfo; isSidebar?: boolean }> = ({ tool,
                 </div>
               </div>
             )}
-            {/* Arrow for different positions */}
-            {tooltipPosition.arrowLeft && (
-              <div 
-                className="absolute border-4 border-transparent"
-                style={{
-                  top: '100%',
-                  left: tooltipPosition.arrowLeft,
-                  transform: 'translateX(-50%)',
-                  borderTopColor: 'var(--color-bg-elevated)'
-                }}
-              ></div>
-            )}
-            {tooltipPosition.arrowTop && (
-              <div 
-                className="absolute border-4 border-transparent"
-                style={{
-                  left: isSidebar && tooltipPosition.left < 200 ? '-4px' : '100%',
-                  top: tooltipPosition.arrowTop,
-                  transform: 'translateY(-50%)',
-                  borderLeftColor: isSidebar && tooltipPosition.left < 200 ? undefined : 'var(--color-bg-elevated)',
-                  borderRightColor: isSidebar && tooltipPosition.left < 200 ? 'var(--color-bg-elevated)' : undefined
-                }}
-              ></div>
-            )}
           </div>
-        </div>
+        </FloatingPortal>
       )}
     </>
   );
