@@ -2,25 +2,53 @@
  * Chart parsing utilities for MessageItem component
  * Handles parsing of chart attributes and markdown tables
  */
+import qs from 'qs';
 
 // Utility function to parse attributes from chart{key=value;key2="quoted value"} format
 // Also handles truncated input gracefully
 export const parseChartAttributes = (attributeString: string): Record<string, string> => {
+  // First try robust parsing with qs using correct delimiter
+  const delimiter = attributeString.includes(';') ? ';' : (attributeString.includes('|') ? '|' : ';');
+  try {
+    const parsed = qs.parse(attributeString, {
+      delimiter,
+      depth: 0,
+      plainObjects: true,
+      allowDots: false,
+      parameterLimit: 1000,
+    }) as Record<string, unknown>;
+
+    const attrs: Record<string, string> = {};
+    for (const k in parsed) {
+      if (!Object.prototype.hasOwnProperty.call(parsed, k)) continue;
+      let v = parsed[k];
+      if (v == null) continue;
+      let s = String(v).trim();
+      // Unwrap quotes if present
+      if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        s = s.slice(1, -1);
+      } else if ((s.startsWith('"') && !s.endsWith('"')) || (s.startsWith("'") && !s.endsWith("'"))) {
+        // Truncated quoted value - remove opening quote to mirror previous behavior
+        s = s.slice(1);
+      }
+      attrs[k.trim()] = s;
+    }
+    if (Object.keys(attrs).length > 0) {
+      return attrs;
+    }
+  } catch {
+    // Fall through to manual parser if qs fails
+  }
+
+  // Fallback to manual parser (previous implementation)
   const attributes: Record<string, string> = {};
-  
-  // Support both semicolon (;) and pipe (|) delimiters for backward compatibility
-  const delimiter = attributeString.includes(';') ? ';' : '|';
-  
-  // Enhanced parsing to handle quoted values with spaces and special characters
   const pairs: string[] = [];
   let currentPair = '';
   let insideQuotes = false;
   let quoteChar = '';
-  
-  // Parse character by character to handle quoted values properly
+
   for (let i = 0; i < attributeString.length; i++) {
     const char = attributeString[i];
-    
     if (!insideQuotes && (char === '"' || char === "'")) {
       insideQuotes = true;
       quoteChar = char;
@@ -30,42 +58,28 @@ export const parseChartAttributes = (attributeString: string): Record<string, st
       quoteChar = '';
       currentPair += char;
     } else if (!insideQuotes && char === delimiter) {
-      // Found separator outside quotes
-      if (currentPair.trim()) {
-        pairs.push(currentPair.trim());
-      }
+      if (currentPair.trim()) pairs.push(currentPair.trim());
       currentPair = '';
     } else {
       currentPair += char;
     }
   }
-  
-  // Add the last pair (might be truncated)
-  if (currentPair.trim()) {
-    pairs.push(currentPair.trim());
-  }
-  
-  // Process each key=value pair
+  if (currentPair.trim()) pairs.push(currentPair.trim());
+
   for (const pair of pairs) {
     const equalIndex = pair.indexOf('=');
     if (equalIndex === -1) continue;
-    
     const key = pair.substring(0, equalIndex).trim();
     let value = pair.substring(equalIndex + 1).trim();
-    
     if (key && value !== undefined) {
-      // Handle potentially truncated values (missing closing quotes)
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1, -1);
       } else if (value.startsWith('"') || value.startsWith("'")) {
-        // Truncated quoted value - remove opening quote
         value = value.slice(1);
       }
       attributes[key] = value;
     }
   }
-  
   return attributes;
 };
 

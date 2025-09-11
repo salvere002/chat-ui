@@ -1,4 +1,5 @@
 import { MessageFile, PreviewFile } from "../types/chat";
+import prettyBytes from 'pretty-bytes';
 
 /**
  * FileService: Manages file operations and URL lifecycle
@@ -92,11 +93,7 @@ class FileService {
    * Formats file size in human-readable format
    */
   formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return prettyBytes(bytes);
   }
   
   /**

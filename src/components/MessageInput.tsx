@@ -1,10 +1,12 @@
-import React, { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent, useCallback } from 'react';
+import React, { useState, useRef, KeyboardEvent, ChangeEvent, useCallback, useEffect } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { FaPaperclip, FaTimes, FaUpload, FaPaperPlane, FaPause } from 'react-icons/fa';
 import { PreviewFile } from '../types/chat';
 import { fileService } from '../services/fileService';
 import { backend } from '../utils/config';
 import { useInputStore } from '../stores';
+import { useDropzone } from 'react-dropzone';
+import mime from 'mime/lite';
 
 interface MessageInputProps {
   onSendMessage: (text: string, files?: { id: string; file: File }[]) => void;
@@ -16,32 +18,13 @@ interface MessageInputProps {
   onProcessFiles: (files: FileList) => void;
 }
 
-// Convert allowed extensions from config to accept attribute format
+// Convert allowed extensions from config to accept attribute format using mime lookup
 const createAcceptAttribute = (): string => {
   const allowedExtensions = backend.uploads.allowedExtensions || [];
-  
-  // Create MIME type mappings for common extensions
-  const mimeTypeMappings: Record<string, string> = {
-    'png': 'image/png',
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'gif': 'image/gif',
-    'pdf': 'application/pdf',
-    'txt': 'text/plain',
-    'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  };
-  
-  // Convert extensions to accept format
-  const acceptTypes = allowedExtensions.map(ext => {
-    // First try to use MIME type if available
-    if (mimeTypeMappings[ext]) {
-      return mimeTypeMappings[ext];
-    }
-    // Fallback to extension format
-    return `.${ext}`;
+  const acceptTypes = allowedExtensions.map((ext) => {
+    const m = mime.getType(ext);
+    return m || `.${ext}`;
   });
-  
   return acceptTypes.join(',');
 };
 
@@ -145,48 +128,34 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   }, [onProcessFiles]);
 
-  // Drag and drop handlers
-  const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Only set dragging to false if the target is the dropArea or leaving the document
-    if (e.currentTarget === dropAreaRef.current) {
-      setIsDragging(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onProcessFiles(e.dataTransfer.files);
-    }
+  // React-dropzone for drag-and-drop
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (!acceptedFiles || acceptedFiles.length === 0) return;
+    // Convert File[] to FileList using DataTransfer for compatibility with existing handlers
+    const dt = new DataTransfer();
+    acceptedFiles.forEach((f) => dt.items.add(f));
+    onProcessFiles(dt.files);
   }, [onProcessFiles]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    noClick: true,
+    multiple: true,
+  });
+  
+  // Mirror dropzone state to preserve existing overlay UI behavior
+  useEffect(() => {
+    setIsDragging(isDragActive);
+  }, [isDragActive]);
 
   return (
     <div 
       className={`flex flex-col p-3 sm:p-4 bg-bg-primary border-t border-border-secondary max-w-[800px] w-full mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
       ref={dropAreaRef}
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      {...getRootProps()}
     >
+      {/* Hidden input to satisfy dropzone; actual file selection uses the paperclip button */}
+      <input {...getInputProps()} />
       {/* Drag overlay when dragging files */}
       {isDragging && (
         <div className="absolute inset-0 bg-bg-primary/95 flex items-center justify-center rounded-lg z-10 animate-fade-in">
