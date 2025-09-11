@@ -1,4 +1,5 @@
 import { ApiError } from '../types/api';
+import { createParser } from 'eventsource-parser';
 import { configManager } from '../utils/config';
 import { StreamCallbacks } from './adapters/BaseAdapter';
 import { StreamMessageChunk } from '../types/api';
@@ -539,98 +540,60 @@ export class ApiClient {
       }
 
       const decoder = new TextDecoder();
-      let buffer = '';
-      let field = '';
-      let dataBuffer: string[] = [];
 
+      // Set up SSE parser; feed it chunks after optional interceptors
+      const parser = createParser({
+        onEvent: (event) => {
+          const data = event.data;
+          if (!data || data.trim() === '' || data.trim().toUpperCase() === '[DONE]') {
+            return; // Ignore keep-alives and [DONE]
+          }
+          try {
+            const chunkData = JSON.parse(data) as StreamMessageChunk;
+            callbacks.onChunk(chunkData);
+          } catch (e) {
+            // If parsing fails, log and continue (don't break the stream)
+            console.error('Error parsing SSE data JSON:', data, e);
+          }
+        },
+        onError: (err) => {
+          // Non-fatal parse errors; log for debugging.
+          console.debug('SSE parse warning:', err);
+        },
+      });
+
+      let accumulated = '';
       while (true) {
-        // Check if the request has been aborted
         if (combinedSignal.aborted) {
-          reader.cancel();
-          return; // Exit silently, abort error will be handled by fetch promise rejection
+          try { reader.cancel(); } catch {}
+          return;
         }
-        
+
         const { done, value } = await reader.read();
         if (done) {
-          if (dataBuffer.length > 0) { // Process any remaining buffered data as a final event
-            try {
-              const jsonData = dataBuffer.join('\n');
-              if (jsonData && jsonData.toLowerCase() !== '[done]') {
-                const chunkData = JSON.parse(jsonData) as StreamMessageChunk;
-                callbacks.onChunk(chunkData);
-              }
-            } catch (e) {
-              console.error('Error parsing final stream data JSON:', dataBuffer.join('\n'), e);
-            }
-          }
+          // End of stream
           callbacks.onComplete();
           break;
         }
 
         const rawChunk = decoder.decode(value, { stream: true });
-        
-        // Apply stream chunk interceptors first
-        const interceptorResult = this.applyStreamChunkInterceptors(rawChunk, buffer, callbacks);
-        
+
+        // Allow adapter-specific interceptors first (e.g., OpenAI custom handling)
+        const interceptorResult = this.applyStreamChunkInterceptors(rawChunk, accumulated, callbacks);
+
         if (interceptorResult.customHandling) {
-          // Interceptor handled everything, continue to next chunk
+          // Interceptor handled this chunk fully
+          accumulated += rawChunk;
           continue;
         }
-        
         if (!interceptorResult.shouldContinue) {
-          // Interceptor wants to stop processing
+          // Interceptor requested to stop processing
           break;
         }
-        
-        // Use processed chunk from interceptors or default parsing
-        buffer += interceptorResult.processedChunk;
-        
-        let eolIndex;
-        // Process buffer line by line (\n is the standard field separator)
-        while ((eolIndex = buffer.indexOf('\n')) >= 0) {
-          const line = buffer.substring(0, eolIndex);
-          buffer = buffer.substring(eolIndex + 1);
 
-          if (line.trim() === '') { // Empty line: dispatch event
-            if (dataBuffer.length > 0) {
-              const jsonData = dataBuffer.join('\n'); // Join multi-line data fields
-              if (jsonData && jsonData.toLowerCase() !== '[done]') {
-                try {
-                  const chunkData = JSON.parse(jsonData) as StreamMessageChunk;
-                  callbacks.onChunk(chunkData);
-                } catch (e) {
-                  console.error('Error parsing stream data JSON:', jsonData, e);
-                  // Consider calling callbacks.onError if parsing fails for a critical message
-                }
-              } else if (jsonData.toLowerCase() === '[done]') {
-                 // OpenAI specific: [DONE] indicates end of useful data before stream formally closes
-                 // onComplete will be called when stream is actually done.
-              }
-              dataBuffer = []; // Reset for next event
-            }
-            // Reset event name for next event
-            continue;
-          }
-
-          const colonIndex = line.indexOf(':');
-          if (colonIndex <= 0) { // Not a valid field (no colon, or colon at start)
-            field = line; // Could be a comment if line starts with colon, or just a field name with no value
-          } else {
-            field = line.substring(0, colonIndex);
-            const fieldValue = line.substring(colonIndex + 1).trimLeft(); // Remove leading space from value
-
-            if (field === 'data') {
-              dataBuffer.push(fieldValue);
-            } else if (field === 'event') {
-              // Event type handled by caller if needed
-            } else if (field === 'id') {
-              // Field handled by caller if needed
-            } else if (field === 'retry') {
-              // Field handled by caller if needed
-            }
-            // Ignore unknown fields and comments (lines starting with a colon)
-          }
-        }
+        const toFeed = interceptorResult.processedChunk ?? rawChunk;
+        parser.feed(toFeed);
+        accumulated += toFeed;
       }
     } catch (error) {
       const finalError = error instanceof Error ? error : new Error(String(error));

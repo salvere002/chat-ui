@@ -46,13 +46,11 @@ export interface ThemeStore {
 
 // Define interface for the toast store state
 export interface ToastStore {
-  toasts: Array<{
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'info' | 'warning';
-    duration?: number;
-  }>;
-  showToast: (message: string, type: 'success' | 'error' | 'info' | 'warning', duration?: number) => void;
+  showToast: (
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning',
+    duration?: number
+  ) => string;
   hideToast: (id: string) => void;
 }
 

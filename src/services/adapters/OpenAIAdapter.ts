@@ -29,58 +29,7 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
    * Setup OpenAI-specific stream interceptors
    */
   protected setupInterceptors(): void {
-    // Add OpenAI-specific chunk interceptor for custom parsing
-    this.addStreamChunkInterceptor((rawChunk, _accumulated, callbacks) => {
-      // Handle OpenAI's Server-Sent Events format
-      try {
-        // Check for OpenAI completion marker
-        if (rawChunk.includes('[DONE]')) {
-          return { shouldContinue: false, customHandling: false };
-        }
-
-        // Try to parse OpenAI streaming format directly
-        // OpenAI sends: data: {"choices":[{"delta":{"content":"text"}}]}
-        const lines = rawChunk.split('\n');
-        let hasProcessedChunk = false;
-
-        for (const line of lines) {
-          if (line.startsWith('data: ') && !line.includes('[DONE]')) {
-            try {
-              const jsonStr = line.substring(6); // Remove 'data: ' prefix
-              const data = JSON.parse(jsonStr);
-              
-              // Extract content from OpenAI response format
-              const content = data.choices?.[0]?.delta?.content || '';
-              const finishReason = data.choices?.[0]?.finish_reason;
-              
-              if (content || finishReason) {
-                const chunk: StreamMessageChunk = {
-                  text: content,
-                  complete: finishReason !== null && finishReason !== undefined
-                };
-                
-                callbacks.onChunk(chunk);
-                hasProcessedChunk = true;
-              }
-            } catch (parseError) {
-              // If JSON parsing fails, let default SSE parser handle it
-              continue;
-            }
-          }
-        }
-
-        if (hasProcessedChunk) {
-          // We handled the chunk, don't let default parser process it
-          return { shouldContinue: true, customHandling: true };
-        }
-        
-        // Let default SSE parser handle it
-        return { shouldContinue: true, customHandling: false };
-      } catch (error) {
-        // On any error, fall back to default parsing
-        return { shouldContinue: true, customHandling: false };
-      }
-    });
+    // No raw-chunk interceptors; rely on ApiClient SSE parser.
   }
 
   /**
@@ -148,7 +97,27 @@ export class OpenAIAdapter extends AbstractBaseAdapter {
             stream: true
           })
         },
-        callbacks, // Pass original callbacks, ApiClient.streamMessages will handle onChunk with parsed data
+        {
+          onChunk: (raw: any) => {
+            try {
+              // Map OpenAI SSE event to internal StreamMessageChunk
+              const content = raw?.choices?.[0]?.delta?.content || '';
+              const finishReason = raw?.choices?.[0]?.finish_reason;
+              if (content || finishReason !== undefined) {
+                const mapped: StreamMessageChunk = {
+                  text: content,
+                  complete: finishReason !== null && finishReason !== undefined,
+                };
+                callbacks.onChunk(mapped);
+              }
+            } catch (e) {
+              // Ignore malformed chunks; parser and onError will handle fatal issues
+              // Optionally log: console.debug('OpenAI chunk map error', e);
+            }
+          },
+          onComplete: callbacks.onComplete,
+          onError: callbacks.onError,
+        },
         abortSignal
       );
     } catch (error) {
