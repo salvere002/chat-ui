@@ -95,12 +95,6 @@ const Settings: React.FC<SettingsProps> = ({
     setShowResetConfirm(false);
   };
 
-  // Handle click outside to close
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
   
   // Different rendering based on mode
   if (isSidebar) {
@@ -285,7 +279,7 @@ const Settings: React.FC<SettingsProps> = ({
 
   // Modal mode for narrow screens
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in" onClick={handleOverlayClick}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in">
       <div
         ref={containerRef}
         className="bg-bg-primary rounded-lg w-full max-w-[760px] max-h-[85vh] overflow-hidden shadow-lg flex flex-col animate-slide-up"

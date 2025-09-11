@@ -4,7 +4,6 @@ import useMcpStore from '../stores/mcpStore';
 import { useShallow } from 'zustand/react/shallow';
 
 import { MCPToolInfo } from '../services/mcpService';
-
 import {
   useFloating,
   offset,
