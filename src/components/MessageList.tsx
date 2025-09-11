@@ -1,11 +1,11 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import MessageItem from './MessageItem';
 import { Message } from '../types/chat';
 import { useChatActions, useBranchData, useResponseModeStore } from '../stores';
 import { useStreamingMessage } from '../hooks/useStreamingMessage';
 import { ConversationMessage } from '../types/api';
 import { buildHistory, createAiMessageReset } from '../utils/messageUtils';
-import { useScrollManager } from '../hooks/useScrollManager';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 
 interface MessageListProps {
   messages: Message[];
@@ -14,9 +14,8 @@ interface MessageListProps {
 
 
 const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
-  // Use optimized scroll manager
-  const { containerRef: messageContainerRef, endRef: messagesEndRef, scrollToBottom, scrollToBottomManual, shouldAutoScroll } = useScrollManager();
-  
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+
   // Use selective subscriptions
   const { updateMessageInChat } = useChatActions();
   const { getCurrentBranchMessages } = useBranchData();
@@ -26,7 +25,6 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   const { sendStreamingMessage } = useStreamingMessage(selectedResponseMode);
   
   const [showScrollButton, setShowScrollButton] = useState<boolean>(false);
-  const [previousMessageCount, setPreviousMessageCount] = useState<number>(0);
 
   // Use refs for stable access to store methods
   const updateMessageInChatRef = useRef(updateMessageInChat);
@@ -40,47 +38,10 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
 
   // Background texture is centralized at the app root
   
-  // Simplified scroll button visibility check
-  const checkScrollButton = useCallback(() => {
-    if (messageContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
-      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      setShowScrollButton(distanceFromBottom > 100);
-    }
+  // Virtuoso will inform when we're at the bottom; use that to show/hide button
+  const handleAtBottomChange = useCallback((atBottom: boolean) => {
+    setShowScrollButton(!atBottom);
   }, []);
-
-  // Auto-scroll on new messages
-  useEffect(() => {
-    if (messages.length > previousMessageCount) {
-      scrollToBottom();
-      checkScrollButton();
-    }
-    setPreviousMessageCount(messages.length);
-  }, [messages.length, previousMessageCount, scrollToBottom, checkScrollButton]);
-
-  // Streaming content auto-scroll (event-driven, no interval)
-  const lastMessage = messages[messages.length - 1];
-  const lastMessageId = lastMessage?.id;
-  const lastMessageText = lastMessage?.text;
-  const lastMessageIsStreaming = lastMessage?.sender === 'ai' && lastMessage?.isComplete === false;
-
-  useEffect(() => {
-    if (lastMessageIsStreaming && shouldAutoScroll()) {
-      requestAnimationFrame(() => {
-        scrollToBottom();
-      });
-    }
-  }, [lastMessageId, lastMessageText, lastMessageIsStreaming, shouldAutoScroll, scrollToBottom]);
-
-  // Handle scroll events for button visibility
-  useEffect(() => {
-    const container = messageContainerRef.current;
-    if (container) {
-      const handleScroll = () => checkScrollButton();
-      container.addEventListener('scroll', handleScroll, { passive: true });
-      return () => container.removeEventListener('scroll', handleScroll);
-    }
-  }, [checkScrollButton]);
 
   // Generate or regenerate AI response based on a user message
   const generateAIResponse = useCallback(async (userMessageText: string, userMessageFiles: any[] = [], aiMessageId: string) => {
@@ -165,43 +126,53 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
   }, [chatId, messages, generateAIResponse]);
 
   return (
-    <div className={`flex-1 overflow-y-auto overflow-x-hidden p-0 relative scroll-smooth`} ref={messageContainerRef}>
-      <div className="flex flex-col max-w-[800px] w-full py-2 sm:py-4 px-1 sm:px-4 sm:mx-auto relative pb-32">
-        {messages.map((msg, index) => {
+    <div className="flex-1 min-h-0 bg-bg-primary relative">
+      <Virtuoso
+        ref={virtuosoRef}
+        className="overflow-x-hidden"
+        data={messages}
+        atBottomStateChange={handleAtBottomChange}
+        followOutput="smooth"
+        overscan={200}
+        computeItemKey={(_, item) => item.id}
+        components={{
+          Footer: () => (
+            <div className="max-w-[800px] mx-auto w-full px-2 sm:px-4 pb-8">
+              {messages.length > 0 &&
+                messages[messages.length - 1].sender === 'ai' &&
+                messages[messages.length - 1].isComplete !== false && (
+                  <div className="w-full flex justify-center">
+                    <p className="text-xs text-text-tertiary">
+                      Please verify important information before use.
+                    </p>
+                  </div>
+                )}
+            </div>
+          ),
+        }}
+        itemContent={(index, msg) => {
           const canRegenerate = (
             msg.sender === 'user' &&
             index < messages.length - 1 &&
             messages[index + 1].sender === 'ai'
           );
-
           return (
-            <MessageItem
-              key={msg.id}
-              message={msg}
-              chatId={chatId || ''}
-              canRegenerate={canRegenerate}
-              onRegenerateResponse={handleRegenerateResponse}
-              onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
-            />
+            <div className="max-w-[800px] mx-auto w-full py-2 sm:py-4 px-2 sm:px-4">
+              <MessageItem
+                message={msg}
+                chatId={chatId || ''}
+                canRegenerate={canRegenerate}
+                onRegenerateResponse={handleRegenerateResponse}
+                onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
+              />
+            </div>
           );
-        })}
-
-        {/* Show disclaimer centered after the last AI message */}
-        {messages.length > 0 && messages[messages.length - 1].sender === 'ai' && messages[messages.length - 1].isComplete !== false && (
-          <div className="w-full flex justify-center">
-            <p className="text-xs text-text-tertiary">
-              Please verify important information before use.
-            </p>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} className="h-32" /> {/* Element to scroll to with spacing */}
-      </div>
-      
+        }}
+      />
       {showScrollButton && (
         <button 
           className="fixed bottom-[100px] sm:bottom-[120px] right-3 sm:right-5 w-10 h-10 bg-bg-elevated text-text-secondary border border-border-secondary rounded-full shadow-md flex items-center justify-center cursor-pointer z-sticky opacity-90 transition-all duration-150 animate-fade-in hover:opacity-100 hover:-translate-y-0.5 hover:shadow-lg hover:bg-accent-primary hover:text-text-inverse hover:border-accent-primary active:translate-y-0 active:scale-95" 
-          onClick={scrollToBottomManual}
+          onClick={() => virtuosoRef.current?.scrollToIndex({ index: (messages.length - 1) || 0, align: 'end', behavior: 'smooth' })}
           aria-label="Scroll to bottom"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
