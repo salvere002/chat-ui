@@ -4,6 +4,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useThemeStore } from '../../stores';
+import copyToClipboard from 'copy-to-clipboard';
 
 interface CodeBlockProps {
   children: string; 
@@ -21,13 +22,11 @@ const CodeBlock = memo<CodeBlockProps>(({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useThemeStore();
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(children);
+  const handleCopy = () => {
+    const ok = copyToClipboard(children);
+    if (ok) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 500); // Show checkmark for 0.5s
-    } catch (err) {
-      console.error('Failed to copy code:', err);
+      setTimeout(() => setCopied(false), 500);
     }
   };
 

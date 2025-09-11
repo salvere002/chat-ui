@@ -3,6 +3,7 @@ import { useChatActions, useChatUtils } from '../stores';
 import { StreamingMessageHandler, StreamingContext } from '../services/streamingMessageHandler';
 import { createThinkingUpdateData } from '../utils/thinkingUtils';
 import { Message } from '../types/chat';
+import throttle from 'lodash.throttle';
 
 export const useStreamingMessage = (responseMode: 'stream' | 'fetch') => {
   const { updateMessageInChat } = useChatActions();
@@ -17,15 +18,6 @@ export const useStreamingMessage = (responseMode: 'stream' | 'fetch') => {
     const FLUSH_INTERVAL = 80; // ms
     let latestText = '';
     let latestImageUrl: string | undefined = undefined;
-    let timerId: number | null = null;
-    let lastFlush = 0;
-
-    const clearTimer = () => {
-      if (timerId !== null) {
-        clearTimeout(timerId);
-        timerId = null;
-      }
-    };
 
     const flushNow = () => {
       if (latestText !== '' || latestImageUrl !== undefined) {
@@ -33,16 +25,10 @@ export const useStreamingMessage = (responseMode: 'stream' | 'fetch') => {
           text: latestText,
           imageUrl: latestImageUrl,
         });
-        lastFlush = Date.now();
       }
-      clearTimer();
     };
 
-    const scheduleFlush = () => {
-      const remaining = Math.max(0, FLUSH_INTERVAL - (Date.now() - lastFlush));
-      clearTimer();
-      timerId = window.setTimeout(flushNow, remaining);
-    };
+    const throttledFlush = throttle(flushNow, FLUSH_INTERVAL, { leading: true, trailing: true });
 
     const callbacks = {
       onThinkingChunk: (thinking: string, isComplete: boolean) => {
@@ -60,21 +46,18 @@ export const useStreamingMessage = (responseMode: 'stream' | 'fetch') => {
         latestText = text;
         if (imageUrl) {
           latestImageUrl = imageUrl;
-          // Show images ASAP
+          // Show images ASAP and cancel any pending trailing call
+          throttledFlush.cancel();
           flushNow();
           return;
         }
 
-        if (Date.now() - lastFlush >= FLUSH_INTERVAL) {
-          flushNow();
-        } else {
-          scheduleFlush();
-        }
+        throttledFlush();
       },
       
       onComplete: () => {
         // Ensure the latest text/image are applied
-        flushNow();
+        throttledFlush.flush();
         updateMessageInChat(chatId, context.messageId, {
           isComplete: true,
           isThinkingComplete: true
@@ -84,7 +67,7 @@ export const useStreamingMessage = (responseMode: 'stream' | 'fetch') => {
       
       onError: (error: Error) => {
         // Flush any pending chunks first
-        flushNow();
+        throttledFlush.flush();
         if (error.name !== 'AbortError') {
           updateMessageInChat(chatId, context.messageId, {
             text: 'Sorry, there was an error processing your request.',

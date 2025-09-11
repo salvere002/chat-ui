@@ -14,6 +14,8 @@ import { EmbeddedImage, FileAttachment } from './MessageItem/FileComponents';
 import MemoizedMarkdown from './MessageItem/MemoizedMarkdown';
 import { formatTime } from '../utils/timeUtils';
 import { generateMessageId } from '../utils/id';
+import clsx from 'clsx';
+import copyToClipboard from 'copy-to-clipboard';
 
 interface MessageItemProps {
   message: Message;
@@ -417,10 +419,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   // Memoized copy message handler
   const handleCopyMessage = useCallback(() => {
     if (text) {
-      navigator.clipboard.writeText(text).then(() => {
+      const ok = copyToClipboard(text);
+      if (ok) {
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
-      });
+        setTimeout(() => setCopied(false), 2000);
+      }
     }
   }, [text]);
 
@@ -443,25 +446,19 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
 
 
   // Memoize expensive style calculations
-  const containerClasses = useMemo(() => 
-    `group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg ${
-      sender === 'user' ? 'self-end items-end' : 'self-start items-start'
-    } ${
-      isEditing ? 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]' : ''
-    }`,
-    [sender, isEditing]
-  );
+  const containerClasses = useMemo(() => clsx(
+    'group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg',
+    sender === 'user' ? 'self-end items-end' : 'self-start items-start',
+    isEditing && 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]'
+  ), [sender, isEditing]);
 
-  const messageClasses = useMemo(() => 
-    `relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm ${
-      isEditing ? 'w-full' : 'w-fit'
-    } ${
-      sender === 'user' 
-        ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
-        : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
-    }`,
-    [sender, isEditing]
-  );
+  const messageClasses = useMemo(() => clsx(
+    'relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm',
+    isEditing ? 'w-full' : 'w-fit',
+    sender === 'user' 
+      ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
+      : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
+  ), [sender, isEditing]);
 
   return (
     <div 
