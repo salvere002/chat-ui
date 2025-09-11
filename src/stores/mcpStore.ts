@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { fetchMCPMetadata, MCPServerMetadata, MCPToolInfo } from '../services/mcpService';
 
 export type MCPServerConfig = {
+  name?: string;
   url: string;
   connect?: 'streamable-http' | 'sse' | 'stream' | 'http';
 };
@@ -60,7 +61,7 @@ const buildServers = (
       enabled: prev?.enabled ?? true,
       status: prev?.status ?? 'idle',
       connectMethod: normalizeConnect(cfg.connect),
-      name: prev?.name,
+      name: prev?.name ?? cfg.name,
       version: prev?.version,
       tools: prev?.tools,
       error: undefined,
@@ -86,27 +87,31 @@ const useMcpStore = create<MCPStore>()(
       saveJson: async (rawJson: string) => {
         let parsed: MCPConfig | undefined;
         
-        // Handle empty string or whitespace-only content
+        // Handle empty string or whitespace-only content (treat as empty config)
         if (!rawJson.trim()) {
           parsed = { mcpServers: {} } as MCPConfig;
         } else {
           try {
             const obj = JSON.parse(rawJson);
-            // If JSON is valid but doesn't have mcpServers, create empty config
-            if (!obj || typeof obj !== 'object' || !obj.mcpServers) {
-              parsed = { mcpServers: {} } as MCPConfig;
-            } else {
-              parsed = { mcpServers: obj.mcpServers } as MCPConfig;
+            if (!obj || typeof obj !== 'object') {
+              // Ignore invalid structures; keep previous config
+              return;
             }
-          } catch (e: any) {
-            // If JSON parsing fails, just create empty config (no error)
-            parsed = { mcpServers: {} } as MCPConfig;
+            parsed = { mcpServers: obj.mcpServers ?? {} } as MCPConfig;
+          } catch {
+            // If JSON parsing fails, ignore and keep previous config (no error)
+            return;
           }
         }
 
+        // Update state immediately
         set((state) => ({ parsed, servers: buildServers(state.servers, parsed!) }));
 
-        await get().refreshAll();
+        // Kick off refresh asynchronously so UI is not blocked
+        Promise.resolve().then(() => get().refreshAll()).catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error('Refresh after save failed:', err);
+        });
       },
 
       setEnabled: (key, enabled) => {
@@ -157,14 +162,14 @@ const useMcpStore = create<MCPStore>()(
       refreshAll: async () => {
         const { servers } = get();
         const keys = Object.keys(servers);
+        const tasks: Promise<void>[] = [];
         for (const k of keys) {
           const item = servers[k];
           if (item?.enabled) {
-            // refresh enabled servers only
-            // eslint-disable-next-line no-await-in-loop
-            await get().refreshServer(k);
+            tasks.push(get().refreshServer(k));
           }
         }
+        await Promise.allSettled(tasks);
       },
     }),
     {

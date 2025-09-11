@@ -33,6 +33,14 @@ async function loadSdk(): Promise<any> {
 
 export type ConnectMethod = 'streamable-http' | 'sse' | undefined;
 
+// Build a same-origin, proxy-routed base URL so MCP HTTP/SSE
+// requests go through our project proxy: /api/proxy/{ENCODED_BASE}/...
+function toProxiedBase(baseUrl: string): URL {
+  // Use window.location.origin to create an absolute URL
+  // Example result: https://app-host/api/proxy/https%3A%2F%2Fremote.host
+  return new URL(`/api/proxy/${encodeURIComponent(baseUrl)}`, window.location.origin);
+}
+
 export async function fetchMCPMetadata(url: string, method?: ConnectMethod): Promise<MCPServerMetadata> {
   const sdk = await loadSdk();
 
@@ -45,7 +53,8 @@ export async function fetchMCPMetadata(url: string, method?: ConnectMethod): Pro
     const { SSEClientTransport } = await import('@modelcontextprotocol/sdk/client/sse.js');
 
     client = new Client({ name: 'chat-ui', version: '1.0.0' });
-    const target = new URL(url);
+    // IMPORTANT: route via our proxy to avoid CORS/cookie domain issues
+    const target = toProxiedBase(url);
 
     const tryStream = async () => {
       const transport = new (StreamableHTTPClientTransport as any)(target);

@@ -19,7 +19,9 @@ export function createProxyConfig(): Record<string, any> {
 
           if (parts && parts[1]) {
             const encodedTarget = parts[1];
-            const remainingPath = parts[2] || '/'; // Default to root path if none provided
+            // Do not force a trailing slash if no remaining path is present
+            // so that a base like https://host/mcp becomes exactly /mcp, not /mcp/
+            const remainingPath = parts[2] || '';
             
             try {
               const targetUrl = decodeURIComponent(encodedTarget);
@@ -44,7 +46,11 @@ export function createProxyConfig(): Record<string, any> {
               
               // The path needs to include both the target path and the remaining path
               const targetPath = target.pathname === '/' ? '' : target.pathname;
-              proxyReq.path = `${targetPath}${remainingPath}`;
+              let combinedPath = `${targetPath}${remainingPath}`;
+              if (!combinedPath) combinedPath = '/';
+              // Ensure path starts with '/'
+              if (!combinedPath.startsWith('/')) combinedPath = `/${combinedPath}`;
+              proxyReq.path = combinedPath;
               
               // Proxying request
             } catch (error) {
