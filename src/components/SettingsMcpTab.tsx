@@ -457,22 +457,22 @@ const SettingsMcpTab: React.FC<{ isSidebar?: boolean }> = ({ isSidebar = false }
 
       {isEditing && (
         <div className="mb-3 p-3 border border-border-secondary rounded-md bg-bg-secondary flex flex-col gap-2">
-          <div className={`${isSidebar ? 'flex flex-col gap-2' : 'flex flex-col sm:flex-row gap-2'}`}>
+          <div className="flex flex-col gap-2">
             <input
               type="text"
               placeholder="Name (optional)"
               value={addName}
               onChange={(e) => setAddName(e.target.value)}
-              className={`${isSidebar ? 'w-full' : 'flex-1'} px-3 py-2 bg-bg-primary text-text-primary border border-border-primary rounded-md text-sm focus:outline-none focus:border-border-focus`}
+              className={`w-full px-3 py-2 bg-bg-primary text-text-primary border border-border-primary rounded-md text-sm focus:outline-none focus:border-border-focus`}
             />
             <input
               type="text"
               placeholder="https://host.tld/mcp"
               value={addUrl}
               onChange={(e) => setAddUrl(e.target.value)}
-              className={`${isSidebar ? 'w-full' : 'flex-1'} px-3 py-2 bg-bg-primary text-text-primary border border-border-primary rounded-md text-sm focus:outline-none focus:border-border-focus`}
+              className={`w-full px-3 py-2 bg-bg-primary text-text-primary border border-border-primary rounded-md text-sm focus:outline-none focus:border-border-focus`}
             />
-            <div className={`${isSidebar ? 'w-full' : 'w-full sm:w-48'} flex flex-col`}>
+            <div className={`w-full flex flex-col`}>
               <label className="text-xs text-text-secondary mb-1">Transport</label>
               <select
                 value={addConnect}
@@ -487,7 +487,7 @@ const SettingsMcpTab: React.FC<{ isSidebar?: boolean }> = ({ isSidebar = false }
               </select>
             </div>
             <button
-              className={`${isSidebar ? 'w-full' : ''} px-4 py-2 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover disabled:opacity-60`}
+              className={`w-full px-4 py-2 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover disabled:opacity-60`}
               onClick={handleAdd}
               disabled={addBusy}
             >
