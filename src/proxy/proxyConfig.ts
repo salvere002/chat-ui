@@ -26,7 +26,7 @@ export function createProxyConfig(): Record<string, any> {
         // Fallback target (will likely 404 if used)
         return 'http://localhost:5001';
       },
-      configure: (proxy: any, options: any) => {
+      configure: (proxy: any, _options: any) => {
         proxy.on('proxyReq', (proxyReq: any, req: any, res: any) => {
           const requestUrl = req.url || '';
           

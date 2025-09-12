@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import TextareaAutosize from 'react-textarea-autosize';
 import useMcpStore from '../stores/mcpStore';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -104,20 +103,15 @@ const JsonEditor: React.FC<{
     }
   };
   return (
-    <div className="mb-4 last:mb-0 flex flex-col h-full">
+    <div className="mb-2 flex flex-col h-full">
       <label className="block mb-2 text-sm font-medium text-text-secondary">MCP JSON Configuration</label>
-      <div className="flex-1 min-h-0 flex flex-col">
-        <TextareaAutosize
+      <div className="flex-1 min-h-0">
+        <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={handleBlur}
           spellCheck={false}
-          minRows={6}
-          maxRows={10}
-          style={{ 
-            transition: 'height 150ms ease'
-          }}
-          className="w-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-mono text-xs leading-5 resize-none transition-all duration-150 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
+          className="w-full h-full min-h-[120px] max-h-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-mono text-xs leading-5 resize-none overflow-auto transition-all duration-150 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
         />
       </div>
     </div>
@@ -363,7 +357,7 @@ const SettingsMcpTab: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex-1 flex flex-col min-h-0">
       {!isEditing && (
         <div className="flex items-center gap-2 mb-4 flex-shrink-0">
           <button
@@ -372,7 +366,6 @@ const SettingsMcpTab: React.FC = () => {
               const initial = JSON.stringify(parsed ?? { mcpServers: {} }, null, 2);
               setDraftJson(initial);
               setIsEditing(true);
-              setError(null);
             }}
           >
             Edit MCP
@@ -389,7 +382,7 @@ const SettingsMcpTab: React.FC = () => {
 
       {isEditing && (
         <div className="mb-3 p-3 border border-border-secondary rounded-md bg-bg-secondary flex flex-col gap-2">
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col gap-2">
             <input
               type="text"
               placeholder="Name (optional)"
@@ -404,7 +397,7 @@ const SettingsMcpTab: React.FC = () => {
               onChange={(e) => setAddUrl(e.target.value)}
               className="flex-1 px-3 py-2 bg-bg-primary text-text-primary border border-border-primary rounded-md text-sm focus:outline-none focus:border-border-focus"
             />
-            <div className="w-full sm:w-48 flex flex-col">
+            <div className="w-full flex flex-col">
               <label className="text-xs text-text-secondary mb-1">Transport</label>
               <select
                 value={addConnect}
@@ -435,16 +428,16 @@ const SettingsMcpTab: React.FC = () => {
           <div className="flex-1 min-h-0">
             <JsonEditor value={draftJson} onChange={setDraftJson} />
           </div>
-          <div className="flex items-center gap-2 mt-4 flex-shrink-0">
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border-secondary flex-shrink-0">
             <button
-              className="px-4 py-2 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
+              className="px-5 py-3 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
               onClick={handleSave}
             >
               Save & Refresh
             </button>
             <button
-              className="px-4 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"
-              onClick={() => { setIsEditing(false); setError(null); }}
+              className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"
+              onClick={() => { setIsEditing(false); }}
             >
               Cancel
             </button>
