@@ -101,7 +101,7 @@ const Settings: React.FC<SettingsProps> = ({
     return (
       <div className="w-[400px] h-full bg-bg-elevated border-l border-border-primary flex flex-col overflow-hidden relative">
         <button 
-          className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary text-2xl cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary hover:rotate-90 z-10" 
+          className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary text-2xl cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary z-10" 
           onClick={onClose}
           aria-label="Close settings"
         >
@@ -288,7 +288,7 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="flex items-center justify-between px-6 py-5 bg-bg-secondary border-b border-border-primary">
           <h2 className="text-xl font-semibold text-text-primary m-0">Settings</h2>
           <button 
-            className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary text-2xl cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary hover:rotate-90" 
+            className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary text-2xl cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary" 
             onClick={onClose}
             aria-label="Close settings"
           >
