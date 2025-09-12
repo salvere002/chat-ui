@@ -269,7 +269,7 @@ const Settings: React.FC<SettingsProps> = ({
         )}
 
         {activeTab === 'mcp' && (
-          <div className="flex-1 overflow-y-auto p-6 bg-bg-elevated">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden p-6 bg-bg-elevated">
             <SettingsMcpTab isSidebar={true} />
           </div>
         )}
@@ -295,7 +295,7 @@ const Settings: React.FC<SettingsProps> = ({
             ×
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           <div className="px-6 pt-4 bg-bg-primary border-b border-border-secondary">
             <div className="flex w-full items-center p-1 rounded-md bg-bg-secondary border border-border-primary">
               <button
@@ -322,6 +322,7 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
 
           {activeTab === 'general' && (
+            <div className="flex-1 overflow-y-auto">
             <form onSubmit={handleSubmit} className="p-6 bg-bg-primary">
               <div className="mb-6 last:mb-0">
                 <h3 className="text-base font-semibold text-text-primary m-0 mb-4 pb-3 border-b border-border-secondary">Connection</h3>
@@ -423,10 +424,11 @@ const Settings: React.FC<SettingsProps> = ({
                 <button type="button" className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary" onClick={handleReset}>Reset to Defaults</button>
               </div>
             </form>
+            </div>
           )}
 
           {activeTab === 'mcp' && (
-            <div className="p-6 bg-bg-primary">
+            <div className="flex-1 min-h-0 flex flex-col p-6 bg-bg-primary">
               <SettingsMcpTab isSidebar={false} />
             </div>
           )}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import useMcpStore from '../stores/mcpStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -89,6 +89,23 @@ const ToolBadge: React.FC<{ tool: MCPToolInfo; isSidebar?: boolean }> = ({ tool,
 };
 
 const JsonEditor: React.FC<{ value: string; onChange: (v: string) => void; isSidebar?: boolean }> = ({ value, onChange, isSidebar = false }) => {
+  const areaRef = useRef<HTMLDivElement | null>(null);
+  const [maxRows, setMaxRows] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!areaRef.current) return;
+    const el = areaRef.current;
+    const compute = () => {
+      const h = el.clientHeight || 0;
+      const lineHeight = 20; // matches leading-5
+      const rows = Math.max(6, Math.floor(h / lineHeight) - 1);
+      setMaxRows(rows);
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const handleBlur = () => {
     try {
       const obj = JSON.parse(value);
@@ -104,24 +121,27 @@ const JsonEditor: React.FC<{ value: string; onChange: (v: string) => void; isSid
     <div className="mb-2 flex flex-col h-full">
       <label className="block mb-2 text-sm font-medium text-text-secondary">MCP JSON Configuration</label>
       {isSidebar ? (
-        <div className="flex-1 min-h-0">
-          <textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onBlur={handleBlur}
-            spellCheck={false}
-            className="w-full h-full min-h-[120px] max-h-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-mono text-xs leading-5 resize-none overflow-auto transition-all duration-150 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
-          />
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div ref={areaRef} className="flex-1 min-h-0">
           <TextareaAutosize
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
             onBlur={handleBlur}
             spellCheck={false}
             minRows={6}
-            maxRows={10}
+            maxRows={maxRows ?? 24}
+            style={{ transition: 'height 150ms ease' }}
+            className="w-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-mono text-xs leading-5 resize-none transition-all duration-150 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
+          />
+        </div>
+      ) : (
+        <div ref={areaRef} className="flex-1 min-h-0">
+          <TextareaAutosize
+            value={value}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
+            onBlur={handleBlur}
+            spellCheck={false}
+            minRows={6}
+            maxRows={maxRows ?? 12}
             style={{ transition: 'height 150ms ease' }}
             className="w-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-mono text-xs leading-5 resize-none transition-all duration-150 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
           />
@@ -442,7 +462,7 @@ const SettingsMcpTab: React.FC<{ isSidebar?: boolean }> = ({ isSidebar = false }
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex-1 flex flex-col min-h-0">
       {!isEditing && (
         <div className="flex items-center gap-2 mb-4 flex-shrink-0">
           <button
@@ -482,7 +502,7 @@ const SettingsMcpTab: React.FC<{ isSidebar?: boolean }> = ({ isSidebar = false }
               onChange={(e) => setAddUrl(e.target.value)}
               className={`w-full px-3 py-2 bg-bg-primary text-text-primary border border-border-primary rounded-md text-sm focus:outline-none focus:border-border-focus`}
             />
-            <div className={`w-full flex flex-col`}>
+            <div className="w-full flex flex-col">
               <label className="text-xs text-text-secondary mb-1">Transport</label>
               <select
                 value={addConnect}
