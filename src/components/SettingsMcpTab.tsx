@@ -49,12 +49,12 @@ const ToolBadge: React.FC<{ tool: MCPToolInfo; isSidebar?: boolean }> = ({ tool,
           <div
             ref={refs.setFloating}
             style={floatingStyles}
-            className={`px-3 py-3 bg-bg-elevated text-text-primary text-xs rounded-md shadow-lg border border-border-primary w-max pointer-events-none z-tooltip ${isSidebar ? 'max-w-sm' : 'max-w-lg'}`}
+            className={`px-3 py-3 bg-bg-elevated text-text-primary text-xs rounded-md shadow-lg border border-border-primary w-max pointer-events-none z-tooltip ${isSidebar ? 'max-w-sm' : 'max-w-2xl'}`}
             {...getFloatingProps()}
           >
             <div className="font-medium mb-2">{tool.title || tool.name}</div>
             {tool.description && (
-              <div className="text-text-secondary leading-relaxed mb-3 whitespace-pre-wrap">
+              <div className="text-text-secondary leading-relaxed mb-3 whitespace-pre-wrap break-words">
                 {tool.description}
               </div>
             )}
@@ -72,8 +72,8 @@ const ToolBadge: React.FC<{ tool: MCPToolInfo; isSidebar?: boolean }> = ({ tool,
                         )}
                       </div>
                       {param.description && (
-                        <div className="text-text-secondary text-[11px] ml-0.5 leading-tight">
-                          {param.description.length > 100 ? `${param.description.substring(0, 100)}...` : param.description}
+                        <div className="text-text-secondary text-[11px] ml-0.5 leading-tight whitespace-pre-wrap break-words">
+                          {param.description}
                         </div>
                       )}
                     </div>
