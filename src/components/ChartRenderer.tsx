@@ -18,7 +18,6 @@ import {
   Legend,
 } from 'recharts';
 import { ChartData } from '../types/chat';
-import { useThemeStore } from '../stores';
 
 interface ChartRendererProps {
   chartData: ChartData;
@@ -26,10 +25,6 @@ interface ChartRendererProps {
 }
 
 const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) => {
-  const { theme } = useThemeStore();
-  
-  // Memoize the theme value to prevent re-renders when store updates unnecessarily
-  const stableTheme = useMemo(() => theme, [theme]);
   
   const { type, data, config = {} } = chartData;
   
@@ -51,11 +46,12 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
     ...config
   }), [config]);
 
+  // Use CSS variables so theme flips don't trigger React re-renders
   const themeColors = useMemo(() => ({
-    textColor: stableTheme === 'dark' ? '#e2e8f0' : '#374151',
-    gridColor: stableTheme === 'dark' ? '#374151' : '#e5e7eb',
-    backgroundColor: stableTheme === 'dark' ? '#1f2937' : '#ffffff'
-  }), [stableTheme]);
+    textColor: 'var(--chart-text)',
+    gridColor: 'var(--chart-grid)',
+    backgroundColor: 'var(--chart-bg)'
+  }), []);
 
   // Adaptive font size and rotation based on number of data points
   const adaptiveTickProps = useMemo(() => {

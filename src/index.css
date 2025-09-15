@@ -171,6 +171,36 @@
   --color-warning: #FD7E14;
   --color-error: #DC3545;
   --color-info: #17A2B8;
+
+  /* Code block and token colors (light) */
+  --code-bg: var(--color-bg-secondary);
+  --code-fg: var(--color-text-primary);
+  --code-token-comment: #6a737d;
+  --code-token-punctuation: var(--color-text-primary);
+  --code-token-property: #005cc5;
+  --code-token-tag: #228be6;
+  --code-token-boolean: #005cc5;
+  --code-token-number: #005cc5;
+  --code-token-constant: #0b7285;
+  --code-token-selector: #e36209;
+  --code-token-attr-name: #6f42c1;
+  --code-token-string: #22863a;
+  --code-token-builtin: #005cc5;
+  --code-token-deleted: #d73a49;
+  --code-token-operator: var(--color-text-primary);
+  --code-token-entity: #228be6;
+  --code-token-atrule: #6f42c1;
+  --code-token-keyword: #6f42c1;
+  --code-token-function: #005cc5;
+  --code-token-class-name: #e36209;
+  --code-token-variable: var(--color-text-primary);
+  --code-token-regex: #d73a49;
+  --code-token-important: #d73a49;
+
+  /* Chart colors (light) */
+  --chart-text: #374151;
+  --chart-grid: #e5e7eb;
+  --chart-bg: #ffffff;
 }
 
 /* Dark Theme - Basic Black & White */
@@ -225,6 +255,36 @@
   --color-warning: #FFA500;
   --color-error: #FF4444;
   --color-info: #00BFFF;
+
+  /* Code block and token colors (dark) */
+  --code-bg: var(--color-bg-secondary);
+  --code-fg: var(--color-text-primary);
+  --code-token-comment: #6a9955;
+  --code-token-punctuation: #d4d4d4;
+  --code-token-property: #9cdcfe;
+  --code-token-tag: #569cd6;
+  --code-token-boolean: #569cd6;
+  --code-token-number: #b5cea8;
+  --code-token-constant: #9cdcfe;
+  --code-token-selector: #d7ba7d;
+  --code-token-attr-name: #9cdcfe;
+  --code-token-string: #ce9178;
+  --code-token-builtin: #ce9178;
+  --code-token-deleted: #ce9178;
+  --code-token-operator: #d4d4d4;
+  --code-token-entity: #569cd6;
+  --code-token-atrule: #ce9178;
+  --code-token-keyword: #569cd6;
+  --code-token-function: #dcdcaa;
+  --code-token-class-name: #4ec9b0;
+  --code-token-variable: #9cdcfe;
+  --code-token-regex: #d16969;
+  --code-token-important: #569cd6;
+
+  /* Chart colors (dark) */
+  --chart-text: #e2e8f0;
+  --chart-grid: #374151;
+  --chart-bg: #1f2937;
 }
 
 /* Cross-browser scrollbar styles */

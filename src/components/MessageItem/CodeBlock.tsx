@@ -1,9 +1,6 @@
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { FaCheck, FaCopy, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { useThemeStore } from '../../stores';
 import copyToClipboard from 'copy-to-clipboard';
 
 interface CodeBlockProps {
@@ -20,7 +17,6 @@ const CodeBlock = memo<CodeBlockProps>(({
 }) => {
   const [copied, setCopied] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { theme } = useThemeStore();
 
   const handleCopy = () => {
     const ok = copyToClipboard(children);
@@ -34,8 +30,62 @@ const CodeBlock = memo<CodeBlockProps>(({
     setIsCollapsed(!isCollapsed);
   };
 
-  // Use theme-appropriate syntax highlighting
-  const syntaxTheme = theme === 'dark' ? vscDarkPlus : oneLight;
+  // Theme-agnostic Prism style using CSS variables so theme flips don't re-render
+  const syntaxTheme = useMemo(() => ({
+    'pre[class*="language-"]': {
+      color: 'var(--code-fg)',
+      fontSize: '13px',
+      textShadow: 'none',
+      fontFamily: 'var(--font-mono)',
+      direction: 'ltr',
+      textAlign: 'left',
+      whiteSpace: 'pre',
+      wordSpacing: 'normal',
+      wordBreak: 'normal',
+      lineHeight: '1.5',
+      MozTabSize: '4',
+      OTabSize: '4',
+      tabSize: '4',
+      WebkitHyphens: 'none',
+      MozHyphens: 'none',
+      msHyphens: 'none',
+      hyphens: 'none',
+      padding: '1em',
+      margin: '.5em 0',
+      overflow: 'auto',
+      background: 'var(--code-bg)'
+    },
+    'code[class*="language-"]': {
+      color: 'var(--code-fg)',
+      fontSize: '13px',
+      textShadow: 'none',
+      fontFamily: 'var(--font-mono)'
+    },
+    comment: { color: 'var(--code-token-comment)' },
+    prolog: { color: 'var(--code-token-comment)' },
+    doctype: { color: 'var(--code-token-keyword)' },
+    punctuation: { color: 'var(--code-token-punctuation)' },
+    property: { color: 'var(--code-token-property)' },
+    tag: { color: 'var(--code-token-tag)' },
+    boolean: { color: 'var(--code-token-boolean)' },
+    number: { color: 'var(--code-token-number)' },
+    constant: { color: 'var(--code-token-constant)' },
+    selector: { color: 'var(--code-token-selector)' },
+    'attr-name': { color: 'var(--code-token-attr-name)' },
+    string: { color: 'var(--code-token-string)' },
+    char: { color: 'var(--code-token-string)' },
+    builtin: { color: 'var(--code-token-builtin)' },
+    deleted: { color: 'var(--code-token-deleted)' },
+    operator: { color: 'var(--code-token-operator)' },
+    entity: { color: 'var(--code-token-entity)' },
+    atrule: { color: 'var(--code-token-atrule)' },
+    keyword: { color: 'var(--code-token-keyword)' },
+    function: { color: 'var(--code-token-function)' },
+    'class-name': { color: 'var(--code-token-class-name)' },
+    variable: { color: 'var(--code-token-variable)' },
+    regex: { color: 'var(--code-token-regex)' },
+    important: { color: 'var(--code-token-important)' }
+  }) as any, []);
 
   // Get preview content (first few lines for collapsed state)
   const lines = children.split('\n');
@@ -98,7 +148,7 @@ const CodeBlock = memo<CodeBlockProps>(({
           customStyle={{
             margin: 0,
             borderRadius: shouldShowCollapse ? (isCollapsed ? '0 0 0.5rem 0.5rem' : '0 0 0.5rem 0.5rem') : '0.5rem',
-            backgroundColor: theme === 'dark' ? 'var(--color-bg-secondary)' : '#f8f9fa',
+            backgroundColor: 'var(--color-bg-secondary)',
             border: `1px solid var(--color-border-secondary)`,
             borderTop: shouldShowCollapse ? 'none' : `1px solid var(--color-border-secondary)`,
             fontSize: '0.875rem', // 14px - smaller font size
@@ -117,7 +167,7 @@ const CodeBlock = memo<CodeBlockProps>(({
           <div 
             className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none"
             style={{
-              background: `linear-gradient(transparent, ${theme === 'dark' ? 'var(--color-bg-secondary)' : '#f8f9fa'})`
+              background: `linear-gradient(transparent, var(--color-bg-secondary))`
             }}
           />
         )}
