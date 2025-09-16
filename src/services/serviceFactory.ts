@@ -4,6 +4,7 @@ import { RestApiAdapter } from './adapters/RestApiAdapter';
 import { MockAdapter } from './adapters/MockAdapter';
 import { SessionAdapter } from './adapters/SessionAdapter';
 import { configManager } from '../utils/config';
+import useUserStore from '../stores/userStore';
 
 /**
  * Service adapter types
@@ -45,6 +46,8 @@ export class ServiceFactory {
     
     // Initialize with the default API client
     this.apiClients.set('default', defaultApiClient);
+    // Attach user-id header propagation to the default client
+    this.attachUserIdHeader(defaultApiClient);
     
     // Auto-use mock adapter in development if configured
     if (this.config.useMockInDev && process.env.NODE_ENV === 'development') {
@@ -82,13 +85,16 @@ export class ServiceFactory {
     const clientKey = baseUrl;
     if (!this.apiClients.has(clientKey)) {
       // Create a new client if we don't have one for this URL
-      this.apiClients.set(clientKey, new ApiClient({
+      const client = new ApiClient({
         baseUrl,
         defaultHeaders: {
           'Content-Type': 'application/json'
         },
         timeout: configManager.getApiConfig().timeout
-      }));
+      });
+      // Attach user-id header propagation
+      this.attachUserIdHeader(client);
+      this.apiClients.set(clientKey, client);
     }
     
     return this.apiClients.get(clientKey)!;
@@ -169,12 +175,36 @@ export class ServiceFactory {
       timeout: configManager.getApiConfig().timeout
     });
     
+    // Attach user-id header propagation on the new default client
+    this.attachUserIdHeader(apiClient);
+
     this.apiClients.set('default', apiClient);
     
     // Clear existing adapters to force recreation on next request
     this.adapters.clear();
     
     return apiClient;
+  }
+
+  /**
+   * Attach interceptors to propagate the user-id header on all requests.
+   */
+  private attachUserIdHeader(client: ApiClient) {
+    const addUserId = (opts: RequestInit & { url: string }) => {
+      try {
+        const id = useUserStore.getState().userId;
+        if (!id) return opts;
+        const headers: Record<string, string> = {
+          ...(opts.headers as Record<string, string> | undefined),
+          'user-id': id,
+        };
+        return { ...opts, headers };
+      } catch {
+        return opts;
+      }
+    };
+    client.addRequestInterceptor(addUserId);
+    client.addStreamRequestInterceptor(addUserId);
   }
 }
 

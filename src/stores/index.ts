@@ -13,6 +13,7 @@ export { default as useUiSettingsStore } from './uiSettingsStore';
 // Main branch performance optimizations
 export { default as useInputStore } from './inputStore';
 export { default as useMcpStore } from './mcpStore';
+export { default as useUserStore } from './userStore';
 
 // Export selective store selectors for performance optimization
 export * from './selectors';

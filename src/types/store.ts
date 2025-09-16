@@ -107,3 +107,10 @@ export interface UiSettingsStore {
   toggleSuggestions: () => void;
   setBackgroundTexture: (texture: boolean) => void;
 } 
+
+// Define interface for the user store state
+export interface UserIdentityStore {
+  userId: string | null;
+  setUserId: (id: string | null) => void;
+  clearUserId: () => void;
+}
