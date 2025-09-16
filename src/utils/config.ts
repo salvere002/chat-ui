@@ -101,6 +101,17 @@ export class ConfigManager {
   }
 
   /**
+   * Get auth configuration
+   */
+  public getAuthConfig() {
+    const auth: any = (this.config.frontend as any).auth || {};
+    return {
+      enabled: Boolean(auth.enabled),
+      baseUrl: auth.baseUrl || this.getApiConfig().baseUrl,
+    } as { enabled: boolean; baseUrl: string };
+  }
+
+  /**
    * Get default suggestions for chat interface
    */
   public getDefaultSuggestions(): string[] {
@@ -110,7 +121,7 @@ export class ConfigManager {
       "How do I learn programming?"
     ];
   }
-}
+} 
 
 // Export a singleton instance
 export const configManager = ConfigManager.getInstance();

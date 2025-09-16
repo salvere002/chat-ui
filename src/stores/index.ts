@@ -14,6 +14,7 @@ export { default as useUiSettingsStore } from './uiSettingsStore';
 export { default as useInputStore } from './inputStore';
 export { default as useMcpStore } from './mcpStore';
 export { default as useUserStore } from './userStore';
+export { default as useAuthStore } from './authStore';
 
 // Export selective store selectors for performance optimization
 export * from './selectors';

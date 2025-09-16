@@ -7,6 +7,10 @@
         "Content-Type": "application/json"
       }
     },
+    "auth": {
+      "enabled": false,
+      "baseUrl": "http://localhost:5001/api"
+    },
     "services": {
       "adapterType": "rest",
       "useMockInDev": false
