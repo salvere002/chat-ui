@@ -4,7 +4,7 @@ import { RestApiAdapter } from './adapters/RestApiAdapter';
 import { MockAdapter } from './adapters/MockAdapter';
 import { SessionAdapter } from './adapters/SessionAdapter';
 import { configManager } from '../utils/config';
-import useUserStore from '../stores/userStore';
+import useAuthStore from '../stores/authStore';
 
 /**
  * Service adapter types
@@ -192,7 +192,7 @@ export class ServiceFactory {
   private attachUserIdHeader(client: ApiClient) {
     const addUserId = (opts: RequestInit & { url: string }) => {
       try {
-        const id = useUserStore.getState().userId;
+        const id = useAuthStore.getState().user?.userId;
         if (!id) return opts;
         const headers: Record<string, string> = {
           ...(opts.headers as Record<string, string> | undefined),
