@@ -61,6 +61,7 @@ const buildServers = (
       enabled: prev?.enabled ?? true,
       status: prev?.status ?? 'idle',
       connectMethod: normalizeConnect(cfg.connect),
+      actualConnectMethod: prev?.actualConnectMethod,
       name: prev?.name ?? cfg.name,
       version: prev?.version,
       tools: prev?.tools,
