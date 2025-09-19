@@ -4,6 +4,8 @@ import useMcpStore from '../stores/mcpStore';
 import { useShallow } from 'zustand/react/shallow';
 
 import { MCPToolInfo } from '../services/mcpService';
+import type { MCPConfigPayload, MCPConnectMethod } from '../types/mcp';
+import { saveMcpConfigViaAdapter, isMcpConfigSupported } from '../services/mcpConfigService';
 import {
   useFloating,
   offset,
@@ -360,6 +362,8 @@ const SettingsMcpTab: React.FC<{ isSidebar?: boolean }> = ({ isSidebar = false }
   const serverKeys = useMcpStore(useShallow((state) => Object.keys(state.servers)));
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [draftJson, setDraftJson] = useState<string>('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [saveBusy, setSaveBusy] = useState<boolean>(false);
   const [addUrl, setAddUrl] = useState<string>('');
   const [addConnect, setAddConnect] = useState<string>(''); // '', 'streamable-http', 'sse'
   const [addBusy, setAddBusy] = useState<boolean>(false);
@@ -402,9 +406,56 @@ const SettingsMcpTab: React.FC<{ isSidebar?: boolean }> = ({ isSidebar = false }
     return candidate;
   };
 
+  // Validate user JSON input strongly at runtime
+  const validateMcpConfig = (obj: any): MCPConfigPayload => {
+    if (!obj || typeof obj !== 'object') throw new Error('Config must be a JSON object');
+    const cfg: MCPConfigPayload = { mcpServers: {} };
+    const src = obj.mcpServers;
+    if (src === undefined) return cfg; // treat missing as empty
+    if (typeof src !== 'object' || Array.isArray(src)) throw new Error('mcpServers must be an object');
+    const allowedConnect: Record<string, true> = {
+      'streamable-http': true,
+      'sse': true,
+      'stream': true,
+      'http': true,
+    };
+    for (const [key, val] of Object.entries(src)) {
+      if (!val || typeof val !== 'object') throw new Error(`Server '${key}' must be an object`);
+      const name = (val as any).name;
+      const url = (val as any).url;
+      const connect = (val as any).connect as MCPConnectMethod | undefined;
+      if (name !== undefined && typeof name !== 'string') throw new Error(`Server '${key}': name must be string`);
+      if (typeof url !== 'string' || !url.trim()) throw new Error(`Server '${key}': url must be non-empty string`);
+      if (connect !== undefined && !allowedConnect[String(connect)]) throw new Error(`Server '${key}': invalid connect value`);
+      cfg.mcpServers[key] = { name, url: url.trim(), ...(connect ? { connect } : {}) };
+    }
+    return cfg;
+  };
+
   const handleSave = async () => {
-    await saveJson(draftJson);
-    setIsEditing(false);
+    if (saveBusy) return;
+    setEditError(null);
+    setSaveBusy(true);
+    try {
+      const raw = draftJson && draftJson.trim() ? JSON.parse(draftJson) : { mcpServers: {} };
+      const validated = validateMcpConfig(raw);
+      const pretty = JSON.stringify(validated, null, 2);
+      // Persist locally and trigger refresh/reconnect
+      await saveJson(pretty);
+      // Try to push to backend via current adapter if supported; ignore errors
+      if (isMcpConfigSupported()) {
+        try {
+          await saveMcpConfigViaAdapter(validated, { replace: true });
+        } catch (e: any) {
+          console.warn('Failed to push MCP config via adapter:', e?.message || e);
+        }
+      }
+      setIsEditing(false);
+    } catch (e: any) {
+      setEditError(e?.message || 'Invalid MCP configuration');
+    } finally {
+      setSaveBusy(false);
+    }
   };
 
 
@@ -533,12 +584,14 @@ const SettingsMcpTab: React.FC<{ isSidebar?: boolean }> = ({ isSidebar = false }
           <div className="flex-1 min-h-0">
             <JsonEditor value={draftJson} onChange={setDraftJson} isSidebar={isSidebar} />
           </div>
+          {editError && <p className="m-0 text-xs text-error">{editError}</p>}
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border-secondary flex-shrink-0">
             <button
               className="px-5 py-3 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
               onClick={handleSave}
+              disabled={saveBusy}
             >
-              Save & Refresh
+              {saveBusy ? 'Saving…' : 'Save & Refresh'}
             </button>
             <button
               className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-secondary hover:text-text-primary hover:border-text-tertiary"

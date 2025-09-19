@@ -2,6 +2,7 @@ import { AbstractBaseAdapter } from './BaseAdapter';
 import { ApiClient, RequestInterceptor, ResponseInterceptor, DataTransformer } from '../apiClient';
 import { MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
 import { StreamCallbacks, ProgressCallback } from './BaseAdapter';
+import type { MCPConfigPayload, SaveMCPConfigOptions } from '../../types/mcp';
 
 /**
  * Session-based adapter that manages session cookies for API communication.
@@ -12,6 +13,7 @@ export class SessionAdapter extends AbstractBaseAdapter {
 
   constructor(apiClient: ApiClient) {
     super(apiClient);
+    this.capabilities.mcpConfig = true;
 
     // Add a request interceptor to include the session cookie
     const requestInterceptor: RequestInterceptor = (requestConfig) => {
@@ -141,6 +143,31 @@ export class SessionAdapter extends AbstractBaseAdapter {
         method: 'GET',
       },
       this.transformFileUploadResponse
+    );
+  }
+
+  /**
+   * Save MCP config via Session adapter
+   */
+  async saveMcpConfig(config: MCPConfigPayload, opts?: SaveMCPConfigOptions): Promise<void> {
+    const query = opts?.replace ? '?replace=1' : '';
+    await this.apiClient.request<void>(
+      `/session/mcp/config${query}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      }
+    );
+  }
+
+  /**
+   * Fetch MCP config via Session adapter
+   */
+  async getMcpConfig(): Promise<MCPConfigPayload> {
+    return this.apiClient.request<MCPConfigPayload>(
+      `/session/mcp/config`,
+      { method: 'GET' }
     );
   }
 } 

@@ -33,6 +33,10 @@ type MCPStore = {
   servers: Record<string, MCPServerItem>;
 
   saveJson: (rawJson: string) => Promise<void>;
+  // Convenience alias for saving JSON config
+  setJson: (rawJson: string) => Promise<void>;
+  // Get current config as pretty JSON
+  getJson: () => string;
   setEnabled: (key: string, enabled: boolean) => void;
   refreshServer: (key: string) => Promise<void>;
   refreshAll: () => Promise<void>;
@@ -61,6 +65,7 @@ const buildServers = (
       enabled: prev?.enabled ?? true,
       status: prev?.status ?? 'idle',
       connectMethod: normalizeConnect(cfg.connect),
+      actualConnectMethod: prev?.actualConnectMethod,
       name: prev?.name ?? cfg.name,
       version: prev?.version,
       tools: prev?.tools,
@@ -82,6 +87,21 @@ const useMcpStore = create<MCPStore>()(
           parsed,
           servers: buildServers(state.servers, parsed),
         }));
+      },
+
+      // Pretty-print current parsed config
+      getJson: () => {
+        try {
+          const current = get().parsed ?? { mcpServers: {} };
+          return JSON.stringify(current, null, 2);
+        } catch {
+          return JSON.stringify({ mcpServers: {} }, null, 2);
+        }
+      },
+
+      // Alias for saveJson for clearer semantics
+      setJson: async (rawJson: string) => {
+        await get().saveJson(rawJson);
       },
 
       saveJson: async (rawJson: string) => {
