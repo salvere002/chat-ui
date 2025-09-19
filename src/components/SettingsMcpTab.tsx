@@ -192,7 +192,17 @@ const ServerCard: React.FC<{ serverKey: string; isSidebar?: boolean }> = ({ serv
     try {
       const next = { ...parsed, mcpServers: { ...(parsed.mcpServers || {}) } } as any;
       delete next.mcpServers[serverKey];
+      // Persist locally
       await saveJson(JSON.stringify(next));
+      // Also push to backend (replace) so remote config reflects deletion
+      try {
+        if (isMcpConfigSupported()) {
+          await saveMcpConfigViaAdapter(next as MCPConfigPayload, { replace: true });
+        }
+      } catch (e) {
+        // Non-fatal: keep UI state; backend sync errors are logged
+        console.warn('Failed to push MCP config after delete:', (e as any)?.message || e);
+      }
     } catch (e) {
       // noop; ignore
     } finally {
