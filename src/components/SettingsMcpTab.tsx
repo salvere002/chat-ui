@@ -185,6 +185,7 @@ const ServerCard: React.FC<{ serverKey: string; isSidebar?: boolean }> = ({ serv
   const isLoading = item.status === 'connecting';
   const hasError = item.status === 'error';
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDelete = async () => {
     if (!parsed) return;
@@ -212,7 +213,32 @@ const ServerCard: React.FC<{ serverKey: string; isSidebar?: boolean }> = ({ serv
 
   if (isSidebar) {
     return (
-      <div className="p-3 border border-border-secondary rounded-md bg-bg-secondary flex flex-col gap-2">
+      <div className="relative p-3 border border-border-secondary rounded-md bg-bg-secondary flex flex-col gap-2">
+        {showDeleteConfirm && (
+          <div className="absolute inset-0 z-10 rounded-md bg-bg-primary flex items-center justify-center">
+            <div className="p-3 rounded-md border border-red-500/30 bg-red-500/10 max-w-full mx-3">
+              <p className="m-0 text-[11px] text-red-400">
+                Delete '{item.key}'? This removes it from your MCP config and backend.
+              </p>
+              <div className="flex gap-2 mt-2 justify-end">
+                <button
+                  className="px-3 py-1.5 bg-red-500 text-white rounded-md text-[11px] font-medium cursor-pointer transition-all duration-150 hover:bg-red-600 disabled:opacity-60"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? 'Deleting…' : 'Confirm Delete'}
+                </button>
+                <button
+                  className="px-3 py-1.5 bg-transparent text-text-secondary border border-border-primary rounded-md text-[11px] font-medium cursor-pointer transition-all duration-150 hover:bg-bg-primary hover:text-text-primary hover:border-text-tertiary disabled:opacity-60"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleting}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <h4 className="m-0 text-sm font-semibold text-text-primary truncate">{item.key}</h4>
@@ -257,7 +283,7 @@ const ServerCard: React.FC<{ serverKey: string; isSidebar?: boolean }> = ({ serv
               </button>
               <button
                 className="p-1 bg-transparent text-text-tertiary border border-border-primary rounded-md cursor-pointer transition-all duration-150 hover:bg-bg-primary hover:text-error hover:border-text-tertiary disabled:opacity-60"
-                onClick={handleDelete}
+                onClick={() => setShowDeleteConfirm(true)}
                 disabled={deleting}
                 title="Delete this MCP server"
                 aria-label="Delete MCP server"
@@ -287,7 +313,32 @@ const ServerCard: React.FC<{ serverKey: string; isSidebar?: boolean }> = ({ serv
     );
   }
   return (
-    <div className="p-4 border border-border-secondary rounded-md bg-bg-secondary flex flex-col gap-3">
+    <div className="relative p-4 border border-border-secondary rounded-md bg-bg-secondary flex flex-col gap-3">
+      {showDeleteConfirm && (
+        <div className="absolute inset-0 z-10 rounded-md bg-bg-primary flex items-center justify-center">
+          <div className="p-4 rounded-md border border-red-500/30 bg-red-500/10 max-w-md w-[92%]">
+            <p className="m-0 text-xs text-red-400">
+              Delete '{item.key}'? This removes it from your MCP config and backend.
+            </p>
+            <div className="flex gap-2 mt-3 justify-end">
+              <button
+                className="px-3 py-1.5 bg-red-500 text-white rounded-md text-xs font-medium cursor-pointer transition-all duration-150 hover:bg-red-600 disabled:opacity-60"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting…' : 'Confirm Delete'}
+              </button>
+              <button
+                className="px-3 py-1.5 bg-transparent text-text-secondary border border-border-primary rounded-md text-xs font-medium cursor-pointer transition-all duration-150 hover:bg-bg-primary hover:text-text-primary hover:border-text-tertiary disabled:opacity-60"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -334,7 +385,7 @@ const ServerCard: React.FC<{ serverKey: string; isSidebar?: boolean }> = ({ serv
           </button>
           <button
             className="p-1 bg-transparent text-text-tertiary border border-border-primary rounded-md cursor-pointer transition-all duration-150 hover:bg-bg-primary hover:text-error hover:border-text-tertiary disabled:opacity-60"
-            onClick={handleDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             disabled={deleting}
             title="Delete this MCP server"
             aria-label="Delete MCP server"
