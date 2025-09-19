@@ -4,7 +4,9 @@ import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { FaSun, FaMoon, FaCog, FaBars, FaTimes } from 'react-icons/fa';
 import { ToastContainer } from './components/Toast';
-import { useThemeStore, useResponseModeStore, useChatStore } from './stores';
+import { useThemeStore, useResponseModeStore, useChatStore, useServiceConfigStore, useMcpStore } from './stores';
+import { useEffect } from 'react';
+import { getMcpConfigViaAdapter, isMcpConfigSupported } from './services/mcpConfigService';
 import { useShallow } from 'zustand/react/shallow';
 import Settings from './components/Settings';
 
@@ -40,6 +42,29 @@ const App: React.FC = () => {
   
   // Service initialization is handled automatically by serviceConfigStore
   
+  // Bootstrap + re-sync: pull MCP config whenever adapter changes
+  const { type: currentAdapterType, url: currentAdapterBaseUrl } = useServiceConfigStore(useShallow((s) => ({
+    type: s.currentAdapterType,
+    url: s.configs[s.currentAdapterType].baseUrl,
+  })));
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!isMcpConfigSupported()) return;
+        const remote = await getMcpConfigViaAdapter();
+        if (cancelled) return;
+        if (remote && typeof remote === 'object') {
+          await useMcpStore.getState().setJson(JSON.stringify(remote));
+        }
+      } catch (e: any) {
+        // Ignore adapters/backends that don't support MCP sync or any fetch errors
+        // Local persisted config remains in effect
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentAdapterType, currentAdapterBaseUrl]);
+
   // Removed handleNewChat - using handleNewChatAndClose instead
   
   // Memoized click handlers

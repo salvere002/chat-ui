@@ -24,7 +24,13 @@ export type ProgressCallback = (fileId: string, progress: number) => void;
  * Base service adapter interface
  * Defines the core functionality that all adapters must implement
  */
+export type AdapterCapabilities = {
+  mcpConfig?: boolean;
+};
+
 export interface BaseAdapter {
+  /** Adapter feature capabilities */
+  capabilities: AdapterCapabilities;
   /**
    * Send a message and get a complete response
    */
@@ -57,6 +63,16 @@ export interface BaseAdapter {
    * Get a single uploaded file by ID
    */
   getFile(fileId: string): Promise<FileUploadResponse>;
+
+  /**
+   * Save MCP configuration to backend via adapter-specific path/logic
+   */
+  saveMcpConfig(config: import('../../types/mcp').MCPConfigPayload, opts?: import('../../types/mcp').SaveMCPConfigOptions): Promise<void>;
+
+  /**
+   * Fetch MCP configuration from backend via adapter-specific path/logic
+   */
+  getMcpConfig(): Promise<import('../../types/mcp').MCPConfigPayload>;
 }
 
 /**
@@ -65,6 +81,7 @@ export interface BaseAdapter {
  */
 export abstract class AbstractBaseAdapter implements BaseAdapter {
   protected apiClient: ApiClient;
+  public capabilities: AdapterCapabilities = { mcpConfig: false };
   
   constructor(apiClient: ApiClient) {
     this.apiClient = apiClient;
@@ -104,4 +121,16 @@ export abstract class AbstractBaseAdapter implements BaseAdapter {
   abstract uploadFile(fileId: string, file: File, onProgress: ProgressCallback): Promise<FileUploadResponse>;
   abstract getFiles(): Promise<FileUploadResponse[]>;
   abstract getFile(fileId: string): Promise<FileUploadResponse>;
+
+  // Default MCP config methods throw to indicate unsupported by adapter unless overridden
+  async saveMcpConfig(
+    _config: import('../../types/mcp').MCPConfigPayload,
+    _opts?: import('../../types/mcp').SaveMCPConfigOptions
+  ): Promise<void> {
+    throw new Error('Feature not supported by this adapter: mcpConfig');
+  }
+
+  async getMcpConfig(): Promise<import('../../types/mcp').MCPConfigPayload> {
+    throw new Error('Feature not supported by this adapter: mcpConfig');
+  }
 } 
