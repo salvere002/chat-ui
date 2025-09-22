@@ -198,7 +198,7 @@ const ServerCard: React.FC<{ serverKey: string; isSidebar?: boolean }> = ({ serv
       // Also push to backend (replace) so remote config reflects deletion
       try {
         if (isMcpConfigSupported()) {
-          await saveMcpConfigViaAdapter(next as MCPConfigPayload, { replace: true });
+          await saveMcpConfigViaAdapter(next as MCPConfigPayload);
         }
       } catch (e) {
         // Non-fatal: keep UI state; backend sync errors are logged
@@ -506,7 +506,7 @@ const SettingsMcpTab: React.FC<{ isSidebar?: boolean }> = ({ isSidebar = false }
       // Try to push to backend via current adapter if supported; ignore errors
       if (isMcpConfigSupported()) {
         try {
-          await saveMcpConfigViaAdapter(validated, { replace: true });
+          await saveMcpConfigViaAdapter(validated);
         } catch (e: any) {
           console.warn('Failed to push MCP config via adapter:', e?.message || e);
         }

@@ -9,8 +9,3 @@ export type MCPServerConfig = {
 export type MCPConfigPayload = {
   mcpServers: Record<string, MCPServerConfig>;
 };
-
-export type SaveMCPConfigOptions = {
-  // If true, replace any existing server config on backend
-  replace?: boolean;
-};
