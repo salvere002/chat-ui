@@ -1,13 +1,13 @@
 import { serviceFactory } from './serviceFactory';
-import type { MCPConfigPayload, SaveMCPConfigOptions } from '../types/mcp';
+import type { MCPConfigPayload } from '../types/mcp';
 
 /**
  * Push MCP config to the current backend via the current adapter.
  * Adapter implements its own endpoint conventions.
  */
-export async function saveMcpConfigViaAdapter(config: MCPConfigPayload, opts?: SaveMCPConfigOptions): Promise<void> {
+export async function saveMcpConfigViaAdapter(config: MCPConfigPayload): Promise<void> {
   const adapter = serviceFactory.getAdapter();
-  await adapter.saveMcpConfig(config, opts);
+  await adapter.saveMcpConfig(config);
 }
 
 /**

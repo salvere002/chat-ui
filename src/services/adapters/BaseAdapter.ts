@@ -67,7 +67,7 @@ export interface BaseAdapter {
   /**
    * Save MCP configuration to backend via adapter-specific path/logic
    */
-  saveMcpConfig(config: import('../../types/mcp').MCPConfigPayload, opts?: import('../../types/mcp').SaveMCPConfigOptions): Promise<void>;
+  saveMcpConfig(config: import('../../types/mcp').MCPConfigPayload): Promise<void>;
 
   /**
    * Fetch MCP configuration from backend via adapter-specific path/logic
@@ -124,8 +124,7 @@ export abstract class AbstractBaseAdapter implements BaseAdapter {
 
   // Default MCP config methods throw to indicate unsupported by adapter unless overridden
   async saveMcpConfig(
-    _config: import('../../types/mcp').MCPConfigPayload,
-    _opts?: import('../../types/mcp').SaveMCPConfigOptions
+    _config: import('../../types/mcp').MCPConfigPayload
   ): Promise<void> {
     throw new Error('Feature not supported by this adapter: mcpConfig');
   }

@@ -2,7 +2,7 @@ import { AbstractBaseAdapter } from './BaseAdapter';
 import { ApiClient, RequestInterceptor, ResponseInterceptor, DataTransformer } from '../apiClient';
 import { MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
 import { StreamCallbacks, ProgressCallback } from './BaseAdapter';
-import type { MCPConfigPayload, SaveMCPConfigOptions } from '../../types/mcp';
+import type { MCPConfigPayload } from '../../types/mcp';
 
 /**
  * Session-based adapter that manages session cookies for API communication.
@@ -149,10 +149,10 @@ export class SessionAdapter extends AbstractBaseAdapter {
   /**
    * Save MCP config via Session adapter
    */
-  async saveMcpConfig(config: MCPConfigPayload, opts?: SaveMCPConfigOptions): Promise<void> {
-    const query = opts?.replace ? '?replace=1' : '';
+  async saveMcpConfig(config: MCPConfigPayload): Promise<void> {
+    // Always replace existing server config on backend
     await this.apiClient.request<void>(
-      `/session/mcp/config${query}`,
+      `/session/mcp/config`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
