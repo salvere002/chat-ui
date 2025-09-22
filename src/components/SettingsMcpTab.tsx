@@ -215,8 +215,8 @@ const ServerCard: React.FC<{ serverKey: string; isSidebar?: boolean }> = ({ serv
     return (
       <div className="relative p-3 border border-border-secondary rounded-md bg-bg-secondary flex flex-col gap-2">
         {showDeleteConfirm && (
-          <div className="absolute inset-0 z-10 rounded-md bg-bg-primary flex items-center justify-center">
-            <div className="p-3 rounded-md border border-red-500/30 bg-red-500/10 max-w-full mx-3">
+          <div className="absolute inset-0 z-10 rounded-md bg-bg-primary p-3">
+            <div className="w-full rounded-md border border-red-500/30 bg-red-500/10 p-3">
               <p className="m-0 text-[11px] text-red-400">
                 Delete '{item.key}'? This removes it from your MCP config and backend.
               </p>
@@ -315,8 +315,8 @@ const ServerCard: React.FC<{ serverKey: string; isSidebar?: boolean }> = ({ serv
   return (
     <div className="relative p-4 border border-border-secondary rounded-md bg-bg-secondary flex flex-col gap-3">
       {showDeleteConfirm && (
-        <div className="absolute inset-0 z-10 rounded-md bg-bg-primary flex items-center justify-center">
-          <div className="p-4 rounded-md border border-red-500/30 bg-red-500/10 max-w-md w-[92%]">
+        <div className="absolute inset-0 z-10 rounded-md bg-bg-primary p-4">
+          <div className="w-full rounded-md border border-red-500/30 bg-red-500/10 p-4">
             <p className="m-0 text-xs text-red-400">
               Delete '{item.key}'? This removes it from your MCP config and backend.
             </p>
