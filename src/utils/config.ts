@@ -14,6 +14,24 @@ export class ConfigManager {
   }
 
   /**
+   * Get frontend meta configuration
+   */
+  public getFrontendMeta() {
+    // Optional block; provide safe fallback
+    return (this.config.frontend as any).meta || {};
+  }
+
+  /**
+   * Get the client stage value used for outbound requests
+   * Defaults to 'production' if not specified
+   */
+  public getClientStage(): string {
+    const meta = this.getFrontendMeta();
+    const stage = (meta as any).stage;
+    return typeof stage === 'string' && stage.trim() ? stage : 'production';
+  }
+
+  /**
    * Get the singleton instance of ConfigManager
    */
   public static getInstance(): ConfigManager {

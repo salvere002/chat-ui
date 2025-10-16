@@ -1,5 +1,8 @@
 {
   "frontend": {
+    "meta": {
+      "stage": "production"
+    },
     "api": {
       "baseUrl": "http://localhost:5001/api",
       "timeout": 30000,

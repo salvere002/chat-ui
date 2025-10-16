@@ -190,21 +190,31 @@ export class ServiceFactory {
    * Attach interceptors to propagate the user-id header on all requests.
    */
   private attachUserIdHeader(client: ApiClient) {
-    const addUserId = (opts: RequestInit & { url: string }) => {
+    const addHeaders = (opts: RequestInit & { url: string }) => {
       try {
-        const id = useAuthStore.getState().user?.userId;
-        if (!id) return opts;
         const headers: Record<string, string> = {
           ...(opts.headers as Record<string, string> | undefined),
-          'user-id': id,
         };
+
+        // Always include the client stage header from static config
+        try {
+          const stage = configManager.getClientStage();
+          if (stage) headers['x-client-stage'] = stage;
+        } catch {}
+
+        // Include user-id header when available
+        try {
+          const id = useAuthStore.getState().user?.userId;
+          if (id) headers['user-id'] = id;
+        } catch {}
+
         return { ...opts, headers };
       } catch {
         return opts;
       }
     };
-    client.addRequestInterceptor(addUserId);
-    client.addStreamRequestInterceptor(addUserId);
+    client.addRequestInterceptor(addHeaders);
+    client.addStreamRequestInterceptor(addHeaders);
   }
 }
 
