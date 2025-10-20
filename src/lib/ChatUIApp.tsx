@@ -165,6 +165,7 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
     toggleTheme();
   }, [toggleTheme]);
 
+
   // Auto adapt thresholds (tweak as needed)
   const compact = useMemo(() => {
     if (variant !== 'auto') return false;
@@ -172,6 +173,12 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
     const { width, height } = containerSize;
     return width < 520 || height < 560;
   }, [containerSize, variant]);
+
+  // Wide threshold for showing Settings as a slide-out sidebar (parity with bofa)
+  const wideForSettings = useMemo(() => {
+    if (!containerSize) return false;
+    return containerSize.width >= 1280;
+  }, [containerSize]);
 
   const effectiveVariant: 'embedded' | 'full' = useMemo(() => {
     if (variant === 'auto') return 'embedded';
@@ -234,7 +241,7 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
           </button>
           {/* Settings */}
           <button
-            onClick={() => setShowSettings(true)}
+            onClick={() => setShowSettings((s) => !s)}
             className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95"
             aria-label="Open settings"
           >
@@ -244,8 +251,8 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
       </div>
       )}
 
-      {/* Settings modal (scoped to container) */}
-      {showSettings && (
+      {/* Settings modal (scoped to container) - show when not wide or when overlay mode */}
+      {showSettings && (!wideForSettings || overlay) && (
         <Settings
           onClose={() => setShowSettings(false)}
           selectedResponseMode={selectedResponseMode}
@@ -296,6 +303,20 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
             <ChatInterface selectedResponseMode={selectedResponseMode} />
           </ErrorBoundary>
         </div>
+
+        {/* Settings sidebar - animated container for wide, non-overlay layouts (keep mounted for transitions) */}
+        {!overlay && wideForSettings && (
+          <div className={`${showSettings ? 'w-[400px] opacity-100' : 'w-0 opacity-0'} overflow-hidden transition-all duration-300 ease-in-out`}>
+            {showSettings && (
+              <Settings
+                onClose={() => setShowSettings(false)}
+                selectedResponseMode={selectedResponseMode}
+                onResponseModeChange={setSelectedResponseMode}
+                isSidebar={true}
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
