@@ -42,6 +42,7 @@ export interface ChatStore {
 export interface ThemeStore {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
 }
 
 // Define interface for the toast store state

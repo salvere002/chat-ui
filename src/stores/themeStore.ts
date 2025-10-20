@@ -41,6 +41,17 @@ const useThemeStore = create<ThemeStore>((set) => ({
       return { theme: newTheme };
     });
   },
+  
+  // Explicitly set theme
+  setTheme: (theme) => {
+    set(() => {
+      applyTheme(theme);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('chat-theme', theme);
+      }
+      return { theme };
+    });
+  },
 }));
 
 // Apply the theme when the store is initialized

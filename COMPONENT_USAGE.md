@@ -1,702 +1,124 @@
-# Component Library Usage Guide
+# Chat UI Component — Quick Guide
 
-This guide explains how to use Chat UI as a reusable component library in your own projects.
+Chat UI is a single, drop‑in React component that renders a complete chat experience. It self‑adapts to the size of its container, so you can use it full‑screen or embed it in a small panel without extra setup.
 
 ## Table of Contents
-- [Installation](#installation)
-- [Setup](#setup)
-- [Basic Usage](#basic-usage)
-- [Available Components](#available-components)
-- [State Management](#state-management)
-- [Services and Utilities](#services-and-utilities)
-- [TypeScript Support](#typescript-support)
+- [Install](#install)
+- [Use It](#use-it)
+- [Props](#props)
 - [Styling](#styling)
-- [Advanced Usage](#advanced-usage)
+- [Backend](#backend)
+- [Troubleshooting](#troubleshooting)
+- [Example App](#example-app)
+- [Support](#support)
 
-## Installation
-
-### Building the Library
-
-First, build the library from the source:
-
-```bash
-npm run build:lib
-```
-
-This creates the library build in the `dist-lib` directory with:
-- ESM format: `chat-ui.es.js`
-- CommonJS format: `chat-ui.cjs.js`
-- TypeScript declarations (exposed via package `types`): `lib/index.d.ts`
-- Bundled CSS: `style.css`
-
-### Installing in Your Project
-
-#### Option 1: Local Installation (Development)
+## Install
 
 ```bash
-# In your project
-npm install /path/to/chat-ui
+npm install chat-ui react react-dom
 ```
 
-#### Option 2: npm Link (Development)
+Notes:
+- React and ReactDOM are peer dependencies.
+- Styles auto‑inject at runtime; no CSS imports required.
+- KaTeX is bundled — math rendering works out of the box.
 
-```bash
-# In chat-ui directory
-npm link
+## Use It
 
-# In your project
-npm link chat-ui
+Full page:
+```tsx
+import ChatUI from 'chat-ui';
+
+export default function App() {
+  return <ChatUI serviceConfig={{ adapterType: 'rest', baseUrl: 'https://your-api.example.com/api' }} />;
+}
 ```
 
-#### Option 3: Private npm Registry (Production)
+Embedded panel (widget-style):
+```tsx
+import ChatUI from 'chat-ui';
 
-Publish to your private npm registry and install normally:
-
-```bash
-npm install chat-ui
+export default function Widget() {
+  return (
+    <div style={{ position: 'fixed', right: 16, bottom: 16, width: 420, height: 560, border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
+      <ChatUI variant="auto" serviceConfig={{ adapterType: 'mock' }} />
+    </div>
+  );
+}
 ```
 
-## Setup
+## Props
 
-### 1. Install Peer Dependencies
+All props are optional.
 
-Only React runtime needs to be provided by your app:
+- variant: 'auto' | 'embedded' | 'full' (default: 'auto')
+- serviceConfig: { adapterType?: 'rest' | 'mock' | 'session'; baseUrl?: string }
+- initialTheme: 'light' | 'dark'
+- initialResponseMode: 'stream' | 'fetch'
+- title: string (default: 'Chat UI')
+- hideHeader: boolean
+- defaultSidebarCollapsed: boolean (default: false)
+- mcpSync: boolean (default: true)
+- className: string
+- style: React.CSSProperties
 
-```bash
-npm install react react-dom
-```
+Behavior:
+- Auto‑adapts to container size (overlay sidebar and compact layout when small)
+- Settings modal is scoped inside the component’s container (not full‑screen)
 
-### 2. Configure Tailwind CSS
+## Styling
 
-The library uses Tailwind CSS. Add it to your project:
-
-**Install Tailwind:**
-```bash
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-```
-
-**Configure `tailwind.config.js`:**
-```javascript
-/** @type {import('tailwindcss').Config} */
-export default {
-  content: [
-    './index.html',
-    './src/**/*.{js,ts,jsx,tsx}',
-    // Include chat-ui components
-    './node_modules/chat-ui/dist-lib/**/*.{js,ts,jsx,tsx}',
-  ],
-  theme: {
-    extend: {
-      colors: {
-        // Chat UI theme colors
-        'bg-primary': 'var(--bg-primary)',
-        'bg-secondary': 'var(--bg-secondary)',
-        'bg-tertiary': 'var(--bg-tertiary)',
-        'text-primary': 'var(--text-primary)',
-        'text-secondary': 'var(--text-secondary)',
-        'accent-primary': 'var(--accent-primary)',
-        'accent-light': 'var(--accent-light)',
-        'border-primary': 'var(--border-primary)',
-        'border-focus': 'var(--border-focus)',
-      },
-      zIndex: {
-        'sticky': '100',
-        'modal': '1000',
-        'toast': '10000',
-      },
-    },
-  },
-  plugins: [
-    require('@tailwindcss/typography'),
-  ],
-};
-```
-
-**Import CSS in your main file:**
-```typescript
-// src/main.tsx or src/index.tsx
-import 'chat-ui/style.css';
-// If your app renders LaTeX, also include KaTeX CSS (optional)
-import 'katex/dist/katex.min.css';
-```
-
-### 3. Configure CSS Variables
-
-Add theme CSS variables to your global CSS:
-
+No CSS imports needed. You can override via CSS variables or your own selectors:
 ```css
-/* src/index.css or src/App.css */
-
 :root {
-  /* Light theme */
   --bg-primary: #ffffff;
-  --bg-secondary: #f7f7f8;
-  --bg-tertiary: #ececf1;
-  --text-primary: #0d0d0d;
-  --text-secondary: #666666;
-  --accent-primary: #10a37f;
-  --accent-light: #e6f4f1;
-  --border-primary: #d1d5db;
-  --border-focus: #10a37f;
+  --accent-primary: #3b82f6;
 }
 
-[data-theme='dark'] {
-  /* Dark theme */
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #2d2d2d;
-  --bg-tertiary: #3d3d3d;
-  --text-primary: #ececec;
-  --text-secondary: #b4b4b4;
-  --accent-primary: #19c37d;
-  --accent-light: #1a3d34;
-  --border-primary: #4d4d4d;
-  --border-focus: #19c37d;
-}
+.my-chat-panel .message-bubble { border-radius: 10px; box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
 ```
-
-## Basic Usage
 
 ### Minimal Setup
 
-Here's a minimal example to get started:
+For most apps, use the single drop‑in component `ChatUI` (see examples above). You don’t need to import internal components or stores.
+
+### Composed App (Advanced)
+
+Advanced: You can compose internal parts (Sidebar, ChatInterface, Settings, stores) if you need a highly customized shell. For most cases, prefer the single drop‑in `ChatUI`.
 
 ```typescript
-import { ChatInterface, useChatStore, useThemeStore } from 'chat-ui';
-import 'chat-ui/style.css';
-
-function App() {
-  const { theme } = useThemeStore();
-
-  return (
-    <div data-theme={theme}>
-      <ChatInterface selectedResponseMode="stream" />
-    </div>
-  );
-}
-
-export default App;
-```
-
-### Full Application Example
-
-A complete chat application with sidebar and settings:
-
-```typescript
-import React, { useState } from 'react';
-import {
-  ChatInterface,
-  Sidebar,
-  Settings,
-  ToastContainer,
-  useChatStore,
-  useThemeStore,
-  useResponseModeStore,
-} from 'chat-ui';
-import 'chat-ui/style.css';
-
-function App() {
-  const { theme, toggleTheme } = useThemeStore();
-  const { selectedResponseMode, setSelectedResponseMode } = useResponseModeStore();
-  const { chatSessions, activeChatId, setActiveChat, createChat, deleteChat, clearAllChats } = useChatStore();
-  const [showSettings, setShowSettings] = useState(false);
-
-  return (
-    <div data-theme={theme} className="flex h-screen">
-      <Sidebar
-        chats={chatSessions}
-        activeChatId={activeChatId}
-        onChatSelected={setActiveChat}
-        onNewChat={() => createChat('New Chat')}
-        onDeleteChat={deleteChat}
-        onClearAllChats={clearAllChats}
-        collapsed={false}
-        onCollapse={() => {}}
-      />
-
-      <div className="flex-1">
-        <ChatInterface selectedResponseMode={selectedResponseMode} />
-      </div>
-
-      {showSettings && (
-        <Settings
-          onClose={() => setShowSettings(false)}
-          selectedResponseMode={selectedResponseMode}
-          onResponseModeChange={setSelectedResponseMode}
-        />
-      )}
-
-      <ToastContainer />
-    </div>
-  );
-}
-
-export default App;
+// Example omitted for brevity — see Available Components and State Management sections below
+// for the list of exports and how to use them when composing your own shell.
 ```
 
 ## Available Components
 
-### Core Chat Components
+For most use cases, you only need the default `ChatUI` component. Advanced composition docs for internal components and stores have been omitted here to keep this guide focused. If you need them, check the repository docs or open an issue.
 
-#### `ChatInterface`
-Main chat interface component.
+## Backend
 
-```typescript
-import { ChatInterface } from 'chat-ui';
-
-<ChatInterface selectedResponseMode="stream" />
+Point Chat UI at your API with `serviceConfig`:
+```tsx
+<ChatUI serviceConfig={{ adapterType: 'rest', baseUrl: 'https://your-api.example.com/api' }} />
 ```
 
-**Props:**
-- `selectedResponseMode`: `'stream' | 'fetch'` - Response delivery mode
-
-#### `MessageList`
-Displays chat messages with branching support.
-
-```typescript
-import { MessageList } from 'chat-ui';
-
-<MessageList
-  messages={messages}
-  onMessageEdit={handleEdit}
-  onMessageDelete={handleDelete}
-  onBranchSwitch={handleBranchSwitch}
-  isLoading={false}
-/>
-```
-
-#### `MessageInput`
-User input component with file upload.
-
-```typescript
-import { MessageInput } from 'chat-ui';
-
-<MessageInput
-  onSendMessage={handleSend}
-  disabled={false}
-  placeholder="Type a message..."
-/>
-```
-
-#### `Sidebar`
-Chat session navigation sidebar.
-
-```typescript
-import { Sidebar } from 'chat-ui';
-
-<Sidebar
-  chats={chatSessions}
-  activeChatId={activeChatId}
-  onChatSelected={setActiveChat}
-  onNewChat={createNewChat}
-  onDeleteChat={deleteChat}
-  onClearAllChats={clearAllChats}
-  collapsed={false}
-  onCollapse={toggleCollapse}
-/>
-```
-
-#### `Settings`
-Configuration modal component.
-
-```typescript
-import { Settings } from 'chat-ui';
-
-<Settings
-  onClose={closeSettings}
-  selectedResponseMode={responseMode}
-  onResponseModeChange={setResponseMode}
-/>
-```
-
-### UI Components
-
-#### `LoadingIndicator`
-```typescript
-import { LoadingIndicator } from 'chat-ui';
-
-<LoadingIndicator />
-```
-
-#### `ThinkingIndicator`
-```typescript
-import { ThinkingIndicator } from 'chat-ui';
-
-<ThinkingIndicator />
-```
-
-#### `ToastContainer`
-```typescript
-import { ToastContainer } from 'chat-ui';
-
-<ToastContainer />
-```
-
-#### `ChartRenderer`
-```typescript
-import { ChartRenderer } from 'chat-ui';
-
-<ChartRenderer chartData={chartData} />
-```
-
-#### `ErrorBoundary`
-```typescript
-import { ErrorBoundary } from 'chat-ui';
-
-<ErrorBoundary>
-  <YourComponent />
-</ErrorBoundary>
-```
-
-## State Management
-
-The library uses Zustand for state management. All stores are accessible:
-
-### Chat Store
-
-```typescript
-import { useChatStore } from 'chat-ui';
-
-function MyComponent() {
-  const {
-    chatSessions,
-    activeChatId,
-    createChat,
-    deleteChat,
-    setActiveChat,
-    addMessageToChat,
-    updateMessage,
-    deleteMessage,
-  } = useChatStore();
-
-  // Use store methods...
-}
-```
-
-### Theme Store
-
-```typescript
-import { useThemeStore } from 'chat-ui';
-
-function ThemeToggle() {
-  const { theme, toggleTheme } = useThemeStore();
-
-  return (
-    <button onClick={toggleTheme}>
-      Current theme: {theme}
-    </button>
-  );
-}
-```
-
-### Toast Store
-
-```typescript
-import { useToastStore } from 'chat-ui';
-
-function MyComponent() {
-  const { showToast } = useToastStore();
-
-  const handleSuccess = () => {
-    showToast('Operation successful!', 'success');
-  };
-
-  const handleError = () => {
-    showToast('Something went wrong', 'error');
-  };
-}
-```
-
-### Service Config Store
-
-```typescript
-import { useServiceConfigStore } from 'chat-ui';
-
-function ServiceConfiguration() {
-  const { currentAdapterType, configs, updateConfig } = useServiceConfigStore();
-
-  const changeAdapter = () => {
-    updateConfig('rest', {
-      baseUrl: 'https://api.example.com',
-      timeout: 30000,
-    });
-  };
-}
-```
-
-### Store Selectors (Performance Optimization)
-
-```typescript
-import { useChatData, useChatActions, useBranchData } from 'chat-ui';
-
-function OptimizedComponent() {
-  // Only subscribes to chat data, not actions
-  const { activeChatId, chatSessions } = useChatData();
-
-  // Only subscribes to action methods
-  const { addMessageToChat, updateMessage } = useChatActions();
-
-  // Only subscribes to branch-related data
-  const { getCurrentBranchMessages } = useBranchData();
-}
-```
-
-## Services and Utilities
-
-### Chat Service
-
-```typescript
-import { chatService } from 'chat-ui';
-
-// Send message
-const response = await chatService.sendMessage(
-  'Hello, AI!',
-  conversationHistory
-);
-
-// Send streaming message
-await chatService.sendStreamingMessage(
-  'Hello, AI!',
-  conversationHistory,
-  (chunk) => console.log('Chunk:', chunk),
-  (error) => console.error('Error:', error)
-);
-```
-
-### File Service
-
-```typescript
-import { fileService } from 'chat-ui';
-
-// Upload file
-const uploadedFile = await fileService.uploadFile(file, (progress) => {
-  console.log('Upload progress:', progress);
-});
-
-// Download file
-await fileService.downloadFile(fileId, 'filename.txt');
-```
-
-### Service Factory
-
-```typescript
-import { serviceFactory } from 'chat-ui';
-
-// Configure service adapter
-serviceFactory.configure({
-  type: 'rest',
-  baseUrl: 'https://api.example.com',
-  timeout: 30000,
-});
-```
-
-### Utilities
-
-```typescript
-import {
-  generateMessageId,
-  generateChatId,
-  buildHistory,
-  getConfig
-} from 'chat-ui';
-
-// Generate unique IDs
-const messageId = generateMessageId();
-const chatId = generateChatId();
-
-// Build conversation history
-const history = buildHistory(messages);
-
-// Get configuration
-const config = getConfig();
-```
-
-## TypeScript Support
-
-The library is fully typed. Import types as needed:
-
-```typescript
-import type {
-  Message,
-  ChatSession,
-  ResponseMode,
-  MessageFile,
-  ConversationMessage,
-  ServiceConfig,
-  AdapterType,
-  ChatStore,
-  ThemeStore,
-} from 'chat-ui';
-
-const message: Message = {
-  id: '1',
-  content: 'Hello',
-  role: 'user',
-  timestamp: Date.now(),
-};
-
-const config: ServiceConfig = {
-  baseUrl: 'https://api.example.com',
-  timeout: 30000,
-};
-```
-
-## Styling
-
-### Custom Theme Colors
-
-Override CSS variables for custom themes:
-
-```css
-:root {
-  --bg-primary: #your-color;
-  --accent-primary: #your-accent;
-  /* ... other variables */
-}
-```
-
-### Component Class Overrides
-
-All components use Tailwind CSS classes. You can override with your own utility classes or use Tailwind's `@apply` directive:
-
-```css
-/* Override specific component styles */
-.chat-message {
-  @apply rounded-lg shadow-md;
-}
-```
-
-## Advanced Usage
-
-### Custom Service Adapter
-
-Create a custom service adapter:
-
-```typescript
-import { BaseAdapter, MessageResponse, ConversationMessage } from 'chat-ui';
-
-class MyCustomAdapter extends BaseAdapter {
-  async sendMessage(
-    message: string,
-    conversationHistory: ConversationMessage[]
-  ): Promise<MessageResponse> {
-    // Your implementation
-  }
-
-  // Implement other required methods...
-}
-
-// Register and use
-serviceFactory.registerAdapter('custom', MyCustomAdapter);
-serviceFactory.configure({ type: 'custom', baseUrl: '...' });
-```
-
-### Backend Integration
-
-Configure the library to connect to your backend:
-
-```typescript
-import { useServiceConfigStore } from 'chat-ui';
-
-function setupBackend() {
-  const { updateConfig } = useServiceConfigStore.getState();
-
-  updateConfig('rest', {
-    baseUrl: 'https://your-backend.com/api',
-    timeout: 30000,
-  });
-}
-```
-
-### Custom Hooks Integration
-
-Use the library's custom hooks in your components:
-
-```typescript
-import { useFileUpload, useStreamingMessage } from 'chat-ui';
-
-function CustomChatComponent() {
-  const { uploadFiles, selectedFiles, handleFileRemove } = useFileUpload();
-  const { handleStreamingMessage } = useStreamingMessage();
-
-  // Your implementation...
-}
-```
-
-## Configuration
-
-### Backend Configuration
-
-If using the full application with backend, configure `config.json`:
-
-```json
-{
-  "frontend": {
-    "api": {
-      "baseUrl": "https://your-backend.com/api",
-      "timeout": 30000
-    }
-  }
-}
-```
-
-### Environment Variables
-
-For environment-specific configuration:
-
-```bash
-# .env
-VITE_API_BASE_URL=https://api.example.com
-VITE_API_TIMEOUT=30000
-```
-
-Access in your code:
-```typescript
-const config = {
-  baseUrl: import.meta.env.VITE_API_BASE_URL,
-  timeout: import.meta.env.VITE_API_TIMEOUT,
-};
+Or run with the mock adapter (no backend required):
+```tsx
+<ChatUI serviceConfig={{ adapterType: 'mock' }} />
 ```
 
 ## Troubleshooting
 
-### CSS Not Loading
-
-Ensure you've imported the stylesheet:
-```typescript
-import 'chat-ui/style.css';
-```
-
-### Tailwind Classes Not Working
-
-Make sure your `tailwind.config.js` includes the library path in `content`.
-
-### Type Errors
-
-Ensure peer dependencies are installed with correct versions:
-```bash
-npm install react@^19.0.0 react-dom@^19.0.0 zustand@^5.0.0
-```
-
-### Module Resolution Issues
-
-If using TypeScript, ensure `moduleResolution` is set to `"bundler"` or `"node"`:
-
-```json
-// tsconfig.json
-{
-  "compilerOptions": {
-    "moduleResolution": "bundler"
-  }
-}
-```
+- Ensure the container has a size; the layout adapts to container dimensions.
+- If styles look unset, check your app isn’t globally resetting everything (e.g., `all: unset`).
+- Make sure React/ReactDOM are installed at compatible versions.
 
 ## Examples
 
-See the `src/components/examples/` directory for more usage examples.
+See the `examples/demo` app in this repo for a minimal setup that toggles between full‑screen and a resizable panel.
 
 ## Support
 
 For issues and questions:
 - GitHub Issues: [your-repo-url]
-- Documentation: See README.md and CLAUDE.md
+- See the main README for more details

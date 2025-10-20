@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ResponseMode } from '../types/chat';
 import { useServiceConfigStore } from '../stores';
 import { AdapterType } from '../services/chatService';
@@ -8,13 +9,15 @@ interface SettingsProps {
   onClose: () => void;
   selectedResponseMode: ResponseMode;
   onResponseModeChange: (responseMode: ResponseMode) => void;
+  scopeTo?: HTMLElement;
 }
 
 
 const Settings: React.FC<SettingsProps> = ({ 
   onClose, 
   selectedResponseMode, 
-  onResponseModeChange 
+  onResponseModeChange,
+  scopeTo,
 }) => {
   const {
     currentAdapterType,
@@ -90,8 +93,9 @@ const Settings: React.FC<SettingsProps> = ({
     }
   }, [activeTab, lockedHeight]);
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in">
+  const overlayRootClass = `${scopeTo ? 'absolute' : 'fixed'} inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in`;
+  const content = (
+    <div className={overlayRootClass}>
       <div
         ref={containerRef}
         className="bg-bg-primary rounded-lg w-full max-w-[760px] max-h-[85vh] overflow-hidden shadow-lg flex flex-col animate-slide-up"
@@ -196,7 +200,7 @@ const Settings: React.FC<SettingsProps> = ({
       
       {/* Reset Confirmation Modal */}
       {showResetConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-modal p-4 animate-fade-in">
+        <div className={`${scopeTo ? 'absolute' : 'fixed'} inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-modal p-4 animate-fade-in`}>
           <div className="bg-bg-primary rounded-lg w-full max-w-md p-6 shadow-lg animate-slide-up">
             <h3 className="text-lg font-semibold text-text-primary mb-4">Reset to Default Settings?</h3>
             <p className="text-text-secondary mb-6 text-sm leading-relaxed">
@@ -221,6 +225,11 @@ const Settings: React.FC<SettingsProps> = ({
       )}
     </div>
   );
+
+  if (scopeTo) {
+    return createPortal(content, scopeTo);
+  }
+  return content;
 };
 
 export default Settings; 
