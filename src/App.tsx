@@ -81,10 +81,23 @@ const App: React.FC = () => {
   }, []);
   
   const handleSidebarToggle = useCallback(() => {
-    setSidebarOpen(prev => !prev);
+    setSidebarOpen(prev => {
+      const next = !prev;
+      // When opening on mobile (< lg), ensure sidebar is expanded
+      if (next && typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setSidebarCollapsed(false);
+      }
+      return next;
+    });
   }, []);
   
   const handleSidebarCollapse = useCallback(() => {
+    // On mobile (< lg), closing should hide the sidebar entirely
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+      return;
+    }
+    // Desktop: toggle collapsed width
     setSidebarCollapsed(prev => !prev);
   }, []);
   

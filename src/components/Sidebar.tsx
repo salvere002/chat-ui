@@ -109,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   return (
     <>
-    <div className={`flex flex-col ${collapsed ? 'w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-[width] duration-300 ease-in-out`} style={{ willChange: 'width', contain: 'layout paint' }}>
+    <div className={`flex flex-col ${collapsed ? 'w-0 lg:w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} min-w-0 h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-[width] duration-300 ease-in-out`} style={{ willChange: 'width', contain: 'layout paint' }}>
       <div className={`w-full h-full overflow-hidden`}>
       <div className="bg-bg-secondary border-b border-border-primary border-r border-border-primary overflow-hidden">
         <div className="p-4 relative" style={{ height: '112px' }}>
@@ -124,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Collapse icon for expanded state - fixed to top-right */}
           <button 
-            className={`flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-w-resize transition-colors duration-150 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary ${
+            className={`hidden lg:flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-w-resize transition-colors duration-150 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary ${
               collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
             }`}
             style={{ 
@@ -144,7 +144,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           
           {/* Collapse icon for collapsed state - centered horizontally */}
           <button 
-            className={`flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-e-resize transition-colors duration-150 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary ${
+            className={`hidden lg:flex items-center justify-center w-8 h-8 p-0 bg-transparent text-text-tertiary border-none rounded-md cursor-e-resize transition-colors duration-150 ease-in-out hover:bg-bg-tertiary hover:text-accent-primary ${
               collapsed ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
             style={{ 

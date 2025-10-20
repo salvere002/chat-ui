@@ -33,7 +33,10 @@ dist/
 downloads/
 eggs/
 .eggs/
+# Ignore Python build lib at repo root, but keep TS source under src/lib
 lib/
+!src/lib/
+!src/lib/**
 lib64/
 parts/
 sdist/
