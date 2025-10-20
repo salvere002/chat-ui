@@ -222,15 +222,6 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
           <h1 className="text-xl font-semibold text-text-primary transition-opacity duration-200 select-none">{title}</h1>
         </div>
         <div className="flex gap-2 items-center">
-          {/* Response mode selector */}
-          <select
-            className="hidden sm:block border border-border-primary rounded px-2 py-1 bg-bg-secondary text-text-primary"
-            value={selectedResponseMode}
-            onChange={(e) => setSelectedResponseMode(e.target.value as 'stream' | 'fetch')}
-          >
-            <option value="stream">stream</option>
-            <option value="fetch">fetch</option>
-          </select>
           {/* Theme toggle */}
           <button
             onClick={handleThemeClick}
