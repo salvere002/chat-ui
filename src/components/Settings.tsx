@@ -98,7 +98,7 @@ const Settings: React.FC<SettingsProps> = ({
     <div className={overlayRootClass}>
       <div
         ref={containerRef}
-        className="bg-bg-primary rounded-lg w-full max-w-[760px] max-h-[85vh] overflow-hidden shadow-lg flex flex-col animate-slide-up"
+        className="bg-bg-primary rounded-lg w-full max-w-[760px] max-h-full overflow-hidden shadow-lg flex flex-col animate-slide-up"
         style={lockedHeight ? { height: lockedHeight } : undefined}
       >
         <div className="flex items-center justify-between px-6 py-5 bg-bg-secondary border-b border-border-primary">
@@ -191,7 +191,7 @@ const Settings: React.FC<SettingsProps> = ({
           )}
 
           {activeTab === 'mcp' && (
-            <div className="flex-1 min-h-0 flex flex-col p-6 bg-bg-primary">
+            <div className="flex-1 min-h-0 flex flex-col p-6 bg-bg-primary overflow-y-auto">
               <SettingsMcpTab />
             </div>
           )}
@@ -201,7 +201,7 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Reset Confirmation Modal */}
       {showResetConfirm && (
         <div className={`${scopeTo ? 'absolute' : 'fixed'} inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-modal p-4 animate-fade-in`}>
-          <div className="bg-bg-primary rounded-lg w-full max-w-md p-6 shadow-lg animate-slide-up">
+          <div className="bg-bg-primary rounded-lg w-full max-w-md max-h-full overflow-auto p-6 shadow-lg animate-slide-up">
             <h3 className="text-lg font-semibold text-text-primary mb-4">Reset to Default Settings?</h3>
             <p className="text-text-secondary mb-6 text-sm leading-relaxed">
               This will reset all connection settings to their default values. Any custom configurations will be lost.
