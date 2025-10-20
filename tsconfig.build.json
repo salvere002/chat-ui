@@ -4,7 +4,7 @@
       "noEmit": false,
       "declaration": true,
       "emitDeclarationOnly": true,
-      "outDir": "dist"
+      "outDir": "dist-lib"
       // It's often good to specify a declarationDir as well,
       // to keep .d.ts files separate from JS files if they were also emitted.
       // "declarationDir": "dist/types" 

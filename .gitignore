@@ -1,6 +1,7 @@
 # Node.js / Frontend
 node_modules/
 dist/
+dist-lib/
 build/
 .env
 .env.local
@@ -12,6 +13,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 coverage/
+
+# Examples build artifacts
+examples/*/dist/
+examples/*/node_modules/
 
 # Python / Backend
 __pycache__/
@@ -28,7 +33,10 @@ dist/
 downloads/
 eggs/
 .eggs/
+# Ignore Python build lib at repo root, but keep TS source under src/lib
 lib/
+!src/lib/
+!src/lib/**
 lib64/
 parts/
 sdist/
@@ -61,6 +69,3 @@ Thumbs.db
 export-project.py
 export-project.sh
 project-export.txt
-
-# Claude Code generated files
-CLAUDE.md
