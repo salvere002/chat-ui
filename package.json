@@ -4,13 +4,13 @@
   "description": "A modern chat UI component library with React, TypeScript, and Zustand state management",
   "main": "./dist-lib/chat-ui.cjs.js",
   "module": "./dist-lib/chat-ui.es.js",
-  "types": "./dist-lib/lib/index.d.ts",
+  "types": "./dist-lib/src/lib/index.d.ts",
   "type": "module",
   "exports": {
     ".": {
       "import": "./dist-lib/chat-ui.es.js",
       "require": "./dist-lib/chat-ui.cjs.js",
-      "types": "./dist-lib/lib/index.d.ts"
+      "types": "./dist-lib/src/lib/index.d.ts"
     },
     "./style.css": "./dist-lib/style.css"
   },
@@ -25,7 +25,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.build.json && vite build",
-    "build:lib": "tsc -p tsconfig.build.json && vite build --config vite.config.lib.ts",
+    "build:lib": "vite build --config vite.config.lib.ts && tsc -p tsconfig.build.json",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.check.json",
     "backend:win": "cd backend && .\\venv\\Scripts\\activate && python app.py",
