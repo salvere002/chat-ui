@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat UI Demo</title>
+    <style>
+      html, body, #root { height: 100%; margin: 0; }
+      body { font-family: system-ui, sans-serif; }
+      .toolbar {
+        position: fixed; top: 0; left: 0; right: 0; height: 48px;
+        display: flex; align-items: center; gap: 8px; padding: 0 12px;
+        border-bottom: 1px solid #e5e7eb; background: #f9fafb; z-index: 1000;
+      }
+      .toolbar button { padding: 6px 10px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; }
+      .toolbar button.active { background: #2563eb; color: white; border-color: #2563eb; }
+      .content { position: absolute; top: 48px; left: 0; right: 0; bottom: 0; }
+      .widget-anchor { position: fixed; right: 16px; bottom: 16px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+  </html>
