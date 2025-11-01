@@ -9,8 +9,7 @@
   "exports": {
     ".": {
       "import": "./dist-lib/chat-ui.es.js",
-      "require": "./dist-lib/chat-ui.cjs.js",
-      "types": "./dist-lib/src/lib/index.d.ts"
+      "require": "./dist-lib/chat-ui.cjs.js"
     },
     "./style.css": "./dist-lib/style.css"
   },
