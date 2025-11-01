@@ -11,6 +11,7 @@ export interface ApiClientConfig {
   baseUrl: string;
   defaultHeaders?: Record<string, string>;
   timeout?: number;
+  useProxy?: boolean; // if false, send direct to target
 }
 
 /**
@@ -72,6 +73,7 @@ export class ApiClient {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
   private timeout: number;
+  private useProxy: boolean;
   private requestInterceptors: RequestInterceptor[] = [];
   private responseInterceptors: ResponseInterceptor[] = [];
   private errorInterceptors: ErrorInterceptor[] = [];
@@ -86,6 +88,8 @@ export class ApiClient {
     this.baseUrl = config.baseUrl;
     this.defaultHeaders = config.defaultHeaders || {};
     this.timeout = config.timeout || 30000; // Default 30 second timeout
+    // default to true if not provided
+    this.useProxy = config.useProxy !== false;
   }
 
   /**
@@ -93,6 +97,19 @@ export class ApiClient {
    */
   public getBaseUrl(): string {
     return this.baseUrl;
+  }
+
+  /**
+   * Build full request URL based on proxy setting
+   */
+  private buildUrl(endpointPath: string): string {
+    const actualTargetBaseUrl = this.baseUrl;
+    const endpoint = endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`;
+    if (this.useProxy) {
+      return `/api/proxy/${encodeURIComponent(actualTargetBaseUrl)}${endpoint}`;
+    }
+    // Direct mode: construct absolute URL to target
+    return new URL(endpoint, actualTargetBaseUrl).toString();
   }
 
   /**
@@ -274,10 +291,8 @@ export class ApiClient {
     transformer?: DataTransformer<R, T>,
     abortSignal?: AbortSignal
   ): Promise<T> {
-    const actualTargetBaseUrl = this.baseUrl; // This is the e.g., https://actual-backend.com
     const endpointPath = url.startsWith('/') ? url : `/${url}`; // Ensure endpoint starts with a slash
-
-    const fullUrl = `/api/proxy/${encodeURIComponent(actualTargetBaseUrl)}${endpointPath}`;
+    const fullUrl = this.buildUrl(endpointPath);
     
     // Prepare request options with defaults
     let processedRequest: RequestInit & { url: string }; // Defined here for wider scope in catch block
@@ -441,10 +456,8 @@ export class ApiClient {
     callbacks: StreamCallbacks,
     abortSignal?: AbortSignal
   ): Promise<void> {
-    const actualTargetBaseUrl = this.baseUrl;
     const endpointPath = url.startsWith('/') ? url : `/${url}`;
-
-    const fullUrl = `/api/proxy/${encodeURIComponent(actualTargetBaseUrl)}${endpointPath}`;
+    const fullUrl = this.buildUrl(endpointPath);
 
     let processedRequest: RequestInit & { url: string }; // For broader scope
     const requestOptions: RequestInit & { url: string } = {
@@ -613,5 +626,6 @@ export class ApiClient {
 export const defaultApiClient = new ApiClient({
   baseUrl: configManager.getApiConfig().baseUrl,
   defaultHeaders: configManager.getApiConfig().defaultHeaders,
-  timeout: configManager.getApiConfig().timeout
+  timeout: configManager.getApiConfig().timeout,
+  useProxy: configManager.getApiConfig().useProxy !== false,
 }); 

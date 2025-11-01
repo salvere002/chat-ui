@@ -90,7 +90,8 @@ export class ServiceFactory {
         defaultHeaders: {
           'Content-Type': 'application/json'
         },
-        timeout: configManager.getApiConfig().timeout
+        timeout: configManager.getApiConfig().timeout,
+        useProxy: configManager.getApiConfig().useProxy !== false,
       });
       // Attach user-id header propagation
       this.attachUserIdHeader(client);
@@ -172,7 +173,8 @@ export class ServiceFactory {
       defaultHeaders: {
         'Content-Type': 'application/json'
       },
-      timeout: configManager.getApiConfig().timeout
+      timeout: configManager.getApiConfig().timeout,
+      useProxy: configManager.getApiConfig().useProxy !== false,
     });
     
     // Attach user-id header propagation on the new default client

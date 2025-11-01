@@ -5,6 +5,7 @@
     },
     "api": {
       "baseUrl": "http://localhost:5001/api",
+      "useProxy": true,
       "timeout": 30000,
       "defaultHeaders": {
         "Content-Type": "application/json"
