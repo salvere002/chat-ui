@@ -87,7 +87,8 @@ export class ServiceFactory {
         defaultHeaders: {
           'Content-Type': 'application/json'
         },
-        timeout: configManager.getApiConfig().timeout
+        timeout: configManager.getApiConfig().timeout,
+        useProxy: configManager.getApiConfig().useProxy !== false,
       }));
     }
     
@@ -166,7 +167,8 @@ export class ServiceFactory {
       defaultHeaders: {
         'Content-Type': 'application/json'
       },
-      timeout: configManager.getApiConfig().timeout
+      timeout: configManager.getApiConfig().timeout,
+      useProxy: configManager.getApiConfig().useProxy !== false,
     });
     
     this.apiClients.set('default', apiClient);
