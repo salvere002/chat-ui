@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Sidebar from '../components/Sidebar';
 import ChatInterface from '../components/ChatInterface';
 import { ToastContainer } from '../components/Toast';
-import { useChatStore, useThemeStore, useResponseModeStore, useServiceConfigStore, useMcpStore } from '../stores';
+import { useChatStore, useThemeStore, useResponseModeStore, useServiceConfigStore, useMcpStore, useUiSettingsStore } from '../stores';
 import { useShallow } from 'zustand/react/shallow';
 import Settings from '../components/Settings';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -56,6 +56,7 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
   // Ensure styles are present (no CSS import required by consumer)
   useEffect(() => { ensureChatUiStyles(); }, []);
   const { theme, toggleTheme, setTheme } = useThemeStore();
+  const { backgroundTexture } = useUiSettingsStore();
   const { selectedResponseMode, setSelectedResponseMode } = useResponseModeStore();
 
   const sidebarData = useChatStore(useShallow((s) => ({
@@ -189,9 +190,11 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
   // Consumers can explicitly hide it via prop.
   const effectiveHideHeader = hideHeader === true;
 
+  // Apply background texture at the app root (parity with standalone App.tsx)
+  const textureClass = backgroundTexture ? 'texture-subtle' : 'texture-off';
   const containerClass = effectiveVariant === 'embedded'
-    ? 'flex flex-col h-full w-full bg-bg-primary text-text-primary relative overflow-hidden'
-    : 'flex flex-col h-screen w-screen bg-bg-primary text-text-primary relative overflow-hidden';
+    ? `flex flex-col h-full w-full bg-bg-primary ${textureClass} text-text-primary relative overflow-hidden`
+    : `flex flex-col h-screen w-screen bg-bg-primary ${textureClass} text-text-primary relative overflow-hidden`;
 
   // Whether we want overlay-style sidebar (like mobile) based on container size
   const overlay = variant === 'auto' ? compact : effectiveVariant === 'embedded';
