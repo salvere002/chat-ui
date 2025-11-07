@@ -173,7 +173,10 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
         className="h-full overflow-y-auto overflow-x-hidden p-0 relative scroll-smooth"
         ref={messageContainerRef}
       >
-        <div className="flex flex-col max-w-[800px] mx-auto w-full py-2 sm:py-4 px-2 sm:px-4 relative">
+        <div
+          className="flex flex-col max-w-[800px] mx-auto w-full py-2 sm:py-4 px-2 sm:px-4 relative"
+          data-conversation-root
+        >
           {messages.map((msg, index) => {
             const canRegenerate = (
               msg.sender === 'user' &&
