@@ -2,12 +2,15 @@ import React, { useState, useCallback, useEffect } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
-import { FaSun, FaMoon, FaCog, FaBars, FaTimes } from 'react-icons/fa';
+import { FaSun, FaMoon, FaCog, FaBars, FaTimes, FaShareAlt } from 'react-icons/fa';
 import { ToastContainer } from './components/Toast';
+import { toast } from 'sonner';
 import { useThemeStore, useResponseModeStore, useChatStore, useUiSettingsStore, useServiceConfigStore, useMcpStore } from './stores';
 import { getMcpConfigViaAdapter, isMcpConfigSupported } from './services/mcpConfigService';
 import { useShallow } from 'zustand/react/shallow';
 import Settings from './components/Settings';
+import ShareModal from './components/ShareModal';
+import { captureConversationScreenshot } from './utils/screenshot';
 
 const App: React.FC = () => {
   // Use the theme store
@@ -47,6 +50,11 @@ const App: React.FC = () => {
   
   // State for sidebar collapse/expand (desktop only)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  // State for share modal
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [screenshotDataUrl, setScreenshotDataUrl] = useState<string>('');
+  
   // Service initialization is handled automatically by serviceConfigStore
 
   // Handle window resize for responsive settings
@@ -135,6 +143,30 @@ const App: React.FC = () => {
     setSidebarOpen(false); // Close sidebar on mobile after creating new chat
   }, [sidebarActions]);
   
+  // Handle share button click
+  const handleShareClick = useCallback(async () => {
+    try {
+      toast('Capturing screenshot...', { duration: 2000 });
+      const result = await captureConversationScreenshot({
+        width: 800,
+        pixelRatio: 2,
+      });
+      setScreenshotDataUrl(result.dataUrl);
+      setShowShareModal(true);
+      toast.success('Screenshot captured successfully!');
+    } catch (error) {
+      console.error('Error capturing screenshot:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to capture screenshot. Please try again.'
+      );
+    }
+  }, []);
+  
+  const handleShareModalClose = useCallback(() => {
+    setShowShareModal(false);
+    setScreenshotDataUrl('');
+  }, []);
+  
   return (
     <div className={`flex flex-col h-screen w-screen bg-bg-primary ${getTextureClass()} text-text-primary relative overflow-hidden`}>
       {/* Header bar with title and controls */}
@@ -154,8 +186,17 @@ const App: React.FC = () => {
           </h1>
         </div>
         
-        {/* Theme toggle and settings */}
+        {/* Theme toggle, share, and settings */}
         <div className="flex gap-2">
+          <button 
+            onClick={handleShareClick} 
+            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2"
+            aria-label="Share conversation"
+            title="Share conversation"
+          >
+            <FaShareAlt className="relative z-10" />
+          </button>
+          
           <button 
             onClick={handleThemeClick} 
             className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2"
@@ -186,6 +227,14 @@ const App: React.FC = () => {
       
       {/* Toast container for notifications */}
       <ToastContainer />
+      
+      {/* Share modal */}
+      {showShareModal && screenshotDataUrl && (
+        <ShareModal 
+          imageDataUrl={screenshotDataUrl}
+          onClose={handleShareModalClose}
+        />
+      )}
       
       {/* Main app container */}
       <div className="flex flex-1 overflow-hidden w-full relative">
