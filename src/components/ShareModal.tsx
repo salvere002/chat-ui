@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FaDownload, FaEnvelope, FaTimes } from 'react-icons/fa';
+import EmailShareDialog from './EmailShareDialog';
 
 interface ShareModalProps {
   imageDataUrl: string;
@@ -7,7 +8,7 @@ interface ShareModalProps {
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({ imageDataUrl, onClose }) => {
-  const [showEmailPlaceholder, setShowEmailPlaceholder] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
 
   const handleSaveLocal = () => {
     // Create a temporary link and trigger download
@@ -21,12 +22,23 @@ const ShareModal: React.FC<ShareModalProps> = ({ imageDataUrl, onClose }) => {
   };
 
   const handleShareEmail = () => {
-    setShowEmailPlaceholder(true);
+    setShowEmailDialog(true);
   };
 
-  const handleCloseEmailPlaceholder = () => {
-    setShowEmailPlaceholder(false);
+  const handleBackFromEmail = () => {
+    setShowEmailDialog(false);
   };
+
+  // If email dialog is shown, render it instead
+  if (showEmailDialog) {
+    return (
+      <EmailShareDialog
+        imageDataUrl={imageDataUrl}
+        onClose={onClose}
+        onBack={handleBackFromEmail}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in">
@@ -57,53 +69,26 @@ const ShareModal: React.FC<ShareModalProps> = ({ imageDataUrl, onClose }) => {
           </div>
           
           {/* Share Options */}
-          {!showEmailPlaceholder && (
-            <div>
-              <label className="block mb-3 text-sm font-medium text-text-secondary">Choose an option:</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button 
-                  onClick={handleSaveLocal}
-                  className="flex items-center justify-center gap-3 px-4 py-4 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
-                >
-                  <FaDownload className="text-lg" />
-                  <span>Save to Local</span>
-                </button>
-                
-                <button 
-                  onClick={handleShareEmail}
-                  className="flex items-center justify-center gap-3 px-4 py-4 bg-transparent text-text-primary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:border-text-tertiary active:scale-[0.98]"
-                >
-                  <FaEnvelope className="text-lg" />
-                  <span>Share with Email</span>
-                </button>
-              </div>
+          <div>
+            <label className="block mb-3 text-sm font-medium text-text-secondary">Choose an option:</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button 
+                onClick={handleSaveLocal}
+                className="flex items-center justify-center gap-3 px-4 py-4 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
+              >
+                <FaDownload className="text-lg" />
+                <span>Save to Local</span>
+              </button>
+              
+              <button 
+                onClick={handleShareEmail}
+                className="flex items-center justify-center gap-3 px-4 py-4 bg-transparent text-text-primary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:border-text-tertiary active:scale-[0.98]"
+              >
+                <FaEnvelope className="text-lg" />
+                <span>Share with Email</span>
+              </button>
             </div>
-          )}
-          
-          {/* Email Placeholder */}
-          {showEmailPlaceholder && (
-            <div className="p-6 bg-bg-secondary rounded-lg border border-border-primary animate-slide-up">
-              <h4 className="text-base font-semibold text-text-primary mb-3 m-0">Share via Email</h4>
-              <p className="text-text-secondary mb-4 text-sm leading-relaxed">
-                Email sharing functionality will be implemented in a future update. 
-                For now, you can save the screenshot locally and attach it to your email manually.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button 
-                  onClick={handleCloseEmailPlaceholder}
-                  className="px-4 py-2 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary hover:border-text-tertiary"
-                >
-                  Back
-                </button>
-                <button 
-                  onClick={handleSaveLocal}
-                  className="px-4 py-2 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98]"
-                >
-                  Save Instead
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
