@@ -28,6 +28,7 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
   const [emailSubject, setEmailSubject] = useState('Shared Chat Conversation');
   const [emailMessage, setEmailMessage] = useState('');
   const [useManualInput, setUseManualInput] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   // Search for persons when query changes (abort stale requests)
   useEffect(() => {
@@ -196,6 +197,8 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setSearchFocused(false), 100)}
                   placeholder="Type to search by name or email..."
                   className="w-full pl-10 pr-3 py-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md text-sm transition-all duration-150 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
                 />
@@ -205,8 +208,8 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
                   </div>
                 )}
                 {/* Overlayed search results dropdown */}
-                {searchResults.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-2 bg-bg-elevated border border-border-primary rounded-md max-h-[220px] overflow-y-auto shadow-lg z-popover">
+                {searchFocused && searchResults.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-2 bg-bg-elevated border border-border-primary rounded-md max-h-[220px] overflow-y-auto shadow-lg z-tooltip">
                     {searchResults.map((person) => (
                       <button
                         key={person.id}
