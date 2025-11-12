@@ -213,7 +213,10 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
                     {searchResults.map((person) => (
                       <button
                         key={person.id}
-                        onClick={() => handleAddPerson(person)}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent input blur
+                          handleAddPerson(person);
+                        }}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-tertiary transition-all duration-150 text-left border-b border-border-primary last:border-b-0"
                       >
                         <div className="flex items-center justify-center w-10 h-10 bg-accent-light text-accent-primary rounded-full flex-shrink-0">

@@ -10,6 +10,7 @@ import { getMcpConfigViaAdapter, isMcpConfigSupported } from './services/mcpConf
 import { useShallow } from 'zustand/react/shallow';
 import Settings from './components/Settings';
 import ShareModal from './components/ShareModal';
+import LoadingIndicator from './components/LoadingIndicator';
 import { captureConversationScreenshot } from './utils/screenshot';
 
 const App: React.FC = () => {
@@ -55,6 +56,8 @@ const App: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [screenshotBlob, setScreenshotBlob] = useState<Blob | null>(null);
   const [screenshotUrl, setScreenshotUrl] = useState<string>('');
+  // UI blocking during capture
+  const [isCapturing, setIsCapturing] = useState(false);
   
   // Service initialization is handled automatically by serviceConfigStore
 
@@ -146,8 +149,9 @@ const App: React.FC = () => {
   
   // Handle share button click
   const handleShareClick = useCallback(async () => {
+    // Block UI interactions while capturing
+    setIsCapturing(true);
     try {
-      toast('Capturing screenshot...', { duration: 2000 });
       const result = await captureConversationScreenshot({
         width: 800,
         pixelRatio: 2,
@@ -163,12 +167,13 @@ const App: React.FC = () => {
         setScreenshotUrl(result.dataUrl);
       }
       setShowShareModal(true);
-      toast.success('Screenshot captured successfully!');
     } catch (error) {
       console.error('Error capturing screenshot:', error);
       toast.error(
         error instanceof Error ? error.message : 'Failed to capture screenshot. Please try again.'
       );
+    } finally {
+      setIsCapturing(false);
     }
   }, []);
   
@@ -182,15 +187,20 @@ const App: React.FC = () => {
   }, []);
   
   return (
-    <div className={`flex flex-col h-screen w-screen bg-bg-primary ${getTextureClass()} text-text-primary relative overflow-hidden`}>
+    <div
+      className={`flex flex-col h-screen w-screen bg-bg-primary ${getTextureClass()} text-text-primary relative overflow-hidden`}
+      aria-busy={isCapturing}
+      {...(isCapturing ? { inert: '' as any } : {})}
+    >
       {/* Header bar with title and controls */}
       <div className="flex items-center justify-between px-4 py-3 bg-bg-secondary border-b border-border-primary z-sticky">
         <div className="flex items-center gap-3">
           {/* Hamburger menu for mobile */}
           <button 
             onClick={handleSidebarToggle}
-            className="lg:hidden flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95"
+            className="lg:hidden flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Toggle sidebar"
+            disabled={isCapturing}
           >
             {sidebarOpen ? <FaTimes className="relative z-10" /> : <FaBars className="relative z-10" />}
           </button>
@@ -204,25 +214,28 @@ const App: React.FC = () => {
         <div className="flex gap-2">
           <button 
             onClick={handleShareClick} 
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2"
+            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Share conversation"
             title="Share conversation"
+            disabled={isCapturing}
           >
             <FaShareAlt className="relative z-10" />
           </button>
           
           <button 
             onClick={handleThemeClick} 
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2"
+            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            disabled={isCapturing}
           >
             {theme === 'light' ? <FaMoon className="relative z-10" /> : <FaSun className="relative z-10" />}
           </button>
           
           <button 
             onClick={handleSettingsClick} 
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2"
+            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Open settings"
+            disabled={isCapturing}
           >
             <FaCog className="relative z-10" />
           </button>
@@ -300,6 +313,15 @@ const App: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Global capture overlay to disable all UI */}
+      {isCapturing && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-[9998] cursor-wait">
+          <div className="px-6 py-4 rounded-lg bg-bg-elevated border border-border-primary shadow-lg">
+            <LoadingIndicator size="large" type="spinner" text="Capturing… Please wait" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
