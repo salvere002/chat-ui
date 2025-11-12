@@ -204,36 +204,35 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
                     <div className="animate-spin">⚙</div>
                   </div>
                 )}
+                {/* Overlayed search results dropdown */}
+                {searchResults.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-2 bg-bg-elevated border border-border-primary rounded-md max-h-[220px] overflow-y-auto shadow-lg z-popover">
+                    {searchResults.map((person) => (
+                      <button
+                        key={person.id}
+                        onClick={() => handleAddPerson(person)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-tertiary transition-all duration-150 text-left border-b border-border-primary last:border-b-0"
+                      >
+                        <div className="flex items-center justify-center w-10 h-10 bg-accent-light text-accent-primary rounded-full flex-shrink-0">
+                          {person.avatar ? (
+                            <img src={person.avatar} alt={person.name} className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            <FaUser />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-text-primary truncate">
+                            {person.name}
+                          </div>
+                          <div className="text-xs text-text-tertiary truncate">
+                            {person.email}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {/* Search Results */}
-              {searchResults.length > 0 && (
-                <div className="mt-2 bg-bg-secondary border border-border-primary rounded-md max-h-[200px] overflow-y-auto">
-                  {searchResults.map((person) => (
-                    <button
-                      key={person.id}
-                      onClick={() => handleAddPerson(person)}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-tertiary transition-all duration-150 text-left border-b border-border-primary last:border-b-0"
-                    >
-                      <div className="flex items-center justify-center w-10 h-10 bg-accent-light text-accent-primary rounded-full flex-shrink-0">
-                        {person.avatar ? (
-                          <img src={person.avatar} alt={person.name} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <FaUser />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-text-primary truncate">
-                          {person.name}
-                        </div>
-                        <div className="text-xs text-text-tertiary truncate">
-                          {person.email}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           ) : (
             <div className="mb-4">
