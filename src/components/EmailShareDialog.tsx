@@ -5,14 +5,18 @@ import { toast } from 'sonner';
 
 interface EmailShareDialogProps {
   imageDataUrl: string;
+  screenshotBlob?: Blob;
   onClose: () => void;
   onBack: () => void;
+  embedded?: boolean;
 }
 
 const EmailShareDialog: React.FC<EmailShareDialogProps> = ({ 
   imageDataUrl, 
+  screenshotBlob,
   onClose, 
-  onBack 
+  onBack,
+  embedded = false,
 }) => {
   // State management
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,8 +29,11 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
   const [emailMessage, setEmailMessage] = useState('');
   const [useManualInput, setUseManualInput] = useState(false);
 
-  // Search for persons when query changes
+  // Search for persons when query changes (abort stale requests)
   useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+
     const searchPersons = async () => {
       if (!searchQuery.trim() || useManualInput) {
         setSearchResults([]);
@@ -35,15 +42,16 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
 
       setIsSearching(true);
       try {
-        // Call email service for person search
-        const results = await EmailService.searchPersons(searchQuery);
+        const results = await EmailService.searchPersons(searchQuery, controller.signal);
+        if (!active || controller.signal.aborted) return;
         setSearchResults(results);
       } catch (error) {
+        if ((error as any)?.name === 'AbortError') return;
         console.error('Error searching persons:', error);
-        // Silently fail - user can use manual input
+        if (!active) return;
         setSearchResults([]);
       } finally {
-        setIsSearching(false);
+        if (active) setIsSearching(false);
       }
     };
 
@@ -52,7 +60,11 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
       searchPersons();
     }, 300);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      active = false;
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
   }, [searchQuery, useManualInput]);
 
   // Add person from search results
@@ -113,9 +125,10 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
 
     setIsSending(true);
     try {
-      // Convert data URL to blob
-      const response = await fetch(imageDataUrl);
-      const blob = await response.blob();
+      // Prefer provided blob; fallback to fetching the data URL
+      const blob: Blob = screenshotBlob
+        ? screenshotBlob
+        : await (await fetch(imageDataUrl)).blob();
 
       // Call email service to send email
       await EmailService.sendEmail({
@@ -140,32 +153,9 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in">
-      <div className="bg-bg-elevated rounded-lg w-full max-w-[700px] shadow-lg flex flex-col animate-slide-up max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-bg-secondary border-b border-border-primary rounded-t-lg">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={onBack}
-              className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary hover:bg-bg-tertiary hover:text-text-primary transition-all duration-150"
-              aria-label="Go back"
-            >
-              ←
-            </button>
-            <h3 className="text-lg font-semibold text-text-primary m-0">Share via Email</h3>
-          </div>
-          <button 
-            className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary text-2xl cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary" 
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <FaTimes />
-          </button>
-        </div>
-        
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+  // Build content and footer for reuse in embedded/standalone modes
+  const content = (
+    <div className="flex-1 overflow-y-auto p-6">
           {/* Toggle between search and manual input */}
           <div className="mb-4">
             <div className="flex items-center gap-2 text-sm">
@@ -337,39 +327,77 @@ const EmailShareDialog: React.FC<EmailShareDialogProps> = ({
               <strong>Note:</strong> The screenshot of your conversation will be attached to the email.
             </p>
           </div>
-        </div>
+    </div>
+  );
 
-        {/* Footer */}
-        <div className="px-6 py-4 bg-bg-secondary border-t border-border-primary flex justify-end gap-3">
-          <button
-            onClick={onBack}
-            disabled={isSending}
-            className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary hover:border-text-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
+  const footer = (
+    <div className="px-6 py-4 bg-bg-secondary border-t border-border-primary flex justify-end gap-3">
+      {!embedded && (
+        <button
+          onClick={onBack}
+          disabled={isSending}
+          className="px-5 py-3 bg-transparent text-text-secondary border border-border-primary rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary hover:border-text-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Back
+        </button>
+      )}
+      <button
+        onClick={handleSendEmail}
+        disabled={isSending || selectedPersons.length === 0}
+        className="flex items-center gap-2 px-5 py-3 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+      >
+        {isSending ? (
+          <>
+            <div className="animate-spin">⚙</div>
+            <span>Sending...</span>
+          </>
+        ) : (
+          <>
+            <FaPaperPlane />
+            <span>Send Email</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <>
+        {content}
+        {footer}
+      </>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-tooltip p-4 animate-fade-in">
+      <div className="bg-bg-elevated rounded-lg w-full max-w-[700px] shadow-lg flex flex-col animate-slide-up max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-bg-secondary border-b border-border-primary rounded-t-lg">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onBack}
+              className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary hover:bg-bg-tertiary hover:text-text-primary transition-all duration-150"
+              aria-label="Go back"
+            >
+              ←
+            </button>
+            <h3 className="text-lg font-semibold text-text-primary m-0">Share via Email</h3>
+          </div>
+          <button 
+            className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary text-2xl cursor-pointer transition-all duration-150 hover:bg-bg-tertiary hover:text-text-primary" 
+            onClick={onClose}
+            aria-label="Close"
           >
-            Back
-          </button>
-          <button
-            onClick={handleSendEmail}
-            disabled={isSending || selectedPersons.length === 0}
-            className="flex items-center gap-2 px-5 py-3 bg-accent-primary text-text-inverse border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-150 hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
-          >
-            {isSending ? (
-              <>
-                <div className="animate-spin">⚙</div>
-                <span>Sending...</span>
-              </>
-            ) : (
-              <>
-                <FaPaperPlane />
-                <span>Send Email</span>
-              </>
-            )}
+            <FaTimes />
           </button>
         </div>
+        {content}
+        {footer}
       </div>
     </div>
   );
 };
 
 export default EmailShareDialog;
-

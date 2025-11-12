@@ -53,7 +53,8 @@ const App: React.FC = () => {
   
   // State for share modal
   const [showShareModal, setShowShareModal] = useState(false);
-  const [screenshotDataUrl, setScreenshotDataUrl] = useState<string>('');
+  const [screenshotBlob, setScreenshotBlob] = useState<Blob | null>(null);
+  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
   
   // Service initialization is handled automatically by serviceConfigStore
 
@@ -151,7 +152,16 @@ const App: React.FC = () => {
         width: 800,
         pixelRatio: 2,
       });
-      setScreenshotDataUrl(result.dataUrl);
+      // Store blob and create an object URL for fast preview
+      try {
+        const url = URL.createObjectURL(result.blob);
+        setScreenshotBlob(result.blob);
+        setScreenshotUrl(url);
+      } catch (e) {
+        // Fallback to dataUrl only if object URL creation fails
+        setScreenshotBlob(result.blob);
+        setScreenshotUrl(result.dataUrl);
+      }
       setShowShareModal(true);
       toast.success('Screenshot captured successfully!');
     } catch (error) {
@@ -164,7 +174,11 @@ const App: React.FC = () => {
   
   const handleShareModalClose = useCallback(() => {
     setShowShareModal(false);
-    setScreenshotDataUrl('');
+    if (screenshotUrl && screenshotUrl.startsWith('blob:')) {
+      try { URL.revokeObjectURL(screenshotUrl); } catch {}
+    }
+    setScreenshotUrl('');
+    setScreenshotBlob(null);
   }, []);
   
   return (
@@ -229,9 +243,10 @@ const App: React.FC = () => {
       <ToastContainer />
       
       {/* Share modal */}
-      {showShareModal && screenshotDataUrl && (
+      {showShareModal && screenshotUrl && (
         <ShareModal 
-          imageDataUrl={screenshotDataUrl}
+          imageUrl={screenshotUrl}
+          screenshotBlob={screenshotBlob || undefined}
           onClose={handleShareModalClose}
         />
       )}
