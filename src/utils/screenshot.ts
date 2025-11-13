@@ -7,6 +7,14 @@
 
 import html2canvas from 'html2canvas';
 
+export type WindowSelection = {
+  mode: 'window';
+  anchorMessageId: string;
+  beforeCount: number;
+  afterCount?: number; // default 0
+  allowPartial?: boolean; // default true
+};
+
 export type ConversationScreenshotOptions = {
   width?: number; // Fixed capture width (CSS px)
   pixelRatio?: number; // Canvas scale factor
@@ -14,6 +22,11 @@ export type ConversationScreenshotOptions = {
   backgroundColor?: string; // Optional background override
   disableAnimations?: boolean; // Best-effort disable
   debug?: boolean; // Verbose logging
+  // Partial capture options
+  selection?: WindowSelection; // Capture a window around an anchor message
+  paddingTop?: number; // Extra padding above selection (px)
+  paddingBottom?: number; // Extra padding below selection (px)
+  excludeSelectors?: string[]; // Extra selectors to remove when selection is active
 };
 
 export type ConversationScreenshotResult = {
@@ -36,6 +49,10 @@ export async function captureConversationScreenshot(
     backgroundColor,
     disableAnimations = true,
     debug = false,
+    selection,
+    paddingTop = 0,
+    paddingBottom = 0,
+    excludeSelectors,
   } = opts;
   // suppress unused debug in production; html2canvas logging is disabled below
   void debug;
@@ -59,7 +76,12 @@ export async function captureConversationScreenshot(
   } catch {}
 
   // Prepare an offscreen, visible wrapper with a cloned subtree for deterministic layout
-  const { wrapper, height } = await prepareCaptureWrapper(root, width, disableAnimations);
+  const { wrapper, height } = await prepareCaptureWrapper(root, width, disableAnimations, {
+    selection,
+    paddingTop,
+    paddingBottom,
+    excludeSelectors,
+  });
 
   const bg = backgroundColor || getComputedStyle(document.documentElement).getPropertyValue('--color-bg-primary') || '#ffffff';
 
@@ -115,7 +137,17 @@ export async function captureConversationScreenshot(
 
 // --- helpers ---
 
-async function prepareCaptureWrapper(node: HTMLElement, width: number, disableAnimations: boolean): Promise<{ wrapper: HTMLElement; height: number }> {
+async function prepareCaptureWrapper(
+  node: HTMLElement,
+  width: number,
+  disableAnimations: boolean,
+  opts?: {
+    selection?: WindowSelection;
+    paddingTop?: number;
+    paddingBottom?: number;
+    excludeSelectors?: string[];
+  }
+): Promise<{ wrapper: HTMLElement; height: number }> {
   const clone = node.cloneNode(true) as HTMLElement;
   const wrapper = document.createElement('div');
   wrapper.style.position = 'fixed';
@@ -143,6 +175,23 @@ async function prepareCaptureWrapper(node: HTMLElement, width: number, disableAn
   wrapper.appendChild(fix);
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
+
+  try {
+    // If a selection is provided, prune the cloned DOM to only include the chosen window
+    if (opts?.selection && opts.selection.mode === 'window') {
+      pruneToSelection({
+        root: clone,
+        selection: opts.selection,
+        paddingTop: opts.paddingTop || 0,
+        paddingBottom: opts.paddingBottom || 0,
+        excludeSelectors: opts.excludeSelectors,
+      });
+    }
+  } catch (e) {
+    // If pruning fails, remove wrapper to avoid leaks and rethrow
+    try { wrapper.remove(); } catch {}
+    throw e;
+  }
   // Eager-load images in the clone to avoid lazy-loading blanks
   const imgs = Array.from(wrapper.querySelectorAll('img')) as HTMLImageElement[];
   for (const img of imgs) {
@@ -173,6 +222,42 @@ function blobToDataURL(blob: Blob): Promise<string> {
 }
 
 export default { captureConversationScreenshot };
+
+export async function captureMessageBlockScreenshot(opts: {
+  anchorMessageId: string;
+  beforeCount: number;
+  afterCount?: number;
+  allowPartial?: boolean;
+  width?: number;
+  pixelRatio?: number;
+  selector?: string;
+  backgroundColor?: string;
+  disableAnimations?: boolean;
+  paddingTop?: number;
+  paddingBottom?: number;
+  excludeSelectors?: string[];
+  debug?: boolean;
+}): Promise<ConversationScreenshotResult> {
+  const {
+    anchorMessageId,
+    beforeCount,
+    afterCount = 0,
+    allowPartial = true,
+    ...rest
+  } = opts;
+  return captureConversationScreenshot({
+    ...rest,
+    selection: {
+      mode: 'window',
+      anchorMessageId,
+      beforeCount,
+      afterCount,
+      allowPartial,
+    },
+    // Hide generic excludes when capturing a partial selection
+    excludeSelectors: rest.excludeSelectors,
+  });
+}
 
 async function captureByTilingWithHtml2Canvas(
   wrapper: HTMLElement,
@@ -271,4 +356,63 @@ function canvasToBlobPromise(canvas: HTMLCanvasElement, type: string): Promise<B
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Canvas toBlob produced null'))), type)
   );
+}
+
+// --- selection helpers ---
+
+function pruneToSelection(params: {
+  root: HTMLElement; // cloned [data-conversation-root]
+  selection: WindowSelection;
+  paddingTop: number;
+  paddingBottom: number;
+  excludeSelectors?: string[];
+}): void {
+  const { root, selection, paddingTop, paddingBottom, excludeSelectors } = params;
+
+  // Optionally remove caller-specified exclusions only
+  if (excludeSelectors && excludeSelectors.length > 0) {
+    try {
+      for (const sel of excludeSelectors) {
+        root.querySelectorAll(sel).forEach((n) => n.remove());
+      }
+    } catch {}
+  }
+
+  // Gather all top-level message nodes in DOM order
+  const items = Array.from(root.querySelectorAll(':scope > [data-message-id]')) as HTMLElement[];
+  if (!items.length) {
+    throw new Error('No messages found to capture.');
+  }
+
+  const anchorIndex = items.findIndex((el) => el.getAttribute('data-message-id') === selection.anchorMessageId);
+  if (anchorIndex < 0) {
+    throw new Error('Selected message is not visible in the current view. Switch to the correct branch and try again.');
+  }
+
+  const afterCount = Math.max(0, selection.afterCount || 0);
+  const beforeCount = Math.max(0, selection.beforeCount || 0);
+  const start = Math.max(0, anchorIndex - beforeCount);
+  const end = Math.min(items.length - 1, anchorIndex + afterCount);
+
+  // Optionally enforce strict window size
+  if (selection.allowPartial === false) {
+    if ((anchorIndex - beforeCount) < 0 || (anchorIndex + afterCount) >= items.length) {
+      throw new Error('Not enough messages around the selected message to satisfy the capture window.');
+    }
+  }
+
+  // Remove nodes outside the selected window
+  for (let i = 0; i < items.length; i++) {
+    if (i < start || i > end) {
+      items[i].remove();
+    }
+  }
+
+  // Add optional padding around the selection for clean edges
+  if (paddingTop > 0) {
+    (root.style as any).paddingTop = `${Math.floor(paddingTop)}px`;
+  }
+  if (paddingBottom > 0) {
+    (root.style as any).paddingBottom = `${Math.floor(paddingBottom)}px`;
+  }
 }

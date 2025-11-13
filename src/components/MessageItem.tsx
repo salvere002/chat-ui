@@ -463,8 +463,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   return (
     <div 
       className={containerClasses}
-        data-is-complete={isComplete !== false}
-      >
+      data-message-id={id}
+      data-is-complete={isComplete !== false}
+    >
       <div className={messageClasses}>
         <MessageHeader
           sender={sender}
