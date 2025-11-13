@@ -44,6 +44,17 @@ export type ErrorInterceptor = (
 export type DataTransformer<R, T> = (rawData: R) => T;
 
 /**
+ * Wrapper for responses that expose both parsed data and metadata
+ */
+export interface ApiResponse<T> {
+  data: T;
+  status: number;
+  url: string;
+  redirected: boolean;
+  headers: Headers;
+}
+
+/**
  * Stream chunk interceptor function type
  * Processes individual chunks during streaming
  */
@@ -291,6 +302,20 @@ export class ApiClient {
     transformer?: DataTransformer<R, T>,
     abortSignal?: AbortSignal
   ): Promise<T> {
+    const { data } = await this.requestWithMeta<T, R>(url, options, transformer, abortSignal);
+    return data;
+  }
+
+  /**
+   * Make an HTTP request and return both data and response metadata
+   * without changing the existing request() behavior.
+   */
+  public async requestWithMeta<T, R = any>(
+    url: string,
+    options: RequestInit = {},
+    transformer?: DataTransformer<R, T>,
+    abortSignal?: AbortSignal
+  ): Promise<ApiResponse<T>> {
     const endpointPath = url.startsWith('/') ? url : `/${url}`; // Ensure endpoint starts with a slash
     const fullUrl = this.buildUrl(endpointPath);
     
@@ -431,11 +456,15 @@ export class ApiClient {
       }
       
       // Apply transformation if provided, otherwise return raw data as T
-      if (transformer) {
-        return transformer(rawData);
-      }
-      
-      return rawData as unknown as T;
+      const data: T = transformer ? transformer(rawData) : (rawData as unknown as T);
+
+      return {
+        data,
+        status: response.status,
+        url: response.url,
+        redirected: response.redirected,
+        headers: response.headers,
+      };
     } catch (error) {
       // Re-throw any unhandled errors
       if (error instanceof ApiError) {
