@@ -16,9 +16,10 @@ import { streamManager } from '../services/streamManager';
 
 interface ChatInterfaceProps {
   selectedResponseMode: ResponseMode;
+  onMessagePairCapture?: (messageId: string) => void;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onMessagePairCapture }) => {
   // Get chat data and actions using selective subscriptions
   const { activeChatId, chatSessions, activeBranchPath } = useChatData();
   const { 
@@ -334,7 +335,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
       ) : (
         /* Active conversation with messages */
         <>
-          <MessageList messages={activeChatMessages} chatId={activeChatId} />
+          <MessageList 
+            messages={activeChatMessages} 
+            chatId={activeChatId} 
+            onMessagePairCapture={onMessagePairCapture}
+          />
           
           {/* Bottom-positioned message input with suggestions and animation */}
           <div className={`relative ${shouldAnimateTransition ? 'animate-input-to-bottom' : ''}`}>

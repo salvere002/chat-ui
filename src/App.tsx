@@ -177,6 +177,45 @@ const App: React.FC = () => {
     }
   }, []);
   
+  // Handle share message pair (current message + previous message)
+  const handleMessagePairCapture = useCallback(async (messageId: string) => {
+    // Block UI interactions while capturing
+    setIsCapturing(true);
+    try {
+      const result = await captureConversationScreenshot({
+        width: 800,
+        pixelRatio: 2,
+        selection: {
+          mode: 'window',
+          anchorMessageId: messageId,
+          beforeCount: 1, // Capture the previous message
+          afterCount: 0,  // Only capture up to the anchor message
+          allowPartial: true, // Allow capture even if there's no previous message
+        },
+        paddingTop: 16,    // Add padding for visual spacing
+        paddingBottom: 16,
+      });
+      // Store blob and create an object URL for fast preview
+      try {
+        const url = URL.createObjectURL(result.blob);
+        setScreenshotBlob(result.blob);
+        setScreenshotUrl(url);
+      } catch (e) {
+        // Fallback to dataUrl only if object URL creation fails
+        setScreenshotBlob(result.blob);
+        setScreenshotUrl(result.dataUrl);
+      }
+      setShowShareModal(true);
+    } catch (error) {
+      console.error('Error capturing message pair:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to capture message pair. Please try again.'
+      );
+    } finally {
+      setIsCapturing(false);
+    }
+  }, []);
+  
   const handleShareModalClose = useCallback(() => {
     setShowShareModal(false);
     if (screenshotUrl && screenshotUrl.startsWith('blob:')) {
@@ -293,7 +332,10 @@ const App: React.FC = () => {
         {/* Chat content */}
         <div className="flex-1 overflow-hidden w-full lg:w-auto">
           <ErrorBoundary>
-            <ChatInterface selectedResponseMode={selectedResponseMode} />
+            <ChatInterface 
+              selectedResponseMode={selectedResponseMode} 
+              onMessagePairCapture={handleMessagePairCapture}
+            />
           </ErrorBoundary>
         </div>
         

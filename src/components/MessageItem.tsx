@@ -21,6 +21,7 @@ interface MessageItemProps {
   message: Message;
   onRegenerateResponse?: (userMessageId: string) => void | Promise<void>;
   onEditMessage?: (messageId: string, newText: string) => void;
+  onMessagePairCapture?: (messageId: string) => void;
   chatId: string;
   canRegenerate?: boolean;
 }
@@ -169,6 +170,7 @@ const MessageFooter: React.FC<{
   onSetIsEditing: (editing: boolean) => void;
   onEditMessage?: (messageId: string, newText: string) => void;
   onRegenerateResponse?: () => void;
+  onMessagePairCapture?: () => void;
 }> = memo(({ 
   sender, 
   timestamp, 
@@ -184,7 +186,8 @@ const MessageFooter: React.FC<{
   onCopyMessage,
   onSetIsEditing,
   onEditMessage,
-  onRegenerateResponse
+  onRegenerateResponse,
+  onMessagePairCapture
 }) => {
 
   return (
@@ -216,6 +219,7 @@ const MessageFooter: React.FC<{
           onSetIsEditing={onSetIsEditing}
           onEditMessage={onEditMessage}
           onRegenerateResponse={onRegenerateResponse}
+          onMessagePairCapture={onMessagePairCapture}
         />
       </div>
     </>
@@ -228,7 +232,7 @@ MessageFooter.displayName = 'MessageFooter';
 
 
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, chatId, canRegenerate }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, onMessagePairCapture, chatId, canRegenerate }) => {
   // Destructure files array instead of single file
   const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed, wasPaused } = message;
   
@@ -444,6 +448,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     }
   }, [onRegenerateResponse, id]);
 
+  // Stable message pair capture handler that invokes parent with this message id
+  const handleMessagePairCapture = useCallback(() => {
+    if (onMessagePairCapture) {
+      onMessagePairCapture(id);
+    }
+  }, [onMessagePairCapture, id]);
+
 
   // Memoize expensive style calculations
   const containerClasses = useMemo(() => clsx(
@@ -507,6 +518,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         onSetIsEditing={handleSetIsEditing}
         onEditMessage={onEditMessage}
         onRegenerateResponse={canRegenerate ? handleRegenerateClick : undefined}
+        onMessagePairCapture={sender === 'ai' && isComplete !== false ? handleMessagePairCapture : undefined}
       />
     </div>
   );

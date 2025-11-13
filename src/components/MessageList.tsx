@@ -10,10 +10,11 @@ import { useScrollManager } from '../hooks/useScrollManager';
 interface MessageListProps {
   messages: Message[];
   chatId: string | null;
+  onMessagePairCapture?: (messageId: string) => void;
 }
 
 
-const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, chatId, onMessagePairCapture }) => {
   const { 
     containerRef: messageContainerRef, 
     endRef: messagesEndRef, 
@@ -192,6 +193,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
                 canRegenerate={canRegenerate}
                 onRegenerateResponse={handleRegenerateResponse}
                 onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
+                onMessagePairCapture={msg.sender === 'ai' ? onMessagePairCapture : undefined}
               />
             );
           })}

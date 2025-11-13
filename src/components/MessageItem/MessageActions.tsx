@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { FaRedo, FaEdit, FaCopy } from 'react-icons/fa';
+import { FaRedo, FaEdit, FaCopy, FaShareAlt } from 'react-icons/fa';
 
 interface MessageActionsProps {
   sender: 'user' | 'ai';
@@ -11,6 +11,7 @@ interface MessageActionsProps {
   onSetIsEditing: (editing: boolean) => void;
   onEditMessage?: (messageId: string, newText: string) => void;
   onRegenerateResponse?: () => void;
+  onMessagePairCapture?: () => void;
 }
 
 const MessageActions = memo<MessageActionsProps>(({ 
@@ -22,7 +23,8 @@ const MessageActions = memo<MessageActionsProps>(({
   onCopyMessage, 
   onSetIsEditing, 
   onEditMessage, 
-  onRegenerateResponse 
+  onRegenerateResponse,
+  onMessagePairCapture 
 }) => {
   return (
     <div className="flex gap-1 items-center">
@@ -34,6 +36,17 @@ const MessageActions = memo<MessageActionsProps>(({
           title={copied ? "Copied" : "Copy text"}
         >
           {copied ? <span className="absolute inset-0 flex items-center justify-center text-base animate-check-mark">✓</span> : <FaCopy className="relative z-10 text-sm" />}
+        </button>
+      )}
+      
+      {/* Share button for AI messages */}
+      {sender === 'ai' && isComplete !== false && onMessagePairCapture && (
+        <button 
+          className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
+          onClick={onMessagePairCapture}
+          title="Share this message pair"
+        >
+          <FaShareAlt className="relative z-10 text-sm" />
         </button>
       )}
       
