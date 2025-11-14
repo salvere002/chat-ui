@@ -229,7 +229,7 @@ const App: React.FC = () => {
     <div
       className={`flex flex-col h-screen w-screen bg-bg-primary ${getTextureClass()} text-text-primary relative overflow-hidden`}
       aria-busy={isCapturing}
-      {...(isCapturing ? { inert: '' as any } : {})}
+      {...(isCapturing ? { inert: true } : {})}
     >
       {/* Header bar with title and controls */}
       <div className="flex items-center justify-between px-4 py-3 bg-bg-secondary border-b border-border-primary z-sticky">

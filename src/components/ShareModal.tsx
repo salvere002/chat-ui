@@ -35,12 +35,14 @@ const ShareModal: React.FC<ShareModalProps> = ({ imageUrl, screenshotBlob, onClo
       }
 
       // Get the blob (prefer provided blob, fallback to fetching the imageUrl)
-      const blob = screenshotBlob || await fetch(imageUrl).then(r => r.blob());
+      const blob = screenshotBlob ?? (await fetch(imageUrl).then((r) => r.blob()));
+      if (!blob) {
+        toast.error('Unable to access screenshot image');
+        return;
+      }
 
       // Create ClipboardItem with the image blob
-      const clipboardItem = new ClipboardItem({
-        [blob.type]: blob
-      });
+      const clipboardItem = new ClipboardItem({ [blob.type]: blob });
 
       // Write to clipboard
       await navigator.clipboard.write([clipboardItem]);
