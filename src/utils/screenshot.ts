@@ -1,11 +1,11 @@
 /**
- * Screenshot Utility (html2canvas based)
+ * Screenshot Utility (Snapdom based)
  *
- * Captures the current conversation view as a PNG using html2canvas.
+ * Captures the current conversation view as a PNG using Snapdom.
  * Keeps the same API contract used in the app.
  */
 
-import html2canvas from 'html2canvas';
+import { snapdom } from '@zumer/snapdom';
 
 export type ConversationScreenshotOptions = {
   width?: number; // Fixed capture width (CSS px)
@@ -37,8 +37,10 @@ export async function captureConversationScreenshot(
     disableAnimations = true,
     debug = false,
   } = opts;
-  // suppress unused debug in production; html2canvas logging is disabled below
-  void debug;
+  
+  if (debug) {
+    console.log('[Screenshot] Starting capture with options:', { width, pixelRatio, selector, backgroundColor });
+  }
 
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     throw new Error('captureConversationScreenshot must be called in a browser environment');
@@ -63,53 +65,49 @@ export async function captureConversationScreenshot(
 
   const bg = backgroundColor || getComputedStyle(document.documentElement).getPropertyValue('--color-bg-primary') || '#ffffff';
 
-  // If content is very tall, capture in tiles to avoid browser limits
-  const threshold = 8000;
-  if (height > threshold) {
-    try {
-      const result = await captureByTilingWithHtml2Canvas(
-        wrapper,
-        width,
-        height,
-        pixelRatio,
-        String(bg).trim() || '#ffffff',
-        disableAnimations,
-      );
-      wrapper.remove();
-      return result;
-    } catch (e) {
-      // fall through to single-pass attempt
-    }
-  }
-  // Single-pass capture with html2canvas on the wrapper
+  // Snapdom is much faster and more efficient than html2canvas
+  // It can handle very tall content without tiling in most cases
   try {
-    const canvas = await html2canvas(wrapper, {
-      scale: pixelRatio,
-      backgroundColor: String(bg).trim() || '#ffffff',
-      useCORS: true,
-      logging: false,
+    if (debug) {
+      console.log('[Screenshot] Capturing with Snapdom:', { width, height });
+    }
+
+    // Snapdom configuration
+    const snapdomOptions = {
       width,
       height,
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: width,
-      windowHeight: height,
-      onclone: (doc: Document) => {
-        if (!disableAnimations) return;
-        try {
-          const style = doc.createElement('style');
-          style.textContent = '*{animation:none!important;transition:none!important}';
-          doc.head.appendChild(style);
-        } catch {}
-      },
-    } as any);
-    const blob: Blob = await canvasToBlobPromise(canvas, 'image/png');
+      scale: pixelRatio,
+      backgroundColor: String(bg).trim() || '#ffffff',
+      debug,
+      embedFonts: true, // Embed fonts for better compatibility
+      placeholders: true, // Use placeholders for broken images
+      cache: 'soft' as const, // Use soft cache for better performance
+    };
+
+    // Use snapdom.toBlob to get a Blob directly
+    const blob = await snapdom.toBlob(wrapper, {
+      ...snapdomOptions,
+      type: 'png',
+      quality: 0.95,
+    });
+
+    // Convert blob to data URL for compatibility
     const dataUrl = await blobToDataURL(blob);
+
     wrapper.remove();
+    
+    if (debug) {
+      console.log('[Screenshot] Capture complete:', { width, height, blobSize: blob.size });
+    }
+
     return { blob, dataUrl, width, height };
   } catch (e) {
     wrapper.remove();
-    throw new Error(e instanceof Error ? e.message : 'Failed to capture conversation screenshot');
+    const errorMsg = e instanceof Error ? e.message : 'Failed to capture conversation screenshot';
+    if (debug) {
+      console.error('[Screenshot] Error:', e);
+    }
+    throw new Error(errorMsg);
   }
 }
 
@@ -172,85 +170,6 @@ function blobToDataURL(blob: Blob): Promise<string> {
   });
 }
 
-export default { captureConversationScreenshot };
-
-async function captureByTilingWithHtml2Canvas(
-  wrapper: HTMLElement,
-  width: number,
-  height: number,
-  pixelRatio: number,
-  backgroundColor: string,
-  disableAnimations: boolean,
-): Promise<ConversationScreenshotResult> {
-  // Ensure structure: wrapper contains an inner element we can translate
-  let inner = wrapper.querySelector(':scope > div[data-screenshot-inner]') as HTMLElement | null;
-  if (!inner) {
-    // Create an inner wrapper and move children into it
-    inner = document.createElement('div');
-    inner.setAttribute('data-screenshot-inner', '');
-    inner.style.willChange = 'transform';
-    inner.style.paddingBottom = '24px';
-    while (wrapper.firstChild) inner.appendChild(wrapper.firstChild);
-    wrapper.appendChild(inner);
-  }
-  // Recompute total height after images settled
-  const totalHeight = Math.ceil((inner.scrollHeight || wrapper.scrollHeight || height) + 24);
-  // Compute tile height: clamp by device caps so pixel height (tileHeight * pixelRatio) <= ~14000
-  const maxCssTileFromPixelCap = Math.max(512, Math.floor(14000 / Math.max(1, pixelRatio)));
-  const baseDesired = 4096;
-  const TILE_H = Math.min(Math.max(1024, baseDesired), maxCssTileFromPixelCap);
-  const OVERLAP = 16; // CSS px overlap to avoid seam/cutoff due to rounding
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.floor(width * pixelRatio));
-  canvas.height = Math.max(1, Math.floor(totalHeight * pixelRatio));
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Unable to create 2D canvas context');
-  ctx.scale(pixelRatio, pixelRatio);
-  ctx.fillStyle = backgroundColor || '#ffffff';
-  ctx.fillRect(0, 0, width, totalHeight);
-
-  for (let y = 0, index = 0; y < totalHeight; y += TILE_H, index++) {
-    const sliceH = Math.min(TILE_H, totalHeight - y);
-    // Use negative margin instead of transform to reduce raster rounding issues
-    const yStart = Math.max(0, y - (index > 0 ? OVERLAP : 0));
-    inner.style.marginTop = `-${yStart}px`;
-    inner.style.transform = '';
-    const captureH = sliceH + (index > 0 ? OVERLAP : 0);
-    wrapper.style.height = `${captureH}px`;
-
-    const tileCanvas = await html2canvas(wrapper, {
-      scale: pixelRatio,
-      backgroundColor,
-      useCORS: true,
-      logging: false,
-      width,
-      height: captureH,
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: width,
-      windowHeight: captureH,
-      onclone: (doc: Document) => {
-        if (!disableAnimations) return;
-        try {
-          const style = doc.createElement('style');
-          style.textContent = '*{animation:none!important;transition:none!important}';
-          doc.head.appendChild(style);
-        } catch {}
-      },
-    } as any);
-    // Crop top overlap (except first tile) when drawing onto final canvas
-    const srcY = (index > 0 ? OVERLAP * pixelRatio : 0);
-    const srcH = tileCanvas.height - srcY;
-    const destY = y;
-    const destH = sliceH;
-    ctx.drawImage(tileCanvas, 0, srcY, tileCanvas.width, srcH, 0, destY, width, destH);
-  }
-
-  const blob = await canvasToBlobPromise(canvas, 'image/png');
-  const dataUrl = await blobToDataURL(blob);
-  return { blob, dataUrl, width, height: totalHeight };
-}
-
 async function waitForImages(root: HTMLElement, perImageTimeoutMs = 5000): Promise<void> {
   const images = Array.from(root.querySelectorAll('img')) as HTMLImageElement[];
   await Promise.all(images.map((img) => new Promise<void>((resolve) => {
@@ -267,8 +186,4 @@ async function waitForImages(root: HTMLElement, perImageTimeoutMs = 5000): Promi
   })));
 }
 
-function canvasToBlobPromise(canvas: HTMLCanvasElement, type: string): Promise<Blob> {
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Canvas toBlob produced null'))), type)
-  );
-}
+export default { captureConversationScreenshot };

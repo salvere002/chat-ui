@@ -67,7 +67,7 @@
     "copy-to-clipboard": "^3.3.3",
     "dayjs": "^1.11.18",
     "eventsource-parser": "^3.0.6",
-    "html2canvas": "^1.4.1",
+    "@zumer/snapdom": "^1.9.14",
     "katex": "^0.16.22",
     "lodash.throttle": "^4.1.1",
     "mime": "^4.0.7",

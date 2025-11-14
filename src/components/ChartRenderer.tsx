@@ -24,6 +24,15 @@ interface ChartRendererProps {
   className?: string;
 }
 
+type TickTextAnchor = 'inherit' | 'end' | 'start' | 'middle';
+
+interface AdaptiveTickProps {
+  fontSize: number;
+  angle?: number;
+  height?: number;
+  textAnchor?: TickTextAnchor;
+}
+
 const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) => {
   
   const { type, data, config = {} } = chartData;
@@ -54,7 +63,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
   }), []);
 
   // Adaptive font size and rotation based on number of data points
-  const adaptiveTickProps = useMemo(() => {
+  const adaptiveTickProps = useMemo<AdaptiveTickProps>(() => {
     if (!data || !Array.isArray(data)) return { fontSize: 10 };
     
     const dataPointCount = data.length;
@@ -68,11 +77,11 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
     } else {
       // For many points, use rotation to save space
       // Rotate when we have 13+ data points to prevent overlap
-      return { 
-        fontSize: 8, 
-        angle: -45, 
-        height: 45,  // Increased height to push text further down
-        textAnchor: 'end'  // Anchor at end for better rotated text positioning
+      return {
+        fontSize: 8,
+        angle: -45,
+        height: 45, // Increased height to push text further down
+        textAnchor: 'end', // Anchor at end for better rotated text positioning
       };
     }
   }, [data]);
