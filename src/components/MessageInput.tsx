@@ -21,7 +21,6 @@ interface MessageInputProps {
   onProcessFiles: (files: FileList) => void;
   showTopBorder?: boolean;
   onFocusChange?: (isFocused: boolean) => void;
-  compact?: boolean;
 }
 
 // Convert allowed extensions from config to accept attribute format using mime lookup
@@ -43,18 +42,17 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onFileRemove,
   onProcessFiles,
   showTopBorder = true,
-  onFocusChange,
-  compact = false
+  onFocusChange
 }) => {
   // Get input value and setter from input store
   const { inputValue: value, setInputValue: onChange, resetInput } = useInputStore();
-  
+
   // Background texture is centralized at the app root
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  
+
 
   // Use refs for stable access to current values in callbacks
   const valueRef = useRef(value);
@@ -144,7 +142,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleFileChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
     onProcessFiles(event.target.files);
-    
+
     // Clear the input to allow selecting the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -165,15 +163,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
     noClick: true,
     multiple: true,
   });
-  
+
   // Mirror dropzone state to preserve existing overlay UI behavior
   useEffect(() => {
     setIsDragging(isDragActive);
   }, [isDragActive]);
 
   return (
-    <div 
-      className={`flex flex-col px-1 py-3 ${!compact ? 'sm:p-4' : ''} ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
+    <div
+      className={`flex flex-col px-1 py-3 @min-w-[520px]:p-4 ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
       ref={dropAreaRef}
       {...getRootProps()}
     >
@@ -188,7 +186,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* File Preview Area */}
       {selectedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3 p-3 bg-bg-secondary border border-border-secondary rounded-md max-h-[120px] overflow-y-auto transition-all duration-150">
@@ -238,21 +236,21 @@ const MessageInput: React.FC<MessageInputProps> = ({
           disabled={isProcessing}
           minRows={2}
           maxRows={16}
-          style={{ 
+          style={{
             transition: 'height 150ms ease'
           }}
-          className={`w-full px-2 py-2 mb-2 bg-transparent text-text-primary border-none font-sans text-sm leading-normal resize-none overflow-y-auto focus:outline-none placeholder:text-text-tertiary ${!compact ? 'sm:px-3 sm:text-base' : ''}`}
+          className={`w-full px-2 py-2 mb-2 bg-transparent text-text-primary border-none font-sans text-sm leading-normal resize-none overflow-y-auto focus:outline-none placeholder:text-text-tertiary @min-w-[520px]:px-3 @min-w-[520px]:text-base`}
         />
-        
+
         {/* Bottom Controls Row */}
         <div className="flex items-center justify-between gap-2">
           {/* Left side controls: Upload, Model, Agent, Deep Research */}
           <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 scrollbar-none">
             <button
-              onClick={handleUploadClick} 
-              className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 flex-shrink-0 hover:bg-bg-tertiary hover:text-accent-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" 
-              aria-label="Attach file" 
-              title="Attach file" 
+              onClick={handleUploadClick}
+              className="flex items-center justify-center w-8 h-8 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 flex-shrink-0 hover:bg-bg-tertiary hover:text-accent-primary active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Attach file"
+              title="Attach file"
               disabled={isProcessing}
             >
               <FaPaperclip className="w-[16px] h-[16px]" />
@@ -263,31 +261,30 @@ const MessageInput: React.FC<MessageInputProps> = ({
               <DeepResearchToggle />
             </div>
           </div>
-          
+
           {/* Right side: Send/Pause button */}
           <button
             onClick={handleButtonClick}
             disabled={isFileProcessing || (!isProcessing && !value.trim() && selectedFiles.filter(f => f.status === 'pending').length === 0)}
-            className={`flex items-center justify-center w-9 h-9 p-0 border-none rounded-md cursor-pointer transition-all duration-150 flex-shrink-0 relative overflow-hidden hover:-translate-y-px hover:shadow-sm active:scale-95 disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed ${
-              isProcessing && !isFileProcessing 
-                ? 'bg-orange-500 text-text-inverse hover:bg-orange-600' 
-                : 'bg-accent-primary text-text-inverse hover:bg-accent-hover'
-            }`}
+            className={`flex items-center justify-center w-9 h-9 p-0 border-none rounded-md cursor-pointer transition-all duration-150 flex-shrink-0 relative overflow-hidden hover:-translate-y-px hover:shadow-sm active:scale-95 disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed ${isProcessing && !isFileProcessing
+              ? 'bg-orange-500 text-text-inverse hover:bg-orange-600'
+              : 'bg-accent-primary text-text-inverse hover:bg-accent-hover'
+              }`}
             aria-label={isProcessing && !isFileProcessing ? "Pause response" : "Send message"}
           >
-            {isFileProcessing ? 
+            {isFileProcessing ?
               <span className="flex items-center justify-center gap-0.5">
                 <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" />
-                <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.16s'}} />
-                <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{animationDelay: '-0.32s'}} />
-              </span> : 
+                <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{ animationDelay: '-0.16s' }} />
+                <span className="w-1 h-1 bg-current rounded-full animate-pulse-dot" style={{ animationDelay: '-0.32s' }} />
+              </span> :
               isProcessing && !isFileProcessing ?
                 <FaPause size={16} className="relative z-10" /> :
                 <FaPaperPlane size={16} className="relative z-10" />
             }
           </button>
         </div>
-        
+
         {/* Hidden file input */}
         <input
           type="file"

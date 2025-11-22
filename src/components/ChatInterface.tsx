@@ -17,17 +17,16 @@ import { streamManager } from '../services/streamManager';
 interface ChatInterfaceProps {
   selectedResponseMode: ResponseMode;
   onMessagePairCapture?: (messageId: string) => void;
-  compact?: boolean;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onMessagePairCapture, compact = false }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onMessagePairCapture }) => {
   // Get chat data and actions using selective subscriptions
   const { activeChatId, chatSessions, activeBranchPath } = useChatData();
-  const { 
-    addMessageToChat, 
-    createChat, 
+  const {
+    addMessageToChat,
+    createChat,
     setActiveChat,
-    pauseChatRequest 
+    pauseChatRequest
   } = useChatActions();
   const { getCurrentBranchMessages } = useBranchData();
 
@@ -36,7 +35,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
 
   // Get UI settings from Zustand store
   const { showSuggestions } = useUiSettingsStore();
-  
+
   // Get suggestions functionality from main store (not available in selectors yet)
   const { getSuggestions, isSuggestionsLoading } = useChatStore();
 
@@ -46,33 +45,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
   const activeChatMessages = useMemo(() => {
     return activeChatId ? getCurrentBranchMessages(activeChatId) : [];
   }, [activeChatId, getCurrentBranchMessages, activeChat?.messages, currentBranchPath]);
-  
+
   // Get suggestions - store handles fallbacks to defaults automatically
   const currentSuggestions = getSuggestions(activeChatId || undefined);
-  
+
   // Local state for error handling
   const [error, setError] = useState<string | null>(null);
-  
+
   // Track input focus state for suggestions display
   const [isInputFocused, setIsInputFocused] = useState(false);
   const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Get file upload state and handlers from custom hook
-  const { 
-    uploadFiles, 
+  const {
+    uploadFiles,
     resetFileUploads,
     isProcessing: isFileProcessing,
     selectedFiles,
     handleFileRemove,
     processFiles
   } = useFileUpload();
-  
+
   // Get input store methods
   const { resetInput, setInputValue } = useInputStore();
-  
+
   // Get streaming message handler
   const { sendStreamingMessage } = useStreamingMessage(selectedResponseMode);
-  
+
   // Optimized cleanup with caching and smart intervals
   const { urls: activeImageUrls, hasImages, changed } = useImageUrlCache(activeChatMessages);
 
@@ -117,10 +116,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [activeImageUrls, hasImages, changed, activeChatMessages.length]);
-  
+
   // Get current chat streaming state from streamManager
   const isChatStreaming = activeChatId ? streamManager.isStreamingInChat(activeChatId) : false;
-  
+
   // Combined processing state
   const combinedIsProcessing = isChatStreaming || isFileProcessing;
 
@@ -168,22 +167,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
     if ((!messageText || messageText.trim() === '') && (!filesToUpload || filesToUpload.length === 0)) {
       return;
     }
-    
+
     let currentChatId = activeChatId;
-    
+
     // If there's no active chat, create one automatically
     if (!currentChatId) {
       // Create a title from the message (truncate if too long)
-      const chatTitle = messageText.trim() 
+      const chatTitle = messageText.trim()
         ? (messageText.length > 30 ? messageText.substring(0, 27) + '...' : messageText)
         : 'New Conversation';
-      
+
       currentChatId = createChat(chatTitle);
       setActiveChat(currentChatId);
     }
-    
+
     try {
-      
+
       // Process file uploads if needed
       let uploadedFiles: MessageFile[] = [];
       if (filesToUpload && filesToUpload.length > 0) {
@@ -195,10 +194,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
           showToast("Error uploading files", "error");
         }
       }
-      
+
       // Create a unique message ID
       const messageId = generateMessageId();
-      
+
       // Get conversation history for the current branch BEFORE adding current messages
       const history: ConversationMessage[] = buildHistory(getCurrentBranchMessages(currentChatId));
 
@@ -212,17 +211,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
         branchId: 'main',
         children: []
       };
-      
+
       // Add to chat state
       addMessageToChat(currentChatId, userMessage);
-      
+
       resetInput();
-      
+
       resetFileUploads();
-      
+
       // Create a unique message ID for AI response
       const aiMessageId = generateMessageId();
-      
+
       // Create initial AI message (will be updated with stream)
       const aiMessage: Message = {
         id: aiMessageId,
@@ -233,10 +232,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
         branchId: 'main',
         children: []
       };
-      
+
       // Add initial empty AI message to the chat
       addMessageToChat(currentChatId, aiMessage);
-      
+
       // Send the API request using the centralized streaming hook
       await sendStreamingMessage({
         chatId: currentChatId,
@@ -253,17 +252,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
       // Error handling is now managed by the streaming hook
     }
   };
-  
+
   // Different empty states
   const hasNoActiveChat = !activeChatId;
   const hasActiveChatButEmpty = activeChatId && activeChatMessages.length === 0;
   const hasMessages = activeChatId && activeChatMessages.length > 0;
   const showWelcome = hasNoActiveChat || hasActiveChatButEmpty;
-  
+
   // Track when we transition from empty to having messages for animation
   const previousMessageCount = useRef(0);
   const [shouldAnimateTransition, setShouldAnimateTransition] = useState(false);
-  
+
   // Cleanup focus timeout on unmount
   useEffect(() => {
     return () => {
@@ -275,14 +274,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
 
   useEffect(() => {
     const currentMessageCount = activeChatMessages.length;
-    
+
     // If we go from 0 to 1+ messages, trigger animation
     if (previousMessageCount.current === 0 && currentMessageCount > 0) {
       setShouldAnimateTransition(true);
       // Reset animation flag after animation completes
       setTimeout(() => setShouldAnimateTransition(false), 500);
     }
-    
+
     previousMessageCount.current = currentMessageCount;
   }, [activeChatMessages.length]);
 
@@ -304,7 +303,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
               Ask me anything! I'm here to help with your questions, tasks, and creative projects.
             </p>
           </div>
-          
+
           {/* Input area with proper spacing */}
           <div className="w-full max-w-4xl">
             {/* Suggested questions above input - centered */}
@@ -319,7 +318,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
                 </div>
               </div>
             )}
-            
+
             <MessageInput
               onSendMessage={handleSendMessage}
               onPauseRequest={handlePauseRequest}
@@ -330,20 +329,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
               onProcessFiles={processFiles}
               showTopBorder={false}
               onFocusChange={handleInputFocusChange}
-              compact={compact}
             />
           </div>
         </div>
       ) : (
         /* Active conversation with messages */
         <>
-          <MessageList 
-            messages={activeChatMessages} 
-            chatId={activeChatId} 
+          <MessageList
+            messages={activeChatMessages}
+            chatId={activeChatId}
             onMessagePairCapture={onMessagePairCapture}
-            compact={compact}
           />
-          
+
           {/* Bottom-positioned message input with suggestions and animation */}
           <div className={`relative ${shouldAnimateTransition ? 'animate-input-to-bottom' : ''}`}>
             {/* Suggested questions overlay - positioned above input without taking space */}
@@ -360,7 +357,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
                 </div>
               </div>
             )}
-            
+
             <MessageInput
               onSendMessage={handleSendMessage}
               onPauseRequest={handlePauseRequest}
@@ -371,22 +368,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
               onProcessFiles={processFiles}
               showTopBorder={true}
               onFocusChange={handleInputFocusChange}
-              compact={compact}
             />
           </div>
         </>
       )}
-      
+
       {/* Display file upload loading state only */}
       {isFileProcessing && (
         <div className={`absolute ${hasMessages ? 'bottom-[90px]' : 'bottom-[120px]'} left-1/2 -translate-x-1/2 bg-bg-elevated border border-border-secondary rounded-lg px-4 py-3 shadow-md flex items-center gap-3 z-dropdown animate-slide-up`}>
-          <LoadingIndicator 
+          <LoadingIndicator
             type="dots"
             text="Uploading files..."
           />
         </div>
       )}
-      
+
       {/* Display error state */}
       {error && (
         <div className="flex items-center gap-3 m-4 p-3 bg-error text-text-inverse rounded-md text-sm cursor-pointer transition-all duration-150 animate-slide-down hover:-translate-y-0.5 hover:shadow-md" onClick={() => clearError()}>
