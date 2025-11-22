@@ -11,10 +11,11 @@ import { useScrollManager } from '../hooks/useScrollManager';
 interface MessageListProps {
   messages: Message[];
   chatId: string | null;
+  compact?: boolean;
 }
 
 
-const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, chatId, compact = false }) => {
   const { 
     containerRef: messageContainerRef, 
     endRef: messagesEndRef, 
@@ -174,7 +175,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
         ref={messageContainerRef}
       >
         <div
-          className="flex flex-col max-w-[800px] mx-auto w-full py-2 sm:py-4 px-2 sm:px-4 relative"
+          className={`flex flex-col max-w-[800px] mx-auto w-full py-2 px-2 relative ${!compact ? 'sm:py-4 sm:px-4' : ''}`}
           data-conversation-root
         >
           {messages.map((msg, index) => {
@@ -200,7 +201,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId }) => {
 
       {showScrollButton && (
         <button 
-          className="fixed bottom-[100px] sm:bottom-[120px] right-3 sm:right-5 w-10 h-10 bg-bg-elevated text-text-secondary border border-border-secondary rounded-full shadow-md flex items-center justify-center cursor-pointer z-sticky opacity-90 transition-all duration-150 animate-fade-in hover:opacity-100 hover:-translate-y-0.5 hover:shadow-lg hover:bg-accent-primary hover:text-text-inverse hover:border-accent-primary active:translate-y-0 active:scale-95" 
+          className={`fixed bottom-[100px] right-3 w-10 h-10 bg-bg-elevated text-text-secondary border border-border-secondary rounded-full shadow-md flex items-center justify-center cursor-pointer z-sticky opacity-90 transition-all duration-150 animate-fade-in hover:opacity-100 hover:-translate-y-0.5 hover:shadow-lg hover:bg-accent-primary hover:text-text-inverse hover:border-accent-primary active:translate-y-0 active:scale-95 ${!compact ? 'sm:bottom-[120px] sm:right-5' : ''}`} 
           onClick={scrollToBottomManual}
           aria-label="Scroll to bottom"
         >

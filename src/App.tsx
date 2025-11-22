@@ -1,11 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { FaSun, FaMoon, FaCog, FaBars, FaTimes } from 'react-icons/fa';
 import { ToastContainer } from './components/Toast';
 import { useThemeStore, useResponseModeStore, useChatStore, useServiceConfigStore, useMcpStore } from './stores';
-import { useEffect } from 'react';
 import { getMcpConfigViaAdapter, isMcpConfigSupported } from './services/mcpConfigService';
 import { useShallow } from 'zustand/react/shallow';
 import Settings from './components/Settings';
@@ -33,6 +32,9 @@ const App: React.FC = () => {
   
   // State for settings modal
   const [showSettings, setShowSettings] = useState(false);
+  // Track window width once and derive responsive flags
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const isLargeScreen = windowWidth >= 1024;
   
   // State for mobile sidebar visibility
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -41,6 +43,16 @@ const App: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Service initialization is handled automatically by serviceConfigStore
+
+  // Handle window resize for responsive settings
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Bootstrap + re-sync: pull MCP config whenever adapter changes
   const { type: currentAdapterType, url: currentAdapterBaseUrl } = useServiceConfigStore(useShallow((s) => ({
@@ -179,7 +191,10 @@ const App: React.FC = () => {
         )}
         
         {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-modal lg:z-auto transition-transform duration-300 ease-in-out lg:block`}>
+        <div 
+          className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-modal lg:z-auto transition-transform duration-300 ease-in-out lg:block`}
+          style={!isLargeScreen ? { top: 0, left: 0 } : undefined}
+        >
           <ErrorBoundary>
             <Sidebar
               chats={sidebarData.chatSessions}
@@ -190,6 +205,8 @@ const App: React.FC = () => {
               onClearAllChats={sidebarActions.clearAllChats}
               collapsed={sidebarCollapsed}
               onCollapse={handleSidebarCollapse}
+              maxHeight={!isLargeScreen ? 'calc(100vh - 80px)' : undefined}
+              isVisible={isLargeScreen || sidebarOpen}
             />
           </ErrorBoundary>
         </div>

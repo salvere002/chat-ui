@@ -14,6 +14,8 @@ interface SidebarProps {
   onClearAllChats: () => void;
   collapsed: boolean;
   onCollapse: () => void;
+  maxHeight?: React.CSSProperties['maxHeight']; // Optional max-height constraint (e.g., "500px", "calc(100vh - 100px)")
+  isVisible?: boolean; // For overlay mode - tracks if sidebar is visible to trigger animations
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -24,8 +26,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   onDeleteChat,
   onClearAllChats,
   collapsed,
-  onCollapse
+  onCollapse,
+  maxHeight,
+  isVisible = true
 }) => {
+  const dynamicHeight = maxHeight != null;
   const { renameChatSession } = useChatActions();
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingChatName, setEditingChatName] = useState('');
@@ -109,9 +114,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   return (
     <>
-    <div className={`flex flex-col ${collapsed ? 'w-0 lg:w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} min-w-0 h-full bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-[width] duration-300 ease-in-out`} style={{ willChange: 'width', contain: 'layout paint' }}>
-      <div className={`w-full h-full overflow-hidden`}>
-      <div className="bg-bg-secondary border-b border-border-primary border-r border-border-primary overflow-hidden">
+    <div className={`flex flex-col ${collapsed ? 'w-0 lg:w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} min-w-0 ${dynamicHeight ? 'h-auto' : 'h-full'} bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-[width] duration-300 ease-in-out`} style={{ willChange: 'width', contain: 'layout paint', maxHeight }}>
+      <div className={`w-full ${dynamicHeight ? 'h-auto' : 'h-full'} flex flex-col overflow-hidden`}>
+      <div className="bg-bg-secondary border-b border-border-primary border-r border-border-primary overflow-hidden flex-shrink-0">
         <div className="p-4 relative" style={{ height: '112px' }}>
           {/* Header row - absolutely positioned when collapsed to not affect layout */}
           <div className={`flex items-center w-full transition-opacity duration-150 ease-in-out ${
@@ -205,7 +210,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div 
           className={`flex-1 overflow-y-auto overflow-x-hidden p-2 min-h-0 flex flex-col ${collapsed ? 'pointer-events-none' : ''}`}
           style={{
-            maxHeight: 'calc(100vh - 200px)',
             contain: 'paint',
             contentVisibility: 'auto'
           }}
@@ -218,7 +222,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               </div>
             ) : (
-              chats.map((chat, index) => (
+              chats.map((chat, index) => {
+                // Use collapsed for desktop, isVisible for overlay/mobile
+                const shouldHide = dynamicHeight ? !isVisible : collapsed;
+                return (
         <div 
           key={chat.id}
           className={`group flex items-center gap-3 p-3 mb-2 bg-bg-elevated border border-transparent rounded-md cursor-pointer transition-all duration-150 relative overflow-hidden hover:bg-bg-tertiary hover:border-border-secondary hover:translate-x-0.5 min-w-[220px] ${
@@ -227,9 +234,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           style={{
             // Avoid delaying color/background transitions (theme switch should be instant)
             transition: 'opacity 260ms ease-out, transform 260ms ease-out',
-            transitionDelay: collapsed ? '0ms' : `${300 + index * 25}ms`,
-            opacity: collapsed ? 0 : 1,
-            transform: collapsed ? 'translateY(4px)' : 'translateY(0)',
+            transitionDelay: shouldHide ? '0ms' : `${300 + index * 25}ms`,
+            opacity: shouldHide ? 0 : 1,
+            transform: shouldHide ? 'translateY(4px)' : 'translateY(0)',
             willChange: 'opacity, transform'
           }}
           onClick={() => onChatSelected(chat.id)}
@@ -284,7 +291,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               </button>
                 </div>
               </div>
-              ))
+              );
+              })
             )}
           </div>
           

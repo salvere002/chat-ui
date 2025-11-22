@@ -15,9 +15,10 @@ import { streamManager } from '../services/streamManager';
 
 interface ChatInterfaceProps {
   selectedResponseMode: ResponseMode;
+  compact?: boolean;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, compact = false }) => {
   // Get chat data and actions using selective subscriptions
   const { activeChatId, chatSessions, activeBranchPath } = useChatData();
   const { 
@@ -226,7 +227,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
           </div>
         </div>
       ) : (
-        <MessageList messages={activeChatMessages} chatId={activeChatId} />
+        <MessageList messages={activeChatMessages} chatId={activeChatId} compact={compact} />
       )}
       
       {/* Display file upload loading state only */}
@@ -257,6 +258,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) =
         selectedFiles={selectedFiles}
         onFileRemove={handleFileRemove}
         onProcessFiles={processFiles}
+        compact={compact}
       />
     </div>
   );
