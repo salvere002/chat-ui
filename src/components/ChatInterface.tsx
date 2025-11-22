@@ -17,9 +17,10 @@ import { streamManager } from '../services/streamManager';
 interface ChatInterfaceProps {
   selectedResponseMode: ResponseMode;
   onMessagePairCapture?: (messageId: string) => void;
+  compact?: boolean;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onMessagePairCapture }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onMessagePairCapture, compact = false }) => {
   // Get chat data and actions using selective subscriptions
   const { activeChatId, chatSessions, activeBranchPath } = useChatData();
   const { 
@@ -329,6 +330,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
               onProcessFiles={processFiles}
               showTopBorder={false}
               onFocusChange={handleInputFocusChange}
+              compact={compact}
             />
           </div>
         </div>
@@ -339,6 +341,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
             messages={activeChatMessages} 
             chatId={activeChatId} 
             onMessagePairCapture={onMessagePairCapture}
+            compact={compact}
           />
           
           {/* Bottom-positioned message input with suggestions and animation */}
@@ -368,6 +371,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
               onProcessFiles={processFiles}
               showTopBorder={true}
               onFocusChange={handleInputFocusChange}
+              compact={compact}
             />
           </div>
         </>

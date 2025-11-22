@@ -42,9 +42,10 @@ const App: React.FC = () => {
   
   // State for settings modal
   const [showSettings, setShowSettings] = useState(false);
-  
-  // State for responsive settings handling
-  const [isWideScreen, setIsWideScreen] = useState(window.innerWidth >= 1280);
+  // Track window width once and derive responsive flags
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const isWideScreen = windowWidth >= 1280;
+  const isLargeScreen = windowWidth >= 1024;
   
   // State for mobile sidebar visibility
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -64,8 +65,7 @@ const App: React.FC = () => {
   // Handle window resize for responsive settings
   useEffect(() => {
     const handleResize = () => {
-      const newIsWideScreen = window.innerWidth >= 1280;
-      setIsWideScreen(newIsWideScreen);
+      setWindowWidth(window.innerWidth);
     };
 
     window.addEventListener('resize', handleResize);
@@ -314,7 +314,10 @@ const App: React.FC = () => {
         )}
         
         {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-modal lg:z-auto transition-transform duration-300 ease-in-out lg:block`}>
+        <div 
+          className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-modal lg:z-auto transition-transform duration-300 ease-in-out lg:block`}
+          style={!isLargeScreen ? { top: 0, left: 0 } : undefined}
+        >
           <ErrorBoundary>
             <Sidebar
               chats={sidebarData.chatSessions}
@@ -325,6 +328,8 @@ const App: React.FC = () => {
               onClearAllChats={sidebarActions.clearAllChats}
               collapsed={sidebarCollapsed}
               onCollapse={handleSidebarCollapse}
+              maxHeight={!isLargeScreen ? 'calc(100vh - 80px)' : undefined}
+              isVisible={isLargeScreen || sidebarOpen}
             />
           </ErrorBoundary>
         </div>

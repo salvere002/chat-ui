@@ -21,6 +21,7 @@ interface MessageInputProps {
   onProcessFiles: (files: FileList) => void;
   showTopBorder?: boolean;
   onFocusChange?: (isFocused: boolean) => void;
+  compact?: boolean;
 }
 
 // Convert allowed extensions from config to accept attribute format using mime lookup
@@ -42,7 +43,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onFileRemove,
   onProcessFiles,
   showTopBorder = true,
-  onFocusChange
+  onFocusChange,
+  compact = false
 }) => {
   // Get input value and setter from input store
   const { inputValue: value, setInputValue: onChange, resetInput } = useInputStore();
@@ -171,7 +173,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div 
-      className={`flex flex-col px-1 py-3 sm:p-4 ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
+      className={`flex flex-col px-1 py-3 ${!compact ? 'sm:p-4' : ''} ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
       ref={dropAreaRef}
       {...getRootProps()}
     >
@@ -239,7 +241,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           style={{ 
             transition: 'height 150ms ease'
           }}
-          className="w-full px-2 sm:px-3 py-2 mb-2 bg-transparent text-text-primary border-none font-sans text-sm sm:text-base leading-normal resize-none overflow-y-auto focus:outline-none placeholder:text-text-tertiary"
+          className={`w-full px-2 py-2 mb-2 bg-transparent text-text-primary border-none font-sans text-sm leading-normal resize-none overflow-y-auto focus:outline-none placeholder:text-text-tertiary ${!compact ? 'sm:px-3 sm:text-base' : ''}`}
         />
         
         {/* Bottom Controls Row */}

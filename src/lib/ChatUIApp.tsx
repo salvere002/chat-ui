@@ -190,6 +190,15 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
   // Consumers can explicitly hide it via prop.
   const effectiveHideHeader = hideHeader === true;
 
+  // Calculate sidebar max-height based on container size
+  const sidebarMaxHeight = useMemo(() => {
+    if (!containerSize) return undefined;
+    // Subtract header height (if present) and some padding
+    const headerHeight = effectiveHideHeader ? 0 : 60; // Approximate header height
+    const padding = 20; // Some padding from bottom
+    return `${containerSize.height - headerHeight - padding}px`;
+  }, [containerSize, effectiveHideHeader]);
+
   // Apply background texture at the app root (parity with standalone App.tsx)
   const textureClass = backgroundTexture ? 'texture-subtle' : 'texture-off';
   const containerClass = effectiveVariant === 'embedded'
@@ -269,7 +278,7 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
           className={overlay
             ? `${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} absolute z-modal transition-transform duration-300 ease-in-out`
             : 'relative z-auto translate-x-0'}
-          style={overlay ? { top: 0, bottom: 0, left: 0 } : undefined}
+          style={overlay ? { top: 0, left: 0 } : undefined}
         >
           <ErrorBoundary>
             <Sidebar
@@ -288,13 +297,15 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
                 }
                 setSidebarCollapsed((c) => !c);
               }}
+              maxHeight={overlay ? sidebarMaxHeight : undefined}
+              isVisible={!overlay || sidebarOpen}
             />
           </ErrorBoundary>
         </div>
         {/* Chat content */}
         <div className={effectiveVariant === 'embedded' ? 'flex-1 min-h-0 overflow-hidden w-full' : 'flex-1 overflow-hidden w-full lg:w-auto'}>
           <ErrorBoundary>
-            <ChatInterface selectedResponseMode={selectedResponseMode} />
+            <ChatInterface selectedResponseMode={selectedResponseMode} compact={compact} />
           </ErrorBoundary>
         </div>
 
