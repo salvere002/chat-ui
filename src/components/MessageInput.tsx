@@ -18,7 +18,6 @@ interface MessageInputProps {
   onProcessFiles: (files: FileList) => void;
   showTopBorder?: boolean;
   onFocusChange?: (isFocused: boolean) => void;
-  compact?: boolean;
 }
 
 // Convert allowed extensions from config to accept attribute format using mime lookup
@@ -41,10 +40,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onProcessFiles,
   showTopBorder = true,
   onFocusChange,
-  compact = false,
 }) => {
   // Get input value and setter from input store
   const { inputValue: value, setInputValue: onChange, resetInput } = useInputStore();
+
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
@@ -175,9 +174,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div
-      className={`flex flex-col px-1 py-3 ${!compact ? 'sm:p-4' : ''} ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${
-        isDragging ? 'bg-accent-light border-accent-primary' : ''
-      }`}
+      className={`flex flex-col px-1 py-3 @min-w-[520px]:p-4 ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''
+        }`}
       ref={dropAreaRef}
       {...getRootProps()}
     >
@@ -199,9 +197,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
           {selectedFiles.map((pf) => (
             <div
               key={pf.id}
-              className={`flex items-center gap-2 bg-bg-elevated border border-border-secondary rounded-md px-3 py-2 max-w-[200px] relative transition-all duration-150 hover:border-accent-primary hover:-translate-y-px hover:shadow-sm ${
-                pf.status === 'error' ? 'bg-error text-text-inverse border-error' : ''
-              }`}
+              className={`flex items-center gap-2 bg-bg-elevated border border-border-secondary rounded-md px-3 py-2 max-w-[200px] relative transition-all duration-150 hover:border-accent-primary hover:-translate-y-px hover:shadow-sm ${pf.status === 'error' ? 'bg-error text-text-inverse border-error' : ''
+                }`}
             >
               {/* Image or Icon */}
               {fileService.isImage(pf.file) ? (
@@ -278,9 +275,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           style={{
             transition: 'height 150ms ease',
           }}
-          className={`flex-1 px-2 py-2 bg-transparent text-text-primary border-none font-sans text-sm leading-normal resize-none overflow-y-auto focus:outline-none placeholder:text-text-tertiary ${
-            !compact ? 'sm:px-3 sm:text-base' : ''
-          }`}
+          className={`flex-1 px-2 py-2 bg-transparent text-text-primary border-none font-sans text-sm leading-normal resize-none overflow-y-auto focus:outline-none placeholder:text-text-tertiary @min-w-[520px]:px-3 @min-w-[520px]:text-base`}
         />
         <button
           onClick={handleButtonClick}
@@ -288,11 +283,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
             isFileProcessing ||
             (!isProcessing && !value.trim() && selectedFiles.filter((f) => f.status === 'pending').length === 0)
           }
-          className={`flex items-center justify-center w-9 h-9 p-0 border-none rounded-md cursor-pointer transition-all duration-150 flex-shrink-0 relative overflow-hidden hover:-translate-y-px hover:shadow-sm active:scale-95 disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed ${
-            isProcessing && !isFileProcessing
+          className={`flex items-center justify-center w-9 h-9 p-0 border-none rounded-md cursor-pointer transition-all duration-150 flex-shrink-0 relative overflow-hidden hover:-translate-y-px hover:shadow-sm active:scale-95 disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed ${isProcessing && !isFileProcessing
               ? 'bg-orange-500 text-text-inverse hover:bg-orange-600'
               : 'bg-accent-primary text-text-inverse hover:bg-accent-hover'
-          }`}
+            }`}
           aria-label={isProcessing && !isFileProcessing ? 'Pause response' : 'Send message'}
         >
           {isFileProcessing ? (

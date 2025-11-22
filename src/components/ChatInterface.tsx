@@ -15,17 +15,16 @@ import { streamManager } from '../services/streamManager';
 
 interface ChatInterfaceProps {
   selectedResponseMode: ResponseMode;
-  compact?: boolean;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, compact = false }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode }) => {
   // Get chat data and actions using selective subscriptions
   const { activeChatId, chatSessions, activeBranchPath } = useChatData();
-  const { 
-    addMessageToChat, 
-    createChat, 
+  const {
+    addMessageToChat,
+    createChat,
     setActiveChat,
-    pauseChatRequest 
+    pauseChatRequest
   } = useChatActions();
   const { getCurrentBranchMessages } = useBranchData();
 
@@ -38,26 +37,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, com
   const activeChatMessages = useMemo(() => {
     return activeChatId ? getCurrentBranchMessages(activeChatId) : [];
   }, [activeChatId, getCurrentBranchMessages, activeChat?.messages, currentBranchPath]);
-  
+
   // Local state for error handling
   const [error, setError] = useState<string | null>(null);
-  
+
   // Get file upload state and handlers from custom hook
-  const { 
-    uploadFiles, 
+  const {
+    uploadFiles,
     resetFileUploads,
     isProcessing: isFileProcessing,
     selectedFiles,
     handleFileRemove,
     processFiles
   } = useFileUpload();
-  
+
   // Get input store methods
   const { resetInput } = useInputStore();
-  
+
   // Get streaming message handler
   const { sendStreamingMessage } = useStreamingMessage(selectedResponseMode);
-  
+
   // Optimized cleanup with caching and smart intervals
   const { urls: activeImageUrls, hasImages, changed } = useImageUrlCache(activeChatMessages);
 
@@ -102,10 +101,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, com
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [activeImageUrls, hasImages, changed, activeChatMessages.length]);
-  
+
   // Get current chat streaming state from streamManager
   const isChatStreaming = activeChatId ? streamManager.isStreamingInChat(activeChatId) : false;
-  
+
   // Combined processing state
   const combinedIsProcessing = isChatStreaming || isFileProcessing;
 
@@ -125,22 +124,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, com
     if ((!messageText || messageText.trim() === '') && (!filesToUpload || filesToUpload.length === 0)) {
       return;
     }
-    
+
     let currentChatId = activeChatId;
-    
+
     // If there's no active chat, create one automatically
     if (!currentChatId) {
       // Create a title from the message (truncate if too long)
-      const chatTitle = messageText.trim() 
+      const chatTitle = messageText.trim()
         ? (messageText.length > 30 ? messageText.substring(0, 27) + '...' : messageText)
         : 'New Conversation';
-      
+
       currentChatId = createChat(chatTitle);
       setActiveChat(currentChatId);
     }
-    
+
     try {
-      
+
       // Process file uploads if needed
       let uploadedFiles: MessageFile[] = [];
       if (filesToUpload && filesToUpload.length > 0) {
@@ -152,10 +151,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, com
           showToast("Error uploading files", "error");
         }
       }
-      
+
       // Create a unique message ID
       const messageId = generateMessageId();
-      
+
       // Get conversation history for the current branch BEFORE adding current messages
       const history: ConversationMessage[] = buildHistory(getCurrentBranchMessages(currentChatId));
 
@@ -169,17 +168,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, com
         branchId: 'main',
         children: []
       };
-      
+
       // Add to chat state
       addMessageToChat(currentChatId, userMessage);
-      
+
       resetInput();
-      
+
       resetFileUploads();
-      
+
       // Create a unique message ID for AI response
       const aiMessageId = generateMessageId();
-      
+
       // Create initial AI message (will be updated with stream)
       const aiMessage: Message = {
         id: aiMessageId,
@@ -190,10 +189,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, com
         branchId: 'main',
         children: []
       };
-      
+
       // Add initial empty AI message to the chat
       addMessageToChat(currentChatId, aiMessage);
-      
+
       // Send the API request using the centralized streaming hook
       await sendStreamingMessage({
         chatId: currentChatId,
@@ -210,7 +209,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, com
       // Error handling is now managed by the streaming hook
     }
   };
-  
+
   return (
     <div className="flex flex-col h-full w-full bg-bg-primary relative overflow-hidden">
       {/* Show empty state if no active chat */}
@@ -225,21 +224,55 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, com
               Start a new chat by typing a message below or choose an existing conversation from the sidebar.
             </p>
           </div>
+
+          {/* Input area with proper spacing */}
+          <div className="w-full max-w-4xl mt-8">
+            <MessageInput
+              onSendMessage={handleSendMessage}
+              onPauseRequest={handlePauseRequest}
+              isProcessing={combinedIsProcessing}
+              isFileProcessing={isFileProcessing}
+              selectedFiles={selectedFiles}
+              onFileRemove={handleFileRemove}
+              onProcessFiles={processFiles}
+              showTopBorder={false}
+            />
+          </div>
         </div>
       ) : (
-        <MessageList messages={activeChatMessages} chatId={activeChatId} compact={compact} />
+        /* Active conversation with messages */
+        <>
+          <MessageList
+            messages={activeChatMessages}
+            chatId={activeChatId}
+          />
+
+          {/* Bottom-positioned message input */}
+          <div className="relative">
+            <MessageInput
+              onSendMessage={handleSendMessage}
+              onPauseRequest={handlePauseRequest}
+              isProcessing={combinedIsProcessing}
+              isFileProcessing={isFileProcessing}
+              selectedFiles={selectedFiles}
+              onFileRemove={handleFileRemove}
+              onProcessFiles={processFiles}
+              showTopBorder={true}
+            />
+          </div>
+        </>
       )}
-      
+
       {/* Display file upload loading state only */}
       {isFileProcessing && (
-        <div className="absolute bottom-[90px] left-1/2 -translate-x-1/2 bg-bg-elevated border border-border-secondary rounded-lg px-4 py-3 shadow-md flex items-center gap-3 z-dropdown animate-slide-up">
-          <LoadingIndicator 
+        <div className={`absolute ${activeChatId && activeChatMessages.length > 0 ? 'bottom-[90px]' : 'bottom-[120px]'} left-1/2 -translate-x-1/2 bg-bg-elevated border border-border-secondary rounded-lg px-4 py-3 shadow-md flex items-center gap-3 z-dropdown animate-slide-up`}>
+          <LoadingIndicator
             type="dots"
             text="Uploading files..."
           />
         </div>
       )}
-      
+
       {/* Display error state */}
       {error && (
         <div className="flex items-center gap-3 m-4 p-3 bg-error text-text-inverse rounded-md text-sm cursor-pointer transition-all duration-150 animate-slide-down hover:-translate-y-0.5 hover:shadow-md" onClick={() => clearError()}>
@@ -248,18 +281,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, com
           <button className="ml-auto bg-transparent border-none text-current text-xl cursor-pointer opacity-80 transition-opacity duration-150 p-0 w-6 h-6 flex items-center justify-center rounded hover:opacity-100 hover:bg-white/20">×</button>
         </div>
       )}
-      
-      {/* Message input area */}
-      <MessageInput
-        onSendMessage={handleSendMessage}
-        onPauseRequest={handlePauseRequest}
-        isProcessing={combinedIsProcessing}
-        isFileProcessing={isFileProcessing}
-        selectedFiles={selectedFiles}
-        onFileRemove={handleFileRemove}
-        onProcessFiles={processFiles}
-        compact={compact}
-      />
     </div>
   );
 };

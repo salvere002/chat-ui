@@ -165,14 +165,6 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
     toggleTheme();
   }, [toggleTheme]);
 
-  // Auto adapt thresholds (tweak as needed)
-  const compact = useMemo(() => {
-    if (variant !== 'auto') return false;
-    if (!containerSize) return false;
-    const { width, height } = containerSize;
-    return width < 520 || height < 560;
-  }, [containerSize, variant]);
-
   const effectiveVariant: 'embedded' | 'full' = useMemo(() => {
     if (variant === 'auto') return 'embedded';
     return variant;
@@ -195,52 +187,52 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
     : 'flex flex-col h-screen w-screen bg-bg-primary text-text-primary relative overflow-hidden';
 
   // Whether we want overlay-style sidebar (like mobile) based on container size
-  const overlay = variant === 'auto' ? compact : effectiveVariant === 'embedded';
+  const overlay = variant === 'auto' ? (containerSize ? containerSize.width < 520 || containerSize.height < 560 : false) : effectiveVariant === 'embedded';
 
   return (
-    <div ref={containerRef} data-theme={theme} className={`${containerClass} ${className ?? ''}`.trim()} style={style}>
+    <div ref={containerRef} data-theme={theme} className={`@container ${containerClass} ${className ?? ''}`.trim()} style={style}>
       {/* Header bar */}
       {!effectiveHideHeader && (
-      <div className="flex items-center justify-between px-4 py-3 bg-bg-secondary border-b border-border-primary z-sticky">
-        <div className="flex items-center gap-3">
-          {/* Mobile menu */}
-          <button
-            onClick={() => {
-              setSidebarOpen((prev) => {
-                const next = !prev;
-                // When opening in overlay mode (mobile/embedded), ensure expanded state
-                if (next && overlay) {
-                  setSidebarCollapsed(false);
-                }
-                return next;
-              });
-            }}
-            className={`${overlay ? '' : 'lg:hidden'} flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95`}
-            aria-label="Toggle sidebar"
-          >
-            {sidebarOpen ? <FaTimes className="relative z-10" /> : <FaBars className="relative z-10" />}
-          </button>
-          <h1 className="text-xl font-semibold text-text-primary transition-opacity duration-200 select-none">{title}</h1>
+        <div className="flex items-center justify-between px-4 py-3 bg-bg-secondary border-b border-border-primary z-sticky">
+          <div className="flex items-center gap-3">
+            {/* Mobile menu */}
+            <button
+              onClick={() => {
+                setSidebarOpen((prev) => {
+                  const next = !prev;
+                  // When opening in overlay mode (mobile/embedded), ensure expanded state
+                  if (next && overlay) {
+                    setSidebarCollapsed(false);
+                  }
+                  return next;
+                });
+              }}
+              className={`${overlay ? '' : 'lg:hidden'} flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95`}
+              aria-label="Toggle sidebar"
+            >
+              {sidebarOpen ? <FaTimes className="relative z-10" /> : <FaBars className="relative z-10" />}
+            </button>
+            <h1 className="text-xl font-semibold text-text-primary transition-opacity duration-200 select-none">{title}</h1>
+          </div>
+          <div className="flex gap-2 items-center">
+            {/* Theme toggle */}
+            <button
+              onClick={handleThemeClick}
+              className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95"
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? <FaMoon className="relative z-10" /> : <FaSun className="relative z-10" />}
+            </button>
+            {/* Settings */}
+            <button
+              onClick={() => setShowSettings((s) => !s)}
+              className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95"
+              aria-label="Open settings"
+            >
+              <FaCog className="relative z-10" />
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2 items-center">
-          {/* Theme toggle */}
-          <button
-            onClick={handleThemeClick}
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95"
-            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-          >
-            {theme === 'light' ? <FaMoon className="relative z-10" /> : <FaSun className="relative z-10" />}
-          </button>
-          {/* Settings */}
-          <button
-            onClick={() => setShowSettings(true)}
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95"
-            aria-label="Open settings"
-          >
-            <FaCog className="relative z-10" />
-          </button>
-        </div>
-      </div>
       )}
 
       {/* Settings modal (scoped to container) */}
@@ -294,7 +286,7 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
         {/* Chat content */}
         <div className={effectiveVariant === 'embedded' ? 'flex-1 min-h-0 overflow-hidden w-full' : 'flex-1 overflow-hidden w-full lg:w-auto'}>
           <ErrorBoundary>
-            <ChatInterface selectedResponseMode={selectedResponseMode} compact={compact} />
+            <ChatInterface selectedResponseMode={selectedResponseMode} />
           </ErrorBoundary>
         </div>
       </div>
