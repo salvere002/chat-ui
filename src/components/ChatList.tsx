@@ -2,11 +2,12 @@ import React from 'react';
 import { useChatStore } from '../stores';
 
 const ChatList: React.FC = () => {
-  const { chatSessions, activeChatId, setActiveChat, createChat, deleteChat } = useChatStore();
+  const { chatSessions, activeChatId, selectChat, createChat, deleteChat } = useChatStore();
 
   const handleCreateChat = () => {
     const newChatId = createChat();
-    setActiveChat(newChatId);
+    // Use selectChat so any future lazy-load behavior is consistent
+    selectChat(newChatId);
   };
 
   const handleDeleteChat = (
@@ -28,7 +29,7 @@ const ChatList: React.FC = () => {
           <li
             key={chat.id}
             className={`chat-list-item ${chat.id === activeChatId ? 'active' : ''}`}
-            onClick={() => setActiveChat(chat.id)}
+            onClick={() => selectChat(chat.id)}
           >
             <span className="chat-name">{chat.name || chat.title}</span>
             <button

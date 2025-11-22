@@ -21,7 +21,7 @@ const App: React.FC = () => {
   })));
 
   const sidebarActions = useChatStore(useShallow(state => ({
-    setActiveChat: state.setActiveChat,
+    selectChat: state.selectChat,
     createChat: state.createChat,
     deleteChat: state.deleteChat,
     clearAllChats: state.clearAllChats
@@ -119,13 +119,15 @@ const App: React.FC = () => {
 
   // Memoized sidebar event handlers
   const handleChatSelected = useCallback((chatId: string) => {
-    sidebarActions.setActiveChat(chatId);
+    // Use high-level selection API that also lazy-loads details when needed
+    sidebarActions.selectChat(chatId);
     setSidebarOpen(false); // Close sidebar on mobile after selection
   }, [sidebarActions]);
 
   const handleNewChatAndClose = useCallback(() => {
     const newChatId = sidebarActions.createChat('New Conversation');
-    sidebarActions.setActiveChat(newChatId);
+    // New chats are already fully loaded; selectChat will just mark active
+    sidebarActions.selectChat(newChatId);
     setSidebarOpen(false); // Close sidebar on mobile after creating new chat
   }, [sidebarActions]);
 

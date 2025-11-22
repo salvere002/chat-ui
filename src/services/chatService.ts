@@ -23,7 +23,7 @@ export class ChatService {
     const request: MessageRequest = { text, files, history };
     return this.getAdapter().sendMessage(request, abortSignal);
   }
-  
+
   /**
    * Send a message and get a complete response with per-conversation state management
    */
@@ -36,7 +36,7 @@ export class ChatService {
   ): Promise<MessageResponse> {
     // Start tracking this request using StreamManager (even though it's not streaming)
     const controller = streamManager.startStream(chatId, messageId);
-    
+
     try {
       const request: MessageRequest = { text, files, history, responseMessageId: messageId };
       const response = await this.getAdapter().sendMessage(request, controller.signal);
@@ -47,7 +47,7 @@ export class ChatService {
       throw error;
     }
   }
-  
+
   /**
    * Send a message and get a streaming response with context handling
    */
@@ -66,12 +66,12 @@ export class ChatService {
     // Start the stream using StreamManager
     const controller = streamManager.startStream(chatId, messageId);
     const context = { chatId, messageId };
-    
+
     const request: MessageRequest = { text, files, history, responseMessageId: messageId };
-    
+
     try {
       return await this.getAdapter().sendStreamingMessage(
-        request, 
+        request,
         {
           onChunk: (chunk) => callbacks.onChunk(chunk, context),
           onComplete: () => {
@@ -90,7 +90,7 @@ export class ChatService {
       throw error;
     }
   }
-  
+
   /**
    * Upload a file with progress tracking
    */
@@ -101,19 +101,36 @@ export class ChatService {
   ): Promise<FileUploadResponse> {
     return this.getAdapter().uploadFile(fileId, file, onProgress);
   }
-  
+
   /**
    * Get all uploaded files
    */
   static async getFiles(): Promise<FileUploadResponse[]> {
     return this.getAdapter().getFiles();
   }
-  
+
   /**
    * Get a single uploaded file by ID
    */
   static async getFile(fileId: string): Promise<FileUploadResponse> {
     return this.getAdapter().getFile(fileId);
+  }
+
+  /**
+   * Get chat details (messages and branch data)
+   * This is a placeholder for backend integration
+   */
+  static async getChatDetails(_chatId: string): Promise<{ messages: any[], branchData?: any }> {
+    // In a real implementation, this would call the adapter
+    // return this.getAdapter().getChatDetails(chatId);
+
+    // For now, simulate a network delay and return empty data
+    // The actual data loading logic will depend on the backend API
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ messages: [] });
+      }, 500);
+    });
   }
 }
 

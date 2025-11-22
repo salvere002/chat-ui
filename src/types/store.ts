@@ -10,12 +10,13 @@ export interface ChatStore {
   activeBranchPath: Map<string, string[]>; // chatId -> branch path
   branchTree: Map<string, Map<string, BranchNode>>; // chatId -> branchId -> BranchNode
   messageBranches: Map<string, Map<string, string[]>>; // chatId -> messageId -> branchIds
-  
+
   // Actions
   createChat: (name?: string) => string;
   deleteChat: (id: string) => void;
   clearAllChats: () => void;
   setActiveChat: (id: string) => void;
+  selectChat: (id: string) => Promise<void>;
   getChatById: (id: string) => Chat | undefined;
   addMessageToChat: (chatId: string, message: Message) => void;
   updateMessageInChat: (chatId: string, messageId: string, updates: Partial<Message>) => void;
@@ -36,6 +37,12 @@ export interface ChatStore {
   dump(chatId: string): any; // Single conversation
   dump(): any; // All conversations
   load(data: any, replaceExisting?: boolean, chatId?: string): string | string[];
+
+  // Backend integration actions
+  setChatList: (chats: Chat[]) => void;
+  markChatAsLoading: (chatId: string) => void;
+  loadChatDetails: (chatId: string, messages: Message[], branchData?: any) => void;
+  updateChatMetadata: (chatId: string, metadata: Partial<Chat>) => void;
 }
 
 // Define interface for the theme store state
