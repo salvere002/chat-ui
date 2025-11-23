@@ -47,12 +47,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
   // Get input value and setter from input store
   const { inputValue: value, setInputValue: onChange, resetInput } = useInputStore();
 
-  // Background texture is centralized at the app root
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-
 
   // Use refs for stable access to current values in callbacks
   const valueRef = useRef(value);
@@ -64,7 +62,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   selectedFilesRef.current = selectedFiles;
   onSendMessageRef.current = onSendMessage;
 
-
   // Handle focus change
   const handleFocus = useCallback(() => {
     onFocusChange?.(true);
@@ -73,8 +70,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleBlur = useCallback(() => {
     onFocusChange?.(false);
   }, [onFocusChange]);
-
-  // No per-component texture classes here
 
   // Function to handle Send/Pause button click
   const handleButtonClick = useCallback(() => {
@@ -86,8 +81,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     // Otherwise, send the message
     const filesToSend = selectedFilesRef.current
-      .filter(pf => pf.status === 'pending')
-      .map(pf => ({ id: pf.id, file: pf.file }));
+      .filter((pf) => pf.status === 'pending')
+      .map((pf) => ({ id: pf.id, file: pf.file }));
 
     const textToSend = valueRef.current.trim();
 
@@ -99,38 +94,43 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     // Clear text input using store
     resetInput();
-
   }, [isProcessing, isFileProcessing, onPauseRequest, resetInput]);
 
   // Function to handle Enter key press
-  const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      // Only send if not currently processing - don't allow pause via Enter key
-      if (!isProcessing) {
-        // Inline the send logic to avoid depending on handleButtonClick
-        const filesToSend = selectedFilesRef.current
-          .filter(pf => pf.status === 'pending')
-          .map(pf => ({ id: pf.id, file: pf.file }));
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        // Only send if not currently processing - don't allow pause via Enter key
+        if (!isProcessing) {
+          // Inline the send logic to avoid depending on handleButtonClick
+          const filesToSend = selectedFilesRef.current
+            .filter((pf) => pf.status === 'pending')
+            .map((pf) => ({ id: pf.id, file: pf.file }));
 
-        const textToSend = valueRef.current.trim();
+          const textToSend = valueRef.current.trim();
 
-        // If nothing to send or if file processing, exit
-        if ((!textToSend && filesToSend.length === 0) || isFileProcessing) return;
+          // If nothing to send or if file processing, exit
+          if ((!textToSend && filesToSend.length === 0) || isFileProcessing) return;
 
-        // Call parent's handler
-        onSendMessageRef.current(textToSend, filesToSend.length > 0 ? filesToSend : undefined);
+          // Call parent's handler
+          onSendMessageRef.current(textToSend, filesToSend.length > 0 ? filesToSend : undefined);
 
-        // Clear text input using store
-        resetInput();
+          // Clear text input using store
+          resetInput();
+        }
       }
-    }
-  }, [isProcessing, isFileProcessing, resetInput]);
+    },
+    [isProcessing, isFileProcessing, resetInput],
+  );
 
   // Function to handle textarea input
-  const handleInput = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(event.target.value);
-  }, [onChange]);
+  const handleInput = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onChange(event.target.value);
+    },
+    [onChange],
+  );
 
   // Function to trigger file input click
   const handleUploadClick = useCallback(() => {
@@ -150,13 +150,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
   }, [onProcessFiles]);
 
   // React-dropzone for drag-and-drop
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (!acceptedFiles || acceptedFiles.length === 0) return;
-    // Convert File[] to FileList using DataTransfer for compatibility with existing handlers
-    const dt = new DataTransfer();
-    acceptedFiles.forEach((f) => dt.items.add(f));
-    onProcessFiles(dt.files);
-  }, [onProcessFiles]);
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      if (!acceptedFiles || acceptedFiles.length === 0) return;
+      // Convert File[] to FileList using DataTransfer for compatibility with existing handlers
+      const dt = new DataTransfer();
+      acceptedFiles.forEach((f) => dt.items.add(f));
+      onProcessFiles(dt.files);
+    },
+    [onProcessFiles],
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -200,20 +203,31 @@ const MessageInput: React.FC<MessageInputProps> = ({
               )}
               {/* Name and Progress/Status */}
               <div className="flex-1 min-w-0">
-                <span className="block text-xs font-medium text-text-primary truncate" title={pf.file.name}>{pf.file.name}</span>
+                <span className="block text-xs font-medium text-text-primary truncate" title={pf.file.name}>
+                  {pf.file.name}
+                </span>
                 {pf.status === 'uploading' && (
                   <div className="w-full bg-bg-tertiary rounded-full h-1 mt-1 overflow-hidden">
-                    <div className="h-full bg-accent-primary transition-all duration-300 rounded-full" style={{ width: `${pf.progress}%` }}></div>
+                    <div
+                      className="h-full bg-accent-primary transition-all duration-300 rounded-full"
+                      style={{ width: `${pf.progress}%` }}
+                    ></div>
                   </div>
                 )}
                 {pf.status === 'complete' && pf.finalFileData && (
                   <span className="block text-xs text-success mt-0.5">Sent: {pf.finalFileData.name}</span>
                 )}
-                {pf.status === 'complete' && !pf.finalFileData && <span className="block text-xs text-success mt-0.5">Sent</span>}
+                {pf.status === 'complete' && !pf.finalFileData && (
+                  <span className="block text-xs text-success mt-0.5">Sent</span>
+                )}
               </div>
               {/* Remove Button (only if pending) */}
               {pf.status === 'pending' && (
-                <button onClick={() => onFileRemove(pf.id)} className="absolute -top-1 -right-1 w-4 h-4 bg-error text-text-inverse rounded-full flex items-center justify-center text-xs cursor-pointer transition-all duration-150 hover:bg-error/80" aria-label="Remove file">
+                <button
+                  onClick={() => onFileRemove(pf.id)}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-error text-text-inverse rounded-full flex items-center justify-center text-xs cursor-pointer transition-all duration-150 hover:bg-error/80"
+                  aria-label="Remove file"
+                >
                   <FaTimes size={8} />
                 </button>
               )}
@@ -299,4 +313,4 @@ const MessageInput: React.FC<MessageInputProps> = ({
   );
 };
 
-export default MessageInput; 
+export default MessageInput;

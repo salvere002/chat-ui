@@ -166,9 +166,6 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
     toggleTheme();
   }, [toggleTheme]);
 
-
-
-
   // Wide threshold for showing Settings as a slide-out sidebar (parity with bofa)
   const wideForSettings = useMemo(() => {
     if (!containerSize) return false;

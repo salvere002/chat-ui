@@ -43,8 +43,6 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId, onMessagePa
   getCurrentBranchMessagesRef.current = getCurrentBranchMessages;
   selectedResponseModeRef.current = selectedResponseMode;
 
-  // Background texture is centralized at the app root
-
   // Manage scroll button visibility and auto-scroll
   const checkScrollButton = useCallback(() => {
     const container = messageContainerRef.current;
@@ -225,4 +223,4 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId, onMessagePa
   );
 };
 
-export default MessageList; 
+export default MessageList;

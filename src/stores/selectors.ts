@@ -17,12 +17,18 @@ export const useChatActions = () => useChatStore(useShallow((state) => ({
   deleteChat: state.deleteChat,
   clearAllChats: state.clearAllChats,
   setActiveChat: state.setActiveChat,
+  selectChat: state.selectChat,
   addMessageToChat: state.addMessageToChat,
   updateMessageInChat: state.updateMessageInChat,
   renameChatSession: state.renameChatSession,
   // Streaming actions (simplified)
   pauseChatRequest: state.pauseChatRequest,
   isChatStreaming: state.isChatStreaming,
+  // Backend integration actions
+  setChatList: state.setChatList,
+  markChatAsLoading: state.markChatAsLoading,
+  loadChatDetails: state.loadChatDetails,
+  updateChatMetadata: state.updateChatMetadata,
 })));
 
 // Branch-related actions and data

@@ -287,7 +287,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
 
   // Background texture is now centralized at the app root
 
-
   return (
     <div className={`flex flex-col h-full w-full relative overflow-hidden`}>
       {/* Single welcome state for both no chat and empty chat */}

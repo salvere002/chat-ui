@@ -31,7 +31,7 @@ const App: React.FC = () => {
   })));
 
   const sidebarActions = useChatStore(useShallow(state => ({
-    setActiveChat: state.setActiveChat,
+    selectChat: state.selectChat,
     createChat: state.createChat,
     deleteChat: state.deleteChat,
     clearAllChats: state.clearAllChats
@@ -137,13 +137,13 @@ const App: React.FC = () => {
 
   // Memoized sidebar event handlers
   const handleChatSelected = useCallback((chatId: string) => {
-    sidebarActions.setActiveChat(chatId);
+    sidebarActions.selectChat(chatId);
     setSidebarOpen(false); // Close sidebar on mobile after selection
   }, [sidebarActions]);
 
   const handleNewChatAndClose = useCallback(() => {
     const newChatId = sidebarActions.createChat('New Conversation');
-    sidebarActions.setActiveChat(newChatId);
+    sidebarActions.selectChat(newChatId);
     setSidebarOpen(false); // Close sidebar on mobile after creating new chat
   }, [sidebarActions]);
 
@@ -223,7 +223,7 @@ const App: React.FC = () => {
     }
     setScreenshotUrl('');
     setScreenshotBlob(null);
-  }, []);
+  }, [screenshotUrl]);
 
   return (
     <div
@@ -373,4 +373,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App; 
+export default App;

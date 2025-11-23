@@ -42,6 +42,9 @@ export interface PreviewFile {
 // Define type for file upload state tracked within ChatInterface
 export type FileUploadState = PreviewFile;
 
+// Chat load status for backend integration
+export type ChatLoadStatus = 'summary' | 'loading' | 'fully_loaded' | 'error';
+
 // Chat session type
 export interface Chat {
   id: string;
@@ -50,6 +53,9 @@ export interface Chat {
   name?: string; // Include name for compatibility 
   createdAt: Date;
   updatedAt: Date;
+  // Backend integration fields
+  status: ChatLoadStatus;
+  lastSyncedAt?: Date;
 }
 
 // Branch node metadata
