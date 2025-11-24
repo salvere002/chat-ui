@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Message, Chat, BranchNode } from '../types/chat';
+import { Message, Chat, BranchNode, ChatMetadata, ChatLoadStatus } from '../types/chat';
 import { ChatStore } from '../types/store';
 import { configManager } from '../utils/config';
 import { streamManager } from '../services/streamManager';
@@ -759,37 +759,48 @@ const useChatStore = create<ChatStore>()(
       },
 
       // Backend integration actions
-      setChatList: (chats: Chat[]) => {
+      setChatList: (chats: ChatMetadata[]) => {
         set((state) => {
           // Create a map of existing chats for quick lookup
           const existingChatsMap = new Map(state.chatSessions.map(c => [c.id, c]));
 
-          const mergedChats = chats.map(newChat => {
-            const existingChat = existingChatsMap.get(newChat.id);
+          // Build the new list purely from incoming metadata (total replace),
+          // but preserve messages for any fully-loaded conversations we already have.
+          const mergedChats: Chat[] = chats.map((meta) => {
+            const existingChat = existingChatsMap.get(meta.id);
 
             if (existingChat && existingChat.status === 'fully_loaded') {
-              // If we have a fully loaded local version, preserve its messages and branch data
-              // Only update metadata (title, dates)
+              // Fully-loaded: keep messages/branches, refresh metadata only
               return {
                 ...existingChat,
-                title: newChat.title || existingChat.title,
-                name: newChat.name || existingChat.name,
-                updatedAt: newChat.updatedAt,
-                // Keep existing status and messages
-              };
-            } else {
-              // Otherwise (new chat or summary), use the new data
-              // Ensure status is set correctly
-              return {
-                ...newChat,
-                status: newChat.status || 'summary',
-                messages: newChat.messages || []
+                title: meta.title || existingChat.title,
+                name: meta.name || existingChat.name,
+                createdAt: meta.createdAt || existingChat.createdAt,
+                updatedAt: meta.updatedAt || existingChat.updatedAt,
+                status: existingChat.status,
+                lastSyncedAt: meta.lastSyncedAt || existingChat.lastSyncedAt,
               };
             }
-          });
 
-          // Sort by updatedAt desc
-          mergedChats.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+            // For non-fully-loaded or new chats, create/merge a shell
+            const base: Chat = existingChat || {
+              id: meta.id,
+              messages: [] as Message[],
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              status: 'summary' as ChatLoadStatus,
+            };
+
+            return {
+              ...base,
+              title: meta.title ?? base.title,
+              name: meta.name ?? base.name,
+              createdAt: meta.createdAt || base.createdAt,
+              updatedAt: meta.updatedAt || base.updatedAt,
+              status: meta.status || base.status,
+              lastSyncedAt: meta.lastSyncedAt || base.lastSyncedAt,
+            };
+          });
 
           return { chatSessions: mergedChats };
         });

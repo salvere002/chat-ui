@@ -1,4 +1,4 @@
-import { Message, Chat, ResponseMode, BranchNode, Agent, Model } from './chat';
+import { Message, Chat, ResponseMode, BranchNode, Agent, Model, ChatMetadata } from './chat';
 
 // Define interface for the chat store state
 export interface ChatStore {
@@ -42,7 +42,7 @@ export interface ChatStore {
   load(data: any, replaceExisting?: boolean, chatId?: string): string | string[];
 
   // Backend integration actions
-  setChatList: (chats: Chat[]) => void;
+  setChatList: (chats: ChatMetadata[]) => void;
   markChatAsLoading: (chatId: string) => void;
   loadChatDetails: (chatId: string, messages: Message[], branchData?: any) => void;
   updateChatMetadata: (chatId: string, metadata: Partial<Chat>) => void;
