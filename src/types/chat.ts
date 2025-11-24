@@ -58,6 +58,9 @@ export interface Chat {
   lastSyncedAt?: Date;
 }
 
+// Narrow metadata type for conversation list loading (no messages)
+export type ChatMetadata = Pick<Chat, 'id' | 'title' | 'name' | 'createdAt' | 'updatedAt' | 'status' | 'lastSyncedAt'>;
+
 // Branch node metadata
 export interface BranchNode {
   id: string;
