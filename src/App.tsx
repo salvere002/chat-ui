@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
-import { FaSun, FaMoon, FaCog, FaBars, FaTimes } from 'react-icons/fa';
+import NavBar from './components/NavBar';
 import { ToastContainer } from './components/Toast';
 import { useThemeStore, useResponseModeStore, useChatStore, useServiceConfigStore, useMcpStore } from './stores';
 import { getMcpConfigViaAdapter, isMcpConfigSupported } from './services/mcpConfigService';
@@ -133,42 +133,15 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen bg-bg-primary text-text-primary relative overflow-hidden">
-      {/* Header bar with title and controls */}
-      <div className="flex items-center justify-between px-4 py-3 bg-bg-secondary border-b border-border-primary z-sticky">
-        <div className="flex items-center gap-3">
-          {/* Hamburger menu for mobile */}
-          <button
-            onClick={handleSidebarToggle}
-            className="lg:hidden flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95"
-            aria-label="Toggle sidebar"
-          >
-            {sidebarOpen ? <FaTimes className="relative z-10" /> : <FaBars className="relative z-10" />}
-          </button>
-
-          <h1 className="text-xl font-semibold text-text-primary transition-opacity duration-200 select-none">
-            Chat UI
-          </h1>
-        </div>
-
-        {/* Theme toggle and settings */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleThemeClick}
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2"
-            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-          >
-            {theme === 'light' ? <FaMoon className="relative z-10" /> : <FaSun className="relative z-10" />}
-          </button>
-
-          <button
-            onClick={handleSettingsClick}
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2"
-            aria-label="Open settings"
-          >
-            <FaCog className="relative z-10" />
-          </button>
-        </div>
-      </div>
+      {/* Navigation bar */}
+      <NavBar
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={handleSidebarToggle}
+        theme={theme}
+        onThemeToggle={handleThemeClick}
+        onShareClick={() => {}} // Placeholder - share functionality not in main branch
+        onSettingsClick={handleSettingsClick}
+      />
 
       {/* Settings modal */}
       {showSettings && (

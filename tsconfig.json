@@ -113,5 +113,6 @@
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
   "include": ["src"], // Only include 'src' for the main config
+  "exclude": ["src/proxy/**"], // Exclude Vite plugin files (build-time only)
   "references": [{ "path": "./tsconfig.node.json" }] // Required for Vite config type checking
 }
