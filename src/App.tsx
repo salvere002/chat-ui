@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
-import { FaSun, FaMoon, FaCog, FaBars, FaTimes, FaShareAlt } from 'react-icons/fa';
+import NavBar from './components/NavBar';
 import { ToastContainer } from './components/Toast';
 import { toast } from 'sonner';
 import { useThemeStore, useResponseModeStore, useChatStore, useUiSettingsStore, useServiceConfigStore, useMcpStore } from './stores';
@@ -231,55 +231,16 @@ const App: React.FC = () => {
       aria-busy={isCapturing}
       {...(isCapturing ? { inert: true } : {})}
     >
-      {/* Header bar with title and controls */}
-      <div className="flex items-center justify-between px-4 py-3 bg-bg-secondary border-b border-border-primary z-sticky">
-        <div className="flex items-center gap-3">
-          {/* Hamburger menu for mobile */}
-          <button
-            onClick={handleSidebarToggle}
-            className="lg:hidden flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Toggle sidebar"
-            disabled={isCapturing}
-          >
-            {sidebarOpen ? <FaTimes className="relative z-10" /> : <FaBars className="relative z-10" />}
-          </button>
-
-          <h1 className="text-xl font-semibold text-text-primary transition-opacity duration-200 select-none">
-            Chat UI
-          </h1>
-        </div>
-
-        {/* Theme toggle, share, and settings */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleShareClick}
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Share conversation"
-            title="Share conversation"
-            disabled={isCapturing}
-          >
-            <FaShareAlt className="relative z-10" />
-          </button>
-
-          <button
-            onClick={handleThemeClick}
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            disabled={isCapturing}
-          >
-            {theme === 'light' ? <FaMoon className="relative z-10" /> : <FaSun className="relative z-10" />}
-          </button>
-
-          <button
-            onClick={handleSettingsClick}
-            className="flex items-center justify-center w-9 h-9 p-0 bg-transparent text-text-secondary rounded-md text-lg cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary hover:bg-accent-light active:scale-95 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Open settings"
-            disabled={isCapturing}
-          >
-            <FaCog className="relative z-10" />
-          </button>
-        </div>
-      </div>
+      {/* Navigation bar */}
+      <NavBar
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={handleSidebarToggle}
+        theme={theme}
+        onThemeToggle={handleThemeClick}
+        onShareClick={handleShareClick}
+        onSettingsClick={handleSettingsClick}
+        isCapturing={isCapturing}
+      />
 
       {/* Settings modal - only show on narrow screens */}
       {showSettings && !isWideScreen && (

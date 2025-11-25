@@ -783,7 +783,7 @@ const useChatStore = create<ChatStore>()(
             }
 
             // For non-fully-loaded or new chats, create/merge a shell
-            const base: Chat = existingChat || {
+            const base: Partial<Chat> = existingChat || {
               id: meta.id,
               messages: [] as Message[],
               createdAt: new Date(),
@@ -792,7 +792,8 @@ const useChatStore = create<ChatStore>()(
             };
 
             return {
-              ...base,
+              id: base.id!,
+              messages: base.messages!,
               title: meta.title ?? base.title,
               name: meta.name ?? base.name,
               createdAt: meta.createdAt || base.createdAt,
