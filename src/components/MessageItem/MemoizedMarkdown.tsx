@@ -16,9 +16,10 @@ import LoadingIndicator from '../LoadingIndicator';
 interface MemoizedMarkdownProps {
   text: string; 
   isIncomplete: boolean;
+  onCodeUpdate?: (oldCode: string, newCode: string) => void;
 }
 
-const MemoizedMarkdown: React.FC<MemoizedMarkdownProps> = memo(({ text, isIncomplete }) => {
+const MemoizedMarkdown: React.FC<MemoizedMarkdownProps> = memo(({ text, isIncomplete, onCodeUpdate }) => {
   return (
     <div className="prose prose-sm max-w-none text-current">
       <ReactMarkdown
@@ -295,6 +296,7 @@ const MemoizedMarkdown: React.FC<MemoizedMarkdownProps> = memo(({ text, isIncomp
                 <CodeBlock
                   language={language}
                   className={className}
+                  onCodeUpdate={onCodeUpdate}
                   {...props}
                 >
                   {String(children).replace(/\n$/, '')}

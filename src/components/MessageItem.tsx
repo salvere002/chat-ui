@@ -77,6 +77,7 @@ const MessageBody: React.FC<{
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  onCodeUpdate?: (oldCode: string, newCode: string) => void;
 }> = memo(({ 
   sender, 
   text, 
@@ -89,7 +90,8 @@ const MessageBody: React.FC<{
   onTextareaChange, 
   onSaveEdit, 
   onCancelEdit, 
-  textareaRef 
+  textareaRef,
+  onCodeUpdate
 }) => {
   const isIncomplete = sender === 'ai' && isComplete === false;
 
@@ -111,7 +113,7 @@ const MessageBody: React.FC<{
       
       {/* Render text content */}
       {text && !isEditing && (
-        <MemoizedMarkdown text={text} isIncomplete={isIncomplete} />
+        <MemoizedMarkdown text={text} isIncomplete={isIncomplete} onCodeUpdate={onCodeUpdate} />
       )}
       
       {/* Edit mode text area */}
@@ -420,6 +422,20 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     setIsEditing(false);
   };
 
+  // Handle code block update from code editor
+  const handleCodeUpdate = useCallback((oldCode: string, newCode: string) => {
+    if (!text || oldCode === newCode) return;
+    
+    // Find and replace the old code block with the new one
+    // Code blocks in markdown are wrapped with triple backticks
+    // We need to find the exact occurrence and replace it
+    const updatedText = text.replace(oldCode, newCode);
+    
+    if (updatedText !== text) {
+      updateMessageInChat(chatId, id, { text: updatedText });
+    }
+  }, [text, chatId, id, updateMessageInChat]);
+
   // Memoized copy message handler
   const handleCopyMessage = useCallback(() => {
     if (text) {
@@ -500,6 +516,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
           onSaveEdit={handleSaveEdit}
           onCancelEdit={handleCancelEdit}
           textareaRef={textareaRef}
+          onCodeUpdate={handleCodeUpdate}
         />
       </div>
       

@@ -1,25 +1,48 @@
-import { memo, useMemo, useState } from 'react';
-import { FaCheck, FaCopy, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { memo, useMemo, useState, useEffect } from 'react';
+import { FaCheck, FaCopy, FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import copyToClipboard from 'copy-to-clipboard';
+import { createPortal } from 'react-dom';
+import CodeEditor from './CodeEditor';
 
 interface CodeBlockProps {
   children: string; 
   language: string; 
   className?: string;
+  onCodeUpdate?: (oldCode: string, newCode: string) => void;
 }
 
 const CodeBlock = memo<CodeBlockProps>(({ 
   children, 
   language, 
   className,
+  onCodeUpdate,
   ...props 
 }) => {
   const [copied, setCopied] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [currentCode, setCurrentCode] = useState(children);
+
+  // Sync currentCode with children prop when it changes externally
+  useEffect(() => {
+    setCurrentCode(children);
+  }, [children]);
+
+  // Detect desktop vs mobile (desktop = width >= 768px)
+  useEffect(() => {
+    const checkIsDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    
+    checkIsDesktop();
+    window.addEventListener('resize', checkIsDesktop);
+    return () => window.removeEventListener('resize', checkIsDesktop);
+  }, []);
 
   const handleCopy = () => {
-    const ok = copyToClipboard(children);
+    const ok = copyToClipboard(currentCode);
     if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 500);
@@ -28,6 +51,22 @@ const CodeBlock = memo<CodeBlockProps>(({
 
   const handleToggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  const handleOpenEditor = () => {
+    setIsEditorOpen(true);
+  };
+
+  const handleCloseEditor = () => {
+    setIsEditorOpen(false);
+  };
+
+  const handleSaveCode = (newCode: string) => {
+    if (newCode !== currentCode) {
+      const oldCode = currentCode;
+      setCurrentCode(newCode);
+      onCodeUpdate?.(oldCode, newCode);
+    }
   };
 
   // Theme-agnostic Prism style using CSS variables so theme flips don't re-render
@@ -88,55 +127,69 @@ const CodeBlock = memo<CodeBlockProps>(({
   }) as any, []);
 
   // Get preview content (first few lines for collapsed state)
-  const lines = children.split('\n');
+  const lines = currentCode.split('\n');
   const lineCount = lines.length;
   const previewLines = lines.slice(0, 3).join('\n');
-  const shouldShowCollapse = lineCount > 1; // Only show collapse for code blocks with more than 5 lines
+  const shouldShowCollapse = lineCount > 1; // Only show collapse for code blocks with more than 1 line
 
   // Determine content to show
-  const displayContent = isCollapsed ? previewLines : children;
+  const displayContent = isCollapsed ? previewLines : currentCode;
+
+  // Check if editing is available (desktop only and has callback)
+  const canEdit = isDesktop && !!onCodeUpdate;
 
   return (
-    <div className="relative group/codeblock">
-      {/* Header with language and collapse button */}
-      {shouldShowCollapse && (
-        <div className="flex items-center justify-between px-3 py-2 bg-bg-secondary border border-border-secondary border-b-0 rounded-t-lg">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-text-tertiary uppercase tracking-wide">
-              {language}
-            </span>
-            <span className="text-xs text-text-tertiary">
-              {lineCount} lines
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            {/* Copy button */}
-            <button
-              onClick={handleCopy}
-              className="flex items-center justify-center w-6 h-6 bg-transparent hover:bg-bg-tertiary text-text-tertiary hover:text-text-primary border-none rounded transition-all duration-200"
-              title={copied ? "Copied!" : "Copy code"}
-            >
-              {copied ? (
-                <FaCheck className="text-accent-primary text-xs" />
-              ) : (
-                <FaCopy className="text-xs" />
+    <>
+      <div className="relative group/codeblock">
+        {/* Header with language and collapse button */}
+        {shouldShowCollapse && (
+          <div className="flex items-center justify-between px-3 py-2 bg-bg-secondary border border-border-secondary border-b-0 rounded-t-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-text-tertiary uppercase tracking-wide">
+                {language}
+              </span>
+              <span className="text-xs text-text-tertiary">
+                {lineCount} lines
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              {/* Edit button - desktop only */}
+              {canEdit && (
+                <button
+                  onClick={handleOpenEditor}
+                  className="flex items-center justify-center w-6 h-6 bg-transparent hover:bg-bg-tertiary text-text-tertiary hover:text-accent-primary border-none rounded transition-all duration-200"
+                  title="Edit in code editor"
+                >
+                  <FaEdit className="text-xs" />
+                </button>
               )}
-            </button>
-            {/* Collapse button */}
-            <button
-              onClick={handleToggleCollapse}
-              className="flex items-center justify-center w-6 h-6 bg-transparent hover:bg-bg-tertiary text-text-tertiary hover:text-text-primary border-none rounded transition-all duration-200"
-              title={isCollapsed ? "Expand code" : "Collapse code"}
-            >
-              {isCollapsed ? (
-                <FaChevronDown className="text-xs" />
-              ) : (
-                <FaChevronUp className="text-xs" />
-              )}
-            </button>
+              {/* Copy button */}
+              <button
+                onClick={handleCopy}
+                className="flex items-center justify-center w-6 h-6 bg-transparent hover:bg-bg-tertiary text-text-tertiary hover:text-text-primary border-none rounded transition-all duration-200"
+                title={copied ? "Copied!" : "Copy code"}
+              >
+                {copied ? (
+                  <FaCheck className="text-accent-primary text-xs" />
+                ) : (
+                  <FaCopy className="text-xs" />
+                )}
+              </button>
+              {/* Collapse button */}
+              <button
+                onClick={handleToggleCollapse}
+                className="flex items-center justify-center w-6 h-6 bg-transparent hover:bg-bg-tertiary text-text-tertiary hover:text-text-primary border-none rounded transition-all duration-200"
+                title={isCollapsed ? "Expand code" : "Collapse code"}
+              >
+                {isCollapsed ? (
+                  <FaChevronDown className="text-xs" />
+                ) : (
+                  <FaChevronUp className="text-xs" />
+                )}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       
       {/* Code content with syntax highlighting */}
       <div className={`relative ${isCollapsed ? 'overflow-hidden' : ''}`}>
@@ -173,21 +226,46 @@ const CodeBlock = memo<CodeBlockProps>(({
         )}
       </div>
 
-      {/* Copy button for code blocks without collapse functionality */}
-      {!shouldShowCollapse && (
-        <button
-          onClick={handleCopy}
-          className="absolute top-2 right-2 flex items-center justify-center w-7 h-7 bg-bg-tertiary hover:bg-bg-secondary text-text-tertiary hover:text-text-primary border border-border-secondary rounded opacity-0 group-hover/codeblock:opacity-100 transition-all duration-200"
-          title={copied ? "Copied!" : "Copy code"}
-        >
-          {copied ? (
-            <FaCheck className="text-accent-primary text-xs" />
-          ) : (
-            <FaCopy className="text-xs" />
-          )}
-        </button>
+        {/* Buttons for code blocks without collapse functionality */}
+        {!shouldShowCollapse && (
+          <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/codeblock:opacity-100 transition-all duration-200">
+            {/* Edit button - desktop only */}
+            {canEdit && (
+              <button
+                onClick={handleOpenEditor}
+                className="flex items-center justify-center w-7 h-7 bg-bg-tertiary hover:bg-bg-secondary text-text-tertiary hover:text-accent-primary border border-border-secondary rounded"
+                title="Edit in code editor"
+              >
+                <FaEdit className="text-xs" />
+              </button>
+            )}
+            {/* Copy button */}
+            <button
+              onClick={handleCopy}
+              className="flex items-center justify-center w-7 h-7 bg-bg-tertiary hover:bg-bg-secondary text-text-tertiary hover:text-text-primary border border-border-secondary rounded"
+              title={copied ? "Copied!" : "Copy code"}
+            >
+              {copied ? (
+                <FaCheck className="text-accent-primary text-xs" />
+              ) : (
+                <FaCopy className="text-xs" />
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Code Editor Portal - renders at document root */}
+      {isEditorOpen && createPortal(
+        <CodeEditor
+          code={currentCode}
+          language={language}
+          onSave={handleSaveCode}
+          onClose={handleCloseEditor}
+        />,
+        document.body
       )}
-    </div>
+    </>
   );
 });
 
