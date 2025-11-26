@@ -15,11 +15,14 @@ const CodeEditor = memo<CodeEditorProps>(({ code, language, onSave, onClose }) =
   const [copied, setCopied] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const syntaxHighlighterRef = useRef<HTMLDivElement>(null);
 
-  // Sync scroll between textarea and line numbers
+  // Sync scroll between textarea, line numbers, and syntax highlighter
   const handleScroll = useCallback(() => {
-    if (textareaRef.current && lineNumbersRef.current) {
+    if (textareaRef.current && lineNumbersRef.current && syntaxHighlighterRef.current) {
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+      syntaxHighlighterRef.current.scrollTop = textareaRef.current.scrollTop;
+      syntaxHighlighterRef.current.scrollLeft = textareaRef.current.scrollLeft;
     }
   }, []);
 
@@ -219,7 +222,10 @@ const CodeEditor = memo<CodeEditorProps>(({ code, language, onSave, onClose }) =
         {/* Code editor with overlay */}
         <div className="flex-1 relative overflow-hidden">
           {/* Syntax highlighted preview (behind) */}
-          <div className="absolute inset-0 overflow-auto pointer-events-none">
+          <div 
+            ref={syntaxHighlighterRef}
+            className="absolute inset-0 overflow-auto pointer-events-none"
+          >
             <SyntaxHighlighter
               style={syntaxTheme}
               language={language}
