@@ -25,8 +25,7 @@ export const EmbeddedImage: React.FC<{ imageUrl: string }> = memo(({ imageUrl })
       <img 
         src={imageUrl} 
         alt="Embedded image"
-        className="w-full h-auto object-contain rounded-lg"
-        style={{maxWidth: '580px', maxHeight: '320px'}} 
+        className="w-full h-auto object-contain rounded-lg max-w-[580px] xl:max-w-[700px] 2xl:max-w-[800px] max-h-[320px] xl:max-h-[400px]"
         onError={(e) => {
           // Handle broken images by hiding them
           const target = e.currentTarget as HTMLImageElement;
@@ -59,13 +58,12 @@ export const FileAttachment = React.memo<FileAttachmentProps>(({ file }) => {
   }, [file.url, file.type]);
   
   return (
-    <div className="inline-block bg-bg-secondary border border-border-secondary rounded-lg overflow-hidden" style={{maxWidth: '580px'}}>
+    <div className="inline-block bg-bg-secondary border border-border-secondary rounded-lg overflow-hidden max-w-[580px] xl:max-w-[700px] 2xl:max-w-[800px]">
       {file.type.startsWith('image/') ? (
         <img 
           src={file.url} 
           alt={file.name} 
-          className="w-full h-auto object-contain" 
-          style={{maxWidth: '580px', maxHeight: '320px'}}
+          className="w-full h-auto object-contain max-w-[580px] xl:max-w-[700px] 2xl:max-w-[800px] max-h-[320px] xl:max-h-[400px]"
           loading="lazy"
           onError={(e) => {
             const target = e.currentTarget as HTMLImageElement;

@@ -304,7 +304,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
           </div>
 
           {/* Input area with proper spacing */}
-          <div className="w-full max-w-4xl">
+          <div className="w-full max-w-4xl xl:max-w-[1100px] 2xl:max-w-[1400px]">
             {/* Suggested questions above input - centered */}
             {showSuggestions && (
               <div className="flex justify-center">
@@ -344,7 +344,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
           <div className={`relative ${shouldAnimateTransition ? 'animate-input-to-bottom' : ''}`}>
             {/* Suggested questions overlay - positioned above input without taking space */}
             {showSuggestions && isInputFocused && currentSuggestions.length > 0 && !combinedIsProcessing && (
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-full max-w-4xl px-4 z-dropdown">
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-full max-w-4xl xl:max-w-[1100px] 2xl:max-w-[1400px] px-4 z-dropdown">
                 <div className="flex justify-center">
                   <div className="w-full max-w-2xl">
                     <SuggestedQuestions

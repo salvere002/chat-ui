@@ -174,7 +174,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId, onMessagePa
         ref={messageContainerRef}
       >
         <div
-          className={`flex flex-col max-w-[800px] mx-auto w-full py-2 px-2 relative @min-w-[520px]:py-4 @min-w-[520px]:px-4`}
+          className={`flex flex-col max-w-[800px] xl:max-w-[1100px] 2xl:max-w-[1400px] mx-auto w-full py-2 px-2 relative @min-w-[520px]:py-4 @min-w-[520px]:px-4 gap-1 xl:gap-3 2xl:gap-4`}
           data-conversation-root
         >
           {messages.map((msg, index) => {

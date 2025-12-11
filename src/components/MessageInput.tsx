@@ -174,7 +174,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div
-      className={`flex flex-col px-1 py-3 @min-w-[520px]:p-4 ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
+      className={`flex flex-col px-1 py-3 @min-w-[520px]:p-4 ${showTopBorder ? 'border-t border-border-secondary' : ''} w-full max-w-[800px] xl:max-w-[1100px] 2xl:max-w-[1400px] sm:mx-auto relative transition-all duration-200 ${isDragging ? 'bg-accent-light border-accent-primary' : ''}`}
       ref={dropAreaRef}
       {...getRootProps()}
     >

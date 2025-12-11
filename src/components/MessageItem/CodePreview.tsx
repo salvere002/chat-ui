@@ -2,7 +2,6 @@ import { memo, useMemo, useState } from 'react';
 import * as ReactModule from 'react';
 import { Runner } from 'react-runner';
 import * as Recharts from 'recharts';
-import * as LucideIcons from 'lucide-react';
 
 const REACT_IMPORT_REGEX = /from\s+['"]react['"]|require\(['"]react['"]\)/;
 const EXPORT_DEFAULT_REGEX = /export\s+default\s+/;
@@ -26,7 +25,6 @@ const CodePreview = memo<CodePreviewProps>(({ code, isOpen }) => {
       import: {
         react: ReactModule,
         recharts: Recharts,
-        'lucide-react': LucideIcons,
       },
     }),
     []
@@ -37,7 +35,7 @@ const CodePreview = memo<CodePreviewProps>(({ code, isOpen }) => {
   }
 
   return (
-    <div className="w-1/2 border-l border-border-secondary bg-bg-secondary flex flex-col">
+    <div className="code-preview-root w-1/2 border-l border-border-secondary bg-bg-secondary flex flex-col">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary text-xs text-text-tertiary">
         <span className="font-medium text-text-primary">Preview</span>
         {error && (
@@ -64,4 +62,3 @@ const CodePreview = memo<CodePreviewProps>(({ code, isOpen }) => {
 CodePreview.displayName = 'CodePreview';
 
 export default CodePreview;
-

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useThemeStore } from '../stores';
 
 interface ExpressionRendererProps {
@@ -8,6 +8,26 @@ interface ExpressionRendererProps {
 
 const ExpressionRenderer: React.FC<ExpressionRendererProps> = ({ code, className }) => {
   const { theme } = useThemeStore();
+  
+  // Responsive width based on screen size
+  const [responsiveWidth, setResponsiveWidth] = useState({ container: 760, iframe: 580 });
+  
+  useEffect(() => {
+    const updateWidth = () => {
+      const width = window.innerWidth;
+      if (width >= 1536) { // 2xl
+        setResponsiveWidth({ container: 980, iframe: 800 });
+      } else if (width >= 1280) { // xl
+        setResponsiveWidth({ container: 880, iframe: 700 });
+      } else {
+        setResponsiveWidth({ container: 760, iframe: 580 });
+      }
+    };
+    
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
   
   // Memoize the expression data to prevent unnecessary re-renders
   const memoizedExpressionData = useMemo(() => {
@@ -42,7 +62,7 @@ const ExpressionRenderer: React.FC<ExpressionRendererProps> = ({ code, className
         style={{ 
           height: '320px',
           minHeight: '320px',
-          maxWidth: '760px',
+          maxWidth: `${responsiveWidth.container}px`,
           margin: '0 auto',
           position: 'relative',
           overflow: 'hidden'
@@ -58,7 +78,7 @@ const ExpressionRenderer: React.FC<ExpressionRendererProps> = ({ code, className
           <iframe
             key={key}
             src={url}
-            width="580"
+            width={responsiveWidth.iframe}
             height="320"
             frameBorder="0"
             loading="lazy"

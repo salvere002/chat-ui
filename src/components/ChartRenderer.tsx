@@ -39,8 +39,29 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
   
   
   // Use completely static width - no more ResizeObserver or dynamic calculations
+  // Base width for default screens, will be overridden by CSS for larger screens
   const chartWidth = 580; // Fixed width that works well for the chat interface
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Get responsive chart width based on screen size
+  const [responsiveChartWidth, setResponsiveChartWidth] = React.useState(chartWidth);
+  
+  React.useEffect(() => {
+    const updateChartWidth = () => {
+      const width = window.innerWidth;
+      if (width >= 1536) { // 2xl
+        setResponsiveChartWidth(800);
+      } else if (width >= 1280) { // xl
+        setResponsiveChartWidth(700);
+      } else {
+        setResponsiveChartWidth(580);
+      }
+    };
+    
+    updateChartWidth();
+    window.addEventListener('resize', updateChartWidth);
+    return () => window.removeEventListener('resize', updateChartWidth);
+  }, []);
 
   // Memoize expensive calculations
   const defaultConfig = useMemo(() => ({
@@ -114,7 +135,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
       switch (type) {
         case 'bar':
           return (
-            <BarChart {...commonProps} width={chartWidth - 4} height={defaultConfig.height - 4}>
+            <BarChart {...commonProps} width={responsiveChartWidth - 4} height={defaultConfig.height - 4}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               {defaultConfig.title && (
                 <text x="50%" y="15" textAnchor="middle" style={{ fill: textColor, fontSize: '16px', fontWeight: 'bold' }}>
@@ -199,7 +220,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
 
         case 'line':
           return (
-            <LineChart {...commonProps} width={chartWidth - 4} height={defaultConfig.height - 4}>
+            <LineChart {...commonProps} width={responsiveChartWidth - 4} height={defaultConfig.height - 4}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               {defaultConfig.title && (
                 <text x="50%" y="15" textAnchor="middle" style={{ fill: textColor, fontSize: '16px', fontWeight: 'bold' }}>
@@ -284,7 +305,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
 
         case 'area':
           return (
-            <AreaChart {...commonProps} width={chartWidth - 4} height={defaultConfig.height - 4}>
+            <AreaChart {...commonProps} width={responsiveChartWidth - 4} height={defaultConfig.height - 4}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               {defaultConfig.title && (
                 <text x="50%" y="15" textAnchor="middle" style={{ fill: textColor, fontSize: '16px', fontWeight: 'bold' }}>
@@ -379,7 +400,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
           }));
           
           return (
-            <PieChart {...commonProps} width={chartWidth - 4} height={defaultConfig.height - 4}>
+            <PieChart {...commonProps} width={responsiveChartWidth - 4} height={defaultConfig.height - 4}>
               {defaultConfig.title && (
                 <text x="50%" y="15" textAnchor="middle" style={{ fill: textColor, fontSize: '16px', fontWeight: 'bold' }}>
                   {defaultConfig.title}
@@ -431,7 +452,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
 
         case 'scatter':
           return (
-            <ScatterChart {...commonProps} width={chartWidth - 4} height={defaultConfig.height - 4}>
+            <ScatterChart {...commonProps} width={responsiveChartWidth - 4} height={defaultConfig.height - 4}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
               {defaultConfig.title && (
                 <text x="50%" y="15" textAnchor="middle" style={{ fill: textColor, fontSize: '16px', fontWeight: 'bold' }}>
@@ -508,7 +529,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
             <BarChart 
               data={[{name: 'Unsupported', value: 100}]} 
               margin={{ top: 30, right: 5, left: 5, bottom: 5 }} 
-              width={chartWidth - 4} 
+              width={responsiveChartWidth - 4} 
               height={defaultConfig.height - 4}
             >
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
@@ -556,7 +577,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
         </div>
       );
     }
-  }, [type, defaultConfig, themeColors, commonProps]);
+  }, [type, defaultConfig, themeColors, commonProps, responsiveChartWidth]);
 
   return (
     <div className={`chart-container my-4 w-full ${className || ''}`} style={{ maxWidth: '100%' }}>
@@ -566,7 +587,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ chartData, className }) =
         style={{ 
           height: `${defaultConfig.height}px`,
           minHeight: `${defaultConfig.height}px`,
-          maxWidth: '760px',
+          maxWidth: `${responsiveChartWidth + 180}px`,
           margin: '0 auto',
           position: 'relative',
           overflow: 'hidden'

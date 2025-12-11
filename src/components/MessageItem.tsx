@@ -474,9 +474,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
 
   // Memoize expensive style calculations
   const containerClasses = useMemo(() => clsx(
-    'group flex flex-col px-2 sm:px-4 py-2 max-w-[90%] sm:max-w-[85%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg',
+    'group flex flex-col px-2 sm:px-4 xl:px-6 py-2 xl:py-3 max-w-[90%] sm:max-w-[85%] xl:max-w-[80%] 2xl:max-w-[75%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg',
     sender === 'user' ? 'self-end items-end' : 'self-start items-start',
-    isEditing && 'editing w-[90%] sm:w-[85%] max-w-[90%] sm:max-w-[85%]'
+    isEditing && 'editing w-[90%] sm:w-[85%] xl:w-[80%] 2xl:w-[75%] max-w-[90%] sm:max-w-[85%] xl:max-w-[80%] 2xl:max-w-[75%]'
   ), [sender, isEditing]);
 
   const messageClasses = useMemo(() => clsx(
