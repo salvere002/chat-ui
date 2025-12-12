@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FaUser, FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import { useAgentStore } from '../stores';
+import { useAgentStore, useChatData, useChatActions } from '../stores';
 import {
   useFloating,
   offset,
@@ -23,6 +23,8 @@ const AgentSelector: React.FC = () => {
     getEffectiveAgent, 
     getSelectableAgents 
   } = useAgentStore();
+  const { activeChatId } = useChatData();
+  const { updateChatMetadata } = useChatActions();
   const displayAgent = getEffectiveAgent();
   const selectableAgents = getSelectableAgents();
   const { refs, floatingStyles, context } = useFloating({
@@ -40,6 +42,9 @@ const AgentSelector: React.FC = () => {
 
   const handleAgentSelect = (agentId: string) => {
     setSelectedAgent(agentId);
+    if (activeChatId) {
+      updateChatMetadata(activeChatId, { selectedAgentId: agentId });
+    }
     setIsOpen(false);
   };
 

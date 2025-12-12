@@ -53,6 +53,9 @@ export interface Chat {
   name?: string; // Include name for compatibility 
   createdAt: Date;
   updatedAt: Date;
+  // Per-conversation selections
+  selectedAgentId?: string | null;
+  selectedModelId?: string | null;
   // Backend integration fields
   status: ChatLoadStatus;
   lastSyncedAt?: Date;

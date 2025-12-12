@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FaCog, FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import { useModelStore } from '../stores';
+import { useModelStore, useChatData, useChatActions } from '../stores';
 import {
   useFloating,
   offset,
@@ -18,6 +18,8 @@ import {
 const ModelSelector: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { models, selectedModelId, setSelectedModel, getSelectedModel } = useModelStore();
+  const { activeChatId } = useChatData();
+  const { updateChatMetadata } = useChatActions();
   const selectedModel = getSelectedModel();
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
@@ -33,6 +35,9 @@ const ModelSelector: React.FC = () => {
 
   const handleModelSelect = (modelId: string) => {
     setSelectedModel(modelId);
+    if (activeChatId) {
+      updateChatMetadata(activeChatId, { selectedModelId: modelId });
+    }
     setIsOpen(false);
   };
 

@@ -3,11 +3,11 @@ import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
 import SuggestedQuestions from './SuggestedQuestions';
-import { useChatData, useChatActions, useBranchData, useToastStore, useInputStore, useUiSettingsStore, useChatStore } from '../stores';
+import { useChatData, useChatActions, useBranchData, useToastStore, useInputStore, useUiSettingsStore, useChatStore, useAgentStore, useModelStore } from '../stores';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { useStreamingMessage } from '../hooks/useStreamingMessage';
 import { useImageUrlCache } from '../hooks/useImageUrlCache';
-import { ResponseMode, Message, MessageFile } from '../types/chat';
+import { ResponseMode, Message, MessageFile, type Chat } from '../types/chat';
 import { generateMessageId } from '../utils/id';
 import { ConversationMessage } from '../types/api';
 import { fileService } from '../services/fileService';
@@ -26,7 +26,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
     addMessageToChat,
     createChat,
     setActiveChat,
-    pauseChatRequest
+    pauseChatRequest,
+    updateChatMetadata
   } = useChatActions();
   const { getCurrentBranchMessages } = useBranchData();
 
@@ -45,6 +46,39 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
   const activeChatMessages = useMemo(() => {
     return activeChatId ? getCurrentBranchMessages(activeChatId) : [];
   }, [activeChatId, getCurrentBranchMessages, activeChat?.messages, currentBranchPath]);
+
+  // Sync per-conversation agent/model selections with global stores
+  useEffect(() => {
+    if (!activeChatId) return;
+    const chat = chatSessions.find(c => c.id === activeChatId);
+    if (!chat) return;
+
+    const agentState = useAgentStore.getState();
+    const modelState = useModelStore.getState();
+
+    const storedAgentId = chat.selectedAgentId;
+    const storedModelId = chat.selectedModelId;
+
+    // Apply stored selections to global stores when available
+    if (storedAgentId != null && agentState.selectedAgentId !== storedAgentId) {
+      agentState.setSelectedAgent(storedAgentId);
+    }
+    if (storedModelId != null && modelState.selectedModelId !== storedModelId) {
+      modelState.setSelectedModel(storedModelId);
+    }
+
+    // Initialize missing per-chat selections from current global state
+    const initUpdates: Partial<Chat> = {};
+    if (storedAgentId == null && agentState.selectedAgentId != null) {
+      initUpdates.selectedAgentId = agentState.selectedAgentId;
+    }
+    if (storedModelId == null && modelState.selectedModelId != null) {
+      initUpdates.selectedModelId = modelState.selectedModelId;
+    }
+    if (Object.keys(initUpdates).length > 0) {
+      updateChatMetadata(activeChatId, initUpdates);
+    }
+  }, [activeChatId, chatSessions, updateChatMetadata]);
 
   // Get suggestions - store handles fallbacks to defaults automatically
   const currentSuggestions = getSuggestions(activeChatId || undefined);

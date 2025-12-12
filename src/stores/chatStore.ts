@@ -792,6 +792,7 @@ const useChatStore = create<ChatStore>()(
             };
 
             return {
+              ...base,
               id: base.id!,
               messages: base.messages!,
               title: meta.title ?? base.title,
