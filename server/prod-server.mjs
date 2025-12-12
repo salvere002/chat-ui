@@ -17,8 +17,31 @@ const serve = sirv(distDir, {
   immutable: true,
 });
 
-const port = Number(process.env.PORT || 8080);
-const host = process.env.HOST || '0.0.0.0';
+// Parse command line arguments for --host and --port
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const result = { host: undefined, port: undefined };
+  
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--host' && args[i + 1]) {
+      result.host = args[i + 1];
+      i++;
+    } else if (args[i] === '--port' && args[i + 1]) {
+      result.port = Number(args[i + 1]);
+      i++;
+    } else if (args[i].startsWith('--host=')) {
+      result.host = args[i].split('=')[1];
+    } else if (args[i].startsWith('--port=')) {
+      result.port = Number(args[i].split('=')[1]);
+    }
+  }
+  
+  return result;
+}
+
+const cliArgs = parseArgs();
+const port = cliArgs.port || Number(process.env.PORT || 8080);
+const host = cliArgs.host || process.env.HOST || '0.0.0.0';
 
 const server = http.createServer((req, res) => {
   const url = req.url || '';
