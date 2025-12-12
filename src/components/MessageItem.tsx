@@ -237,6 +237,7 @@ MessageFooter.displayName = 'MessageFooter';
 const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, onMessagePairCapture, chatId, canRegenerate }) => {
   // Destructure files array instead of single file
   const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed, wasPaused } = message;
+  const hasThinking = sender === 'ai' && !!thinkingContent;
   
   // Get store methods using selective subscriptions
   const { 
@@ -476,16 +477,16 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
   const containerClasses = useMemo(() => clsx(
     'group flex flex-col px-2 sm:px-4 xl:px-6 py-2 xl:py-3 max-w-[90%] sm:max-w-[85%] xl:max-w-[80%] 2xl:max-w-[75%] animate-message-slide transition-colors duration-150 hover:bg-bg-secondary hover:rounded-lg',
     sender === 'user' ? 'self-end items-end' : 'self-start items-start',
-    isEditing && 'editing w-[90%] sm:w-[85%] xl:w-[80%] 2xl:w-[75%] max-w-[90%] sm:max-w-[85%] xl:max-w-[80%] 2xl:max-w-[75%]'
-  ), [sender, isEditing]);
+    (isEditing || hasThinking) && 'editing w-[90%] sm:w-[85%] xl:w-[80%] 2xl:w-[75%] max-w-[90%] sm:max-w-[85%] xl:max-w-[80%] 2xl:max-w-[75%]'
+  ), [sender, isEditing, hasThinking]);
 
   const messageClasses = useMemo(() => clsx(
     'relative px-3 sm:px-4 py-3 rounded-lg max-w-full break-words transition-all duration-150 hover:-translate-y-px hover:shadow-sm message-bubble',
-    isEditing ? 'w-full' : 'w-fit',
+    (isEditing || hasThinking) ? 'w-full' : 'w-fit',
     sender === 'user' 
       ? 'bg-accent-primary text-text-inverse rounded-br-sm' 
       : 'bg-bg-tertiary text-text-primary rounded-bl-sm'
-  ), [sender, isEditing]);
+  ), [sender, isEditing, hasThinking]);
 
   return (
     <div 
