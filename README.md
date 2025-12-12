@@ -128,7 +128,12 @@ Modify this file to change application settings.
    npm run build
    ```
 
-4. **Type checking:**
+4. **Serve production build (Node, with proxy):**
+   ```bash
+   npm run start:prod
+   ```
+
+5. **Type checking:**
    ```bash
    npm run typecheck
    ```
