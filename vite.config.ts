@@ -51,7 +51,7 @@ const brotliCompressionPlugin = ({
 });
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), dynamicProxyPlugin(), brotliCompressionPlugin()],
   server: {
     port: config.frontend.dev.port, // Use configured dev server port
@@ -60,4 +60,8 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
-}); 
+  // Strip dev logging/debuggers in production builds only
+  esbuild: command === 'build'
+    ? { drop: ['console', 'debugger'] }
+    : undefined,
+})); 
