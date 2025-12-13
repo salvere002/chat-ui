@@ -1,8 +1,19 @@
-import { memo, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { memo, useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { FaTimes, FaSave, FaUndo, FaCopy, FaCheck, FaPlay } from 'react-icons/fa';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import copyToClipboard from 'copy-to-clipboard';
-import CodePreview, { isReactModuleCode } from './CodePreview';
+
+const REACT_IMPORT_REGEX = /from\s+['"]react['"]|require\(['"]react['"]\)/;
+const EXPORT_DEFAULT_REGEX = /export\s+default\s+/;
+
+const isReactModuleCode = (code: string): boolean => {
+  if (!REACT_IMPORT_REGEX.test(code)) return false;
+  if (!EXPORT_DEFAULT_REGEX.test(code)) return false;
+  return true;
+};
+
+const loadCodePreview = () => import('./CodePreview');
+const CodePreview = lazy(loadCodePreview);
 
 interface CodeEditorProps {
   code: string;
@@ -415,6 +426,12 @@ const CodeEditor = memo<CodeEditorProps>(({ code, language, onSave, onClose }) =
           {canPreview && (
             <button
               onClick={() => setShowPreview((prev) => !prev)}
+              onMouseEnter={() => {
+                void loadCodePreview();
+              }}
+              onFocus={() => {
+                void loadCodePreview();
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors"
               title={showPreview ? "Hide preview" : "Show preview"}
             >
@@ -535,7 +552,22 @@ const CodeEditor = memo<CodeEditorProps>(({ code, language, onSave, onClose }) =
         </div>
 
         {/* React preview pane */}
-        <CodePreview code={savedCode} isOpen={showPreview && canPreview} />
+        {showPreview && canPreview && (
+          <Suspense
+            fallback={
+              <div className="code-preview-root w-1/2 border-l border-border-secondary bg-bg-secondary flex flex-col">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary text-xs text-text-tertiary">
+                  <span className="font-medium text-text-primary">Preview</span>
+                </div>
+                <div className="flex-1 flex items-center justify-center text-sm text-text-tertiary">
+                  Loading preview…
+                </div>
+              </div>
+            }
+          >
+            <CodePreview code={savedCode} isOpen={true} />
+          </Suspense>
+        )}
       </div>
       
       {/* Footer with keyboard shortcuts */}

@@ -1,9 +1,11 @@
-import { memo, useMemo, useState, useEffect } from 'react';
+import { memo, useMemo, useState, useEffect, lazy, Suspense } from 'react';
 import { FaCheck, FaCopy, FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import copyToClipboard from 'copy-to-clipboard';
 import { createPortal } from 'react-dom';
-import CodeEditor from './CodeEditor';
+
+const loadCodeEditor = () => import('./CodeEditor');
+const CodeEditor = lazy(loadCodeEditor);
 
 interface CodeBlockProps {
   children: string; 
@@ -157,6 +159,9 @@ const CodeBlock = memo<CodeBlockProps>(({
               {canEdit && (
                 <button
                   onClick={handleOpenEditor}
+                  onMouseEnter={() => {
+                    void loadCodeEditor();
+                  }}
                   className="flex items-center justify-center w-6 h-6 bg-transparent hover:bg-bg-tertiary text-text-tertiary hover:text-accent-primary border-none rounded transition-all duration-200"
                   title="Edit in code editor"
                 >
@@ -233,6 +238,9 @@ const CodeBlock = memo<CodeBlockProps>(({
             {canEdit && (
               <button
                 onClick={handleOpenEditor}
+                onMouseEnter={() => {
+                  void loadCodeEditor();
+                }}
                 className="flex items-center justify-center w-7 h-7 bg-bg-tertiary hover:bg-bg-secondary text-text-tertiary hover:text-accent-primary border border-border-secondary rounded"
                 title="Edit in code editor"
               >
@@ -257,12 +265,22 @@ const CodeBlock = memo<CodeBlockProps>(({
 
       {/* Code Editor Portal - renders at document root */}
       {isEditorOpen && createPortal(
-        <CodeEditor
-          code={currentCode}
-          language={language}
-          onSave={handleSaveCode}
-          onClose={handleCloseEditor}
-        />,
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-modal bg-bg-primary flex items-center justify-center animate-fade-in">
+              <div className="px-5 py-4 rounded-lg bg-bg-elevated border border-border-primary shadow-lg text-text-secondary">
+                Loading editor…
+              </div>
+            </div>
+          }
+        >
+          <CodeEditor
+            code={currentCode}
+            language={language}
+            onSave={handleSaveCode}
+            onClose={handleCloseEditor}
+          />
+        </Suspense>,
         document.body
       )}
     </>
