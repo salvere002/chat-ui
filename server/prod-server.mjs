@@ -13,8 +13,17 @@ const serve = sirv(distDir, {
   single: true,
   brotli: true,
   gzip: true,
-  maxAge: 31536000,
-  immutable: true,
+  // Avoid caching `index.html` forever; it references hashed assets that change on each build.
+  // Cache hashed build assets aggressively, but keep HTML revalidated so dynamic imports don't
+  // break after a rebuild due to stale cached entrypoints.
+  maxAge: 0,
+  setHeaders(res, pathname) {
+    if (pathname.startsWith('/assets/')) {
+      res.setHeader('Cache-Control', 'public,max-age=31536000,immutable');
+    } else {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
 });
 
 // Parse command line arguments for --host and --port
