@@ -22,17 +22,11 @@ export type MCPServerMetadata = {
   actualConnectMethod?: ConnectMethod;
 };
 
-async function loadSdk(): Promise<any> {
-  try {
-    const sdk = await import('@modelcontextprotocol/sdk/client/index.js');
-    return sdk as any;
-  } catch (e) {
-    throw new Error('MCP SDK not installed. Run: npm i @modelcontextprotocol/sdk');
-  }
-}
-
 export type ConnectMethod = 'streamable-http' | 'sse' | undefined;
 
+import { Client } from '@modelcontextprotocol/sdk/client';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { configManager } from '../utils/config';
 
 // Build the effective base URL for MCP HTTP/SSE
@@ -47,26 +41,20 @@ function toEffectiveBase(baseUrl: string): URL {
 }
 
 export async function fetchMCPMetadata(url: string, method?: ConnectMethod): Promise<MCPServerMetadata> {
-  const sdk = await loadSdk();
-
   // Use Streamable HTTP transport first; fall back to SSE per SDK README
   try {
-    const { Client } = sdk as any;
-    const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
-    const { SSEClientTransport } = await import('@modelcontextprotocol/sdk/client/sse.js');
-
     // Route via proxy when enabled; otherwise direct
     const target = toEffectiveBase(url);
 
     const connectAndFetch = async (
       connectMethod: Exclude<ConnectMethod, undefined>
     ): Promise<MCPServerMetadata> => {
-      const client = new (Client as any)({ name: 'chat-ui', version: '1.0.0' });
+      const client = new Client({ name: 'chat-ui', version: '1.0.0' }) as any;
       try {
         const transport =
           connectMethod === 'streamable-http'
-            ? new (StreamableHTTPClientTransport as any)(target)
-            : new (SSEClientTransport as any)(target);
+            ? new StreamableHTTPClientTransport(target)
+            : new SSEClientTransport(target);
 
         await client.connect(transport);
 
