@@ -117,6 +117,34 @@ export function handleProxyRequest(req, res, logger = console) {
           respHeaders['set-cookie'] = rewritten;
         }
 
+        // Preserve auth/custom headers across redirects:
+        // if the upstream responds with a 3xx Location pointing at a different origin,
+        // browsers/fetch will follow but strip sensitive headers (e.g., Authorization).
+        // Rewrite Location to keep the redirect on our own origin via /api/proxy/...
+        const statusCode = proxyRes.statusCode || 0;
+        const locationHeader = proxyRes.headers.location;
+        const location = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
+        if (location && statusCode >= 300 && statusCode < 400) {
+          try {
+            // Avoid double-proxying if upstream somehow returns a proxied Location.
+            if (!location.startsWith('/api/proxy/')) {
+              const currentUrl = new URL(fullPath, base);
+              const redirectUrl = new URL(location, currentUrl);
+
+              if (redirectUrl.protocol === 'http:' || redirectUrl.protocol === 'https:') {
+                if (!allowedHosts || allowedHosts.includes(redirectUrl.hostname.toLowerCase())) {
+                  const proxiedLocation =
+                    `/api/proxy/${encodeURIComponent(redirectUrl.origin)}` +
+                    `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash || ''}`;
+                  respHeaders.location = proxiedLocation;
+                }
+              }
+            }
+          } catch (e) {
+            logger.warn?.(`Failed to rewrite redirect Location: ${e}`);
+          }
+        }
+
         res.writeHead(proxyRes.statusCode || 500, respHeaders);
         proxyRes.pipe(res);
       } catch (e) {
@@ -144,4 +172,3 @@ export function handleProxyRequest(req, res, logger = console) {
     res.end('Internal proxy error');
   }
 }
-

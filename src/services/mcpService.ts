@@ -50,72 +50,73 @@ export async function fetchMCPMetadata(url: string, method?: ConnectMethod): Pro
   const sdk = await loadSdk();
 
   // Use Streamable HTTP transport first; fall back to SSE per SDK README
-  let client: any | undefined;
-  let actualConnectMethod: ConnectMethod;
   try {
     const { Client } = sdk as any;
     const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
     const { SSEClientTransport } = await import('@modelcontextprotocol/sdk/client/sse.js');
 
-    client = new Client({ name: 'chat-ui', version: '1.0.0' });
     // Route via proxy when enabled; otherwise direct
     const target = toEffectiveBase(url);
 
-    const tryStream = async () => {
-      const transport = new (StreamableHTTPClientTransport as any)(target);
-      await client.connect(transport);
-      actualConnectMethod = 'streamable-http';
-    };
-    const trySse = async () => {
-      const sseTransport = new (SSEClientTransport as any)(target);
-      await client.connect(sseTransport);
-      actualConnectMethod = 'sse';
+    const connectAndFetch = async (
+      connectMethod: Exclude<ConnectMethod, undefined>
+    ): Promise<MCPServerMetadata> => {
+      const client = new (Client as any)({ name: 'chat-ui', version: '1.0.0' });
+      try {
+        const transport =
+          connectMethod === 'streamable-http'
+            ? new (StreamableHTTPClientTransport as any)(target)
+            : new (SSEClientTransport as any)(target);
+
+        await client.connect(transport);
+
+        let name: string | undefined;
+        let version: string | undefined;
+        try {
+          const info = (await (client.getServerInfo?.() ?? client.server?.getInfo?.())) ?? {};
+          name = info.name ?? info.server?.name;
+          version = info.version ?? info.server?.version;
+        } catch {}
+
+        let tools: MCPToolInfo[] = [];
+        try {
+          const resp = await (client.listTools?.() ?? client.tools?.list?.());
+          const raw = Array.isArray(resp?.tools) ? resp.tools : Array.isArray(resp) ? resp : [];
+          tools = raw.map((t: any) => ({
+            name: t.name,
+            description: t.description,
+            title: t.title,
+            inputSchema: t.inputSchema
+              ? {
+                  type: t.inputSchema.type,
+                  properties: t.inputSchema.properties,
+                  required: t.inputSchema.required,
+                }
+              : undefined,
+          }));
+        } catch {}
+
+        return { name, version, tools, actualConnectMethod: connectMethod };
+      } finally {
+        // Always close on success or failure: the SSE transport uses EventSource which can keep
+        // reconnecting after an auth/redirect failure unless explicitly closed.
+        try {
+          await client.close?.();
+        } catch {}
+      }
     };
 
     if (method === 'streamable-http') {
-      await tryStream();
+      return await connectAndFetch('streamable-http');
     } else if (method === 'sse') {
-      await trySse();
+      return await connectAndFetch('sse');
     } else {
       try {
-        await tryStream();
+        return await connectAndFetch('streamable-http');
       } catch {
-        await trySse();
+        return await connectAndFetch('sse');
       }
     }
-    // Connected if no error thrown by transports
-
-    let name: string | undefined;
-    let version: string | undefined;
-    try {
-      const info = (await (client.getServerInfo?.() ?? client.server?.getInfo?.())) ?? {};
-      name = info.name ?? info.server?.name;
-      version = info.version ?? info.server?.version;
-    } catch {}
-
-    let tools: MCPToolInfo[] = [];
-    try {
-      const resp = await (client.listTools?.() ?? client.tools?.list?.());
-      const raw = Array.isArray(resp?.tools) ? resp.tools : Array.isArray(resp) ? resp : [];
-      tools = raw.map((t: any) => ({ 
-        name: t.name, 
-        description: t.description, 
-        title: t.title,
-        inputSchema: t.inputSchema ? {
-          type: t.inputSchema.type,
-          properties: t.inputSchema.properties,
-          required: t.inputSchema.required
-        } : undefined
-      }));
-    } catch {}
-
-    // No manual HTTP fallback; only rely on SDK client per requirements.
-
-    try {
-      await client.close?.();
-    } catch {}
-
-    return { name, version, tools, actualConnectMethod };
   } catch (err: any) {
     // Provide a clearer error up the chain
     const message = typeof err?.message === 'string' ? err.message : 'Failed to fetch MCP metadata';
