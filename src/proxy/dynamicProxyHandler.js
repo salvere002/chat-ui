@@ -36,6 +36,15 @@ function getAllowedHosts() {
   return hosts.length ? hosts : null;
 }
 
+function isAbsoluteRedirectLocation(location) {
+  if (!location) return false;
+  // Absolute URL with a scheme, e.g. "https://example.com/..."
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(location)) return true;
+  // Scheme-relative absolute URL, e.g. "//example.com/..."
+  if (location.startsWith('//')) return true;
+  return false;
+}
+
 export function handleProxyRequest(req, res, logger = console) {
   const url = req.url || '';
 
@@ -126,6 +135,17 @@ export function handleProxyRequest(req, res, logger = console) {
         const location = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader;
         if (location && statusCode >= 300 && statusCode < 400) {
           try {
+            // Be conservative for non-307/308 to avoid interfering with browser-oriented redirects.
+            // Still rewrite relative redirects because the browser would otherwise resolve them
+            // against our origin (not the upstream origin), which is incorrect.
+            const shouldRewriteLocation =
+              statusCode === 307 || statusCode === 308 || !isAbsoluteRedirectLocation(location);
+            if (!shouldRewriteLocation) {
+              res.writeHead(proxyRes.statusCode || 500, respHeaders);
+              proxyRes.pipe(res);
+              return;
+            }
+
             // Avoid double-proxying if upstream somehow returns a proxied Location.
             if (!location.startsWith('/api/proxy/')) {
               const currentUrl = new URL(fullPath, base);
