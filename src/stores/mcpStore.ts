@@ -141,6 +141,13 @@ const useMcpStore = create<MCPStore>()(
             [key]: { ...state.servers[key], enabled },
           },
         }));
+        
+        // Auto-refresh when enabling a server
+        if (enabled) {
+          Promise.resolve().then(() => get().refreshServer(key)).catch((err) => {
+            console.error('Auto-refresh on enable failed:', err);
+          });
+        }
       },
 
       refreshServer: async (key) => {
