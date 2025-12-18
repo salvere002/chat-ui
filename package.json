@@ -26,7 +26,7 @@
     "build": "tsc -p tsconfig.build.json && vite build",
     "build:lib": "vite build --config vite.config.lib.ts && tsc -p tsconfig.build.json",
     "start:prod": "node server/prod-server.mjs",
-    "preview": "npm run start:prod",
+    "preview": "node server/prod-server.mjs",
     "preview:vite": "vite preview",
     "demo": "npm run build:lib && npm --prefix examples/demo install && npm --prefix examples/demo run dev",
     "demo:build": "npm run build:lib && npm --prefix examples/demo install && npm --prefix examples/demo run build",
