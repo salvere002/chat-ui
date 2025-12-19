@@ -2,6 +2,7 @@ import { serviceFactory } from './serviceFactory';
 import { ProgressCallback } from './adapters/BaseAdapter';
 import { MessageRequest, MessageResponse, FileUploadResponse, ConversationMessage } from '../types/api';
 import { MessageFile } from '../types/chat';
+import useAuthStore from '../stores/authStore';
 import { useAgentStore } from '../stores';
 import { streamManager } from './streamManager';
 
@@ -10,6 +11,14 @@ import { streamManager } from './streamManager';
  * Uses the adapter pattern to support different backend implementations
  */
 export class ChatService {
+  private static async ensureAuthBootstrapped(): Promise<void> {
+    try {
+      await useAuthStore.getState().bootstrap();
+    } catch {
+      // Best-effort: proceed even if auth bootstrap fails
+    }
+  }
+
   /**
    * Get the current adapter from serviceFactory (single source of truth)
    */
@@ -21,6 +30,7 @@ export class ChatService {
    * Send a message and get a complete response
    */
   static async sendMessage(text: string, files: MessageFile[] = [], history: ConversationMessage[] = [], abortSignal?: AbortSignal): Promise<MessageResponse> {
+    await this.ensureAuthBootstrapped();
     const { deepResearchEnabled } = useAgentStore.getState();
     const request: MessageRequest = { text, files, history, deepResearch: deepResearchEnabled };
     return this.getAdapter().sendMessage(request, abortSignal);
@@ -36,6 +46,7 @@ export class ChatService {
     files: MessageFile[] = [],
     history: ConversationMessage[] = []
   ): Promise<MessageResponse> {
+    await this.ensureAuthBootstrapped();
     // Start tracking this request using StreamManager (even though it's not streaming)
     const controller = streamManager.startStream(chatId, messageId);
 
@@ -65,6 +76,7 @@ export class ChatService {
     },
     history: ConversationMessage[] = [],
   ): Promise<void> {
+    await this.ensureAuthBootstrapped();
     // Start the stream using StreamManager
     const controller = streamManager.startStream(chatId, messageId);
     const context = { chatId, messageId };
@@ -103,6 +115,7 @@ export class ChatService {
     file: File,
     onProgress: ProgressCallback
   ): Promise<FileUploadResponse> {
+    await this.ensureAuthBootstrapped();
     return this.getAdapter().uploadFile(fileId, file, onProgress);
   }
 
@@ -110,6 +123,7 @@ export class ChatService {
    * Get all uploaded files
    */
   static async getFiles(): Promise<FileUploadResponse[]> {
+    await this.ensureAuthBootstrapped();
     return this.getAdapter().getFiles();
   }
 
@@ -117,6 +131,7 @@ export class ChatService {
    * Get a single uploaded file by ID
    */
   static async getFile(fileId: string): Promise<FileUploadResponse> {
+    await this.ensureAuthBootstrapped();
     return this.getAdapter().getFile(fileId);
   }
 
@@ -125,6 +140,7 @@ export class ChatService {
    * This is a placeholder for backend integration
    */
   static async getChatDetails(_chatId: string): Promise<{ messages: any[], branchData?: any }> {
+    await this.ensureAuthBootstrapped();
     // In a real implementation, this would call the adapter
     // return this.getAdapter().getChatDetails(chatId);
 

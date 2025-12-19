@@ -1,31 +1,19 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { Message, Chat, BranchNode, ChatMetadata, ChatLoadStatus } from '../types/chat';
 import { ChatStore } from '../types/store';
 import { configManager } from '../utils/config';
 import { streamManager } from '../services/streamManager';
-import { ChatService } from '../services/chatService';
 import { generateChatId, generateBranchId } from '../utils/id';
 
 // In-memory cache for branch messages per chat to avoid recomputation
 const branchMessagesCache = new Map<string, { pathKey: string; updatedAt: number; messages: Message[] }>();
 
-// LocalStorage size is limited; only persist the most recent conversations in full.
-const MAX_PERSISTED_CONVERSATIONS = 3;
-
-const bumpRecentChatIds = (recentChatIds: string[], chatId: string) => {
-  const next = [chatId, ...recentChatIds.filter((id) => id !== chatId)];
-  return next.slice(0, MAX_PERSISTED_CONVERSATIONS);
-};
-
 // Create the chat store with Zustand
 const useChatStore = create<ChatStore>()(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       // State
       chatSessions: [],
       activeChatId: null,
-      recentChatIds: [],
       error: null,
       // Branch state
       activeBranchPath: new Map(),
@@ -94,15 +82,9 @@ const useChatStore = create<ChatStore>()(
               : null;
           }
 
-          let nextRecentChatIds = state.recentChatIds.filter((chatId) => chatId !== id);
-          if (newActiveChatId) {
-            nextRecentChatIds = bumpRecentChatIds(nextRecentChatIds, newActiveChatId);
-          }
-
           return {
             chatSessions: remainingChats,
             activeChatId: newActiveChatId,
-            recentChatIds: nextRecentChatIds,
             activeBranchPath: newActiveBranchPath,
             branchTree: newBranchTree,
             messageBranches: newMessageBranches,
@@ -120,7 +102,6 @@ const useChatStore = create<ChatStore>()(
         set(() => ({
           chatSessions: [],
           activeChatId: null,
-          recentChatIds: [],
           activeBranchPath: new Map(),
           branchTree: new Map(),
           messageBranches: new Map(),
@@ -129,41 +110,17 @@ const useChatStore = create<ChatStore>()(
       },
 
       setActiveChat: (id: string) => {
-        set((state) => ({
-          activeChatId: id,
-          recentChatIds: bumpRecentChatIds(state.recentChatIds, id),
-        }));
+        set({ activeChatId: id });
       },
 
-      // High-level chat selection with lazy loading support
+      // High-level chat selection
       selectChat: async (chatId: string) => {
         const state = get();
         const chat = state.chatSessions.find((c) => c.id === chatId);
         if (!chat) return;
 
         // Always set active immediately for responsive UI
-        set((state) => ({
-          activeChatId: chatId,
-          recentChatIds: bumpRecentChatIds(state.recentChatIds, chatId),
-        }));
-
-        // If already fully loaded or currently loading, nothing else to do
-        if (chat.status === 'fully_loaded' || chat.status === 'loading') {
-          return;
-        }
-
-        // Mark as loading so UI can show a spinner/indicator
-        get().markChatAsLoading(chatId);
-
-        try {
-          const details = await ChatService.getChatDetails(chatId);
-          // Delegate to existing helper to update messages + branch data + status
-          get().loadChatDetails(chatId, details.messages as Message[], details.branchData);
-        } catch (error) {
-          console.error('Failed to load chat details', error);
-          // Mark as error so UI can react (e.g., show an error state)
-          get().updateChatMetadata(chatId, { status: 'error' });
-        }
+        set({ activeChatId: chatId });
       },
 
       getChatById: (id: string) => {
@@ -826,11 +783,7 @@ const useChatStore = create<ChatStore>()(
             };
           });
 
-          const allowedIds = new Set(mergedChats.map((c) => c.id));
-          return {
-            chatSessions: mergedChats,
-            recentChatIds: state.recentChatIds.filter((id) => allowedIds.has(id)),
-          };
+          return { chatSessions: mergedChats };
         });
       },
 
@@ -959,138 +912,7 @@ const useChatStore = create<ChatStore>()(
       setSuggestionsLoading: (loading: boolean) => {
         set({ isSuggestionsLoading: loading });
       }
-    }),
-    {
-      name: 'chat-store',
-      partialize: (state) => {
-        // Keep full data for the last selected chats; persist only metadata shells for the rest.
-        const existingIds = new Set(state.chatSessions.map((c) => c.id));
-        const storedRecent = Array.isArray(state.recentChatIds) ? state.recentChatIds : [];
-        const recentUnique = Array.from(new Set(storedRecent)).filter((id) => existingIds.has(id));
-
-        const keepIds = state.activeChatId
-          ? bumpRecentChatIds(recentUnique, state.activeChatId)
-          : recentUnique.slice(0, MAX_PERSISTED_CONVERSATIONS);
-
-        const keepFullChatIds = new Set<string>(keepIds);
-
-        const chatSessions = state.chatSessions.map((chat) => {
-          if (keepFullChatIds.has(chat.id)) {
-            // Never persist "loading" to avoid getting stuck after reload
-            return {
-              ...chat,
-              status: (chat.status === 'loading' ? 'summary' : chat.status) as ChatLoadStatus,
-            };
-          }
-
-          const {
-            id,
-            title,
-            name,
-            createdAt,
-            updatedAt,
-            lastSyncedAt,
-            selectedAgentId,
-            selectedModelId,
-          } = chat;
-
-          // Metadata-only shell (no messages/branches) - details will be requested on demand.
-          return {
-            id,
-            title,
-            name,
-            createdAt,
-            updatedAt,
-            lastSyncedAt,
-            selectedAgentId,
-            selectedModelId,
-            messages: [],
-            status: 'summary' as ChatLoadStatus,
-          } satisfies Chat;
-        });
-
-        return {
-          chatSessions,
-          activeChatId: state.activeChatId,
-          recentChatIds: keepIds,
-          activeBranchPath: Array.from(state.activeBranchPath.entries()).filter(([chatId]) =>
-            keepFullChatIds.has(chatId)
-          ),
-          branchTree: Array.from(state.branchTree.entries())
-            .filter(([chatId]) => keepFullChatIds.has(chatId))
-            .map(([chatId, tree]) => [chatId, Array.from(tree.entries())]),
-          messageBranches: Array.from(state.messageBranches.entries())
-            .filter(([chatId]) => keepFullChatIds.has(chatId))
-            .map(([chatId, branches]) => [chatId, Array.from(branches.entries())]),
-          suggestions: Array.from(state.suggestions.entries()).filter(([chatId]) =>
-            keepFullChatIds.has(chatId)
-          ),
-        };
-      },
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Convert arrays back to Maps
-          state.activeBranchPath = new Map(state.activeBranchPath as any);
-          state.branchTree = new Map(
-            (state.branchTree as any).map(([chatId, tree]: [string, any]) => [
-              chatId,
-              new Map(tree)
-            ])
-          );
-          state.messageBranches = new Map(
-            (state.messageBranches as any).map(([chatId, branches]: [string, any]) => [
-              chatId,
-              new Map(branches)
-            ])
-          );
-          state.suggestions = new Map(state.suggestions as any);
-
-          // Convert date strings back to Date objects and ensure status exists
-          state.chatSessions = state.chatSessions.map(chat => ({
-            ...chat,
-            createdAt: new Date(chat.createdAt),
-            updatedAt: new Date(chat.updatedAt),
-            lastSyncedAt: chat.lastSyncedAt ? new Date(chat.lastSyncedAt) : undefined,
-            messages: chat.messages.map(message => ({
-              ...message,
-              timestamp: new Date(message.timestamp)
-            })),
-            // Migration: Ensure status exists for existing local chats
-            status: chat.status || 'fully_loaded'
-          }));
-
-          // Migration: Initialize recentChatIds for older persisted states.
-          const existingIds = new Set(state.chatSessions.map((c) => c.id));
-          const storedRecent = Array.isArray(state.recentChatIds) ? state.recentChatIds : [];
-          let recent = Array.from(new Set(storedRecent)).filter((id) => existingIds.has(id));
-
-          if (recent.length === 0) {
-            // Best-effort seed (pre-recent tracking): active + most recently updated.
-            const sortedByUpdatedAt = [...state.chatSessions].sort(
-              (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
-            );
-            const seed: string[] = [];
-            if (state.activeChatId) seed.push(state.activeChatId);
-            for (const chat of sortedByUpdatedAt) seed.push(chat.id);
-            recent = Array.from(new Set(seed)).filter((id) => existingIds.has(id));
-          }
-
-          state.recentChatIds = state.activeChatId
-            ? bumpRecentChatIds(recent, state.activeChatId)
-            : recent.slice(0, MAX_PERSISTED_CONVERSATIONS);
-
-          // If the active chat is only a metadata shell, request details on load.
-          if (state.activeChatId) {
-            const active = state.chatSessions.find((c) => c.id === state.activeChatId);
-            if (active && active.status !== 'fully_loaded' && active.status !== 'loading') {
-              // Fire and forget; implementation will be provided in ChatService.getChatDetails later.
-              void state.selectChat(state.activeChatId);
-            }
-          }
-        }
-      }
-    }
-  )
+    })
 );
 
 export default useChatStore; 

@@ -5,8 +5,6 @@ export interface ChatStore {
   // State
   chatSessions: Chat[];
   activeChatId: string | null;
-  // Track most recently selected chats (for local persistence trimming)
-  recentChatIds: string[];
   error: string | null;
   // Branch state
   activeBranchPath: Map<string, string[]>; // chatId -> branch path

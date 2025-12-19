@@ -11,25 +11,36 @@ interface AuthStore {
   signOut: () => void;
 }
 
+let bootstrapPromise: Promise<void> | null = null;
+
 const useAuthStore = create<AuthStore>((set, get) => ({
   status: 'idle',
   user: null,
   error: null,
 
   bootstrap: async () => {
-    // Avoid duplicate checks
-    if (get().status === 'checking' || get().status === 'authenticated') return;
-    set({ status: 'checking', error: null });
-    try {
-      const user = await AuthService.getCurrentUser();
-      set({ status: 'authenticated', user, error: null });
-    } catch (e: any) {
-      // On any failure, mark as unauthenticated
-      set({ status: 'unauthenticated', user: null, error: e?.message || 'Auth failed' });
-    }
+    const { status } = get();
+    if (status === 'authenticated' || status === 'unauthenticated') return;
+    if (bootstrapPromise) return bootstrapPromise;
+
+    bootstrapPromise = (async () => {
+      set({ status: 'checking', error: null });
+      try {
+        const user = await AuthService.getCurrentUser();
+        set({ status: 'authenticated', user, error: null });
+      } catch (e: any) {
+        // On any failure, mark as unauthenticated
+        set({ status: 'unauthenticated', user: null, error: e?.message || 'Auth failed' });
+      } finally {
+        bootstrapPromise = null;
+      }
+    })();
+
+    return bootstrapPromise;
   },
 
   signOut: () => {
+    bootstrapPromise = null;
     set({ status: 'unauthenticated', user: null, error: null });
   },
 }));
