@@ -59,6 +59,31 @@ export default defineConfig(({ command }) => ({
   },
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React - rarely changes
+          react: ['react', 'react-dom', 'react/jsx-runtime'],
+          // State & data utilities
+          vendor: ['zustand', 'axios', 'dayjs'],
+          // Markdown rendering
+          markdown: [
+            'react-markdown',
+            'remark-gfm',
+            'remark-math',
+            'remark-breaks',
+            'rehype-katex',
+            'katex',
+          ],
+          // Code highlighting (Prism-based)
+          syntax: ['react-syntax-highlighter'],
+          // Charts (recharts pulls in d3 automatically)
+          charts: ['recharts'],
+          // Icons
+          icons: ['react-icons', '@heroicons/react'],
+        },
+      },
+    },
   },
   // Strip dev logging/debuggers in production builds only
   esbuild: command === 'build'
