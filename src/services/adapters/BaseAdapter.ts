@@ -5,6 +5,7 @@ import {
   StreamMessageChunk,
   FileUploadResponse
 } from '../../types/api';
+import type { Agent, Model } from '../../types/chat';
 
 /**
  * Callbacks for stream message processing
@@ -65,6 +66,16 @@ export interface BaseAdapter {
   getFile(fileId: string): Promise<FileUploadResponse>;
 
   /**
+   * Fetch available agents from the backend
+   */
+  getAgents(): Promise<Agent[]>;
+
+  /**
+   * Fetch available models from the backend
+   */
+  getModels(): Promise<Model[]>;
+
+  /**
    * Save MCP configuration to backend via adapter-specific path/logic
    */
   saveMcpConfig(config: import('../../types/mcp').MCPConfigPayload): Promise<void>;
@@ -121,6 +132,14 @@ export abstract class AbstractBaseAdapter implements BaseAdapter {
   abstract uploadFile(fileId: string, file: File, onProgress: ProgressCallback): Promise<FileUploadResponse>;
   abstract getFiles(): Promise<FileUploadResponse[]>;
   abstract getFile(fileId: string): Promise<FileUploadResponse>;
+
+  async getAgents(): Promise<Agent[]> {
+    throw new Error('Feature not supported by this adapter: agents');
+  }
+
+  async getModels(): Promise<Model[]> {
+    throw new Error('Feature not supported by this adapter: models');
+  }
 
   // Default MCP config methods throw to indicate unsupported by adapter unless overridden
   async saveMcpConfig(

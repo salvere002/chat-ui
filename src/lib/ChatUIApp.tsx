@@ -8,6 +8,8 @@ import Settings from '../components/Settings';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { FaSun, FaMoon, FaCog, FaBars, FaTimes } from 'react-icons/fa';
 import { getMcpConfigViaAdapter, isMcpConfigSupported } from '../services/mcpConfigService';
+import { AgentService } from '../services/agentService';
+import { ModelService } from '../services/modelService';
 import type { AdapterType } from '../services/serviceFactory';
 import type { ResponseMode } from '../types/chat';
 import { ensureChatUiStyles } from './styleManager';
@@ -133,6 +135,12 @@ const ChatUIApp: React.FC<ChatUIAppProps> = ({
       cancelled = true;
     };
   }, [currentAdapterType, currentAdapterBaseUrl, mcpSync]);
+
+  // Bootstrap agents/models whenever adapter changes
+  useEffect(() => {
+    void AgentService.bootstrap();
+    void ModelService.bootstrap();
+  }, [currentAdapterType, currentAdapterBaseUrl]);
 
   // Apply consumer-provided service configuration on change
   const applyServiceConfig = useMemo(() => ({

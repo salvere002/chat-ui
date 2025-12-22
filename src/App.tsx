@@ -7,6 +7,8 @@ import { ToastContainer } from './components/Toast';
 import { toast } from 'sonner';
 import { useThemeStore, useResponseModeStore, useChatStore, useUiSettingsStore, useServiceConfigStore, useMcpStore } from './stores';
 import { getMcpConfigViaAdapter, isMcpConfigSupported } from './services/mcpConfigService';
+import { AgentService } from './services/agentService';
+import { ModelService } from './services/modelService';
 import { useShallow } from 'zustand/react/shallow';
 import Settings from './components/Settings';
 import ShareModal from './components/ShareModal';
@@ -93,6 +95,12 @@ const App: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
+  }, [currentAdapterType, currentAdapterBaseUrl]);
+
+  // Bootstrap agents/models whenever adapter changes
+  useEffect(() => {
+    void AgentService.bootstrap();
+    void ModelService.bootstrap();
   }, [currentAdapterType, currentAdapterBaseUrl]);
 
   // Removed handleNewChat - using handleNewChatAndClose instead
