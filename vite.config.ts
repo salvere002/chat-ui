@@ -52,41 +52,45 @@ const brotliCompressionPlugin = ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
-  plugins: [react(), dynamicProxyPlugin(), brotliCompressionPlugin()],
-  server: {
-    port: config.frontend.dev.port, // Use configured dev server port
-    // We provide our own dynamic proxy middleware for /api/proxy/*
-  },
-  build: {
-    outDir: 'dist',
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // Core React - rarely changes
-          react: ['react', 'react-dom', 'react/jsx-runtime'],
-          // State & data utilities
-          vendor: ['zustand', 'axios', 'dayjs'],
-          // Markdown rendering
-          markdown: [
-            'react-markdown',
-            'remark-gfm',
-            'remark-math',
-            'remark-breaks',
-            'rehype-katex',
-            'katex',
-          ],
-          // Code highlighting (Prism-based)
-          syntax: ['react-syntax-highlighter'],
-          // Charts (recharts pulls in d3 automatically)
-          charts: ['recharts'],
-          // Icons
-          icons: ['react-icons', '@heroicons/react'],
+    plugins: [react(), dynamicProxyPlugin(), brotliCompressionPlugin()],
+    server: {
+      port: config.frontend.dev.port, // Use configured dev server port
+      // We provide our own dynamic proxy middleware for /api/proxy/*
+    },
+    build: {
+      outDir: 'dist',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Core React - rarely changes
+            react: ['react', 'react-dom', 'react/jsx-runtime', 'react-is'],
+            // State & data utilities
+            vendor: ['zustand', 'axios', 'dayjs'],
+            // Markdown rendering
+            markdown: [
+              'react-markdown',
+              'remark-gfm',
+              'remark-math',
+              'remark-breaks',
+              'rehype-katex',
+              'katex',
+            ],
+            // Code highlighting (Prism-based)
+            syntax: ['react-syntax-highlighter'],
+            // Live code preview
+            runner: ['react-runner', 'sucrase'],
+            // Screenshot capture
+            screenshot: ['html-to-image'],
+            // Charts (recharts pulls in d3 automatically)
+            charts: ['recharts'],
+            // Icons
+            icons: ['react-icons', '@heroicons/react'],
+          },
         },
       },
     },
-  },
-  // Strip dev logging/debuggers in production builds only
-  esbuild: command === 'build'
-    ? { drop: ['console', 'debugger'] }
-    : undefined,
+    // Strip dev logging/debuggers in production builds only
+    esbuild: command === 'build'
+      ? { drop: ['console', 'debugger'] }
+      : undefined,
 })); 
