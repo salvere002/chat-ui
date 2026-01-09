@@ -3,6 +3,7 @@ import { Message, Chat, BranchNode, ChatMetadata, ChatLoadStatus } from '../type
 import { ChatStore } from '../types/store';
 import { configManager } from '../utils/config';
 import { streamManager } from '../services/streamManager';
+import useStudioStore from './studioStore';
 import { generateChatId, generateBranchId } from '../utils/id';
 
 // In-memory cache for branch messages per chat to avoid recomputation
@@ -24,7 +25,7 @@ const useChatStore = create<ChatStore>()(
       isSuggestionsLoading: false,
 
       // Actions
-      createChat: (name?: string) => {
+      createChat: (name?: string, options?: { studioEnabled?: boolean }) => {
         const newChatId = generateChatId();
         const now = new Date();
         const newChat: Chat = {
@@ -34,6 +35,7 @@ const useChatStore = create<ChatStore>()(
           messages: [],
           createdAt: now,
           updatedAt: now,
+          studioEnabled: options?.studioEnabled ?? false,
           status: 'fully_loaded',
         };
 
@@ -56,6 +58,8 @@ const useChatStore = create<ChatStore>()(
       deleteChat: (id: string) => {
         // Stop any active streams for this chat before deletion
         streamManager.stopAllStreamsForChat(id);
+        // Clear studio state for this chat
+        useStudioStore.getState().clearChat(id);
         // Invalidate branch cache for this chat
         branchMessagesCache.delete(id);
 
@@ -96,6 +100,8 @@ const useChatStore = create<ChatStore>()(
       clearAllChats: () => {
         // Clean up all active streams before clearing state
         streamManager.cleanup();
+        // Clear all studio state
+        useStudioStore.getState().clearAll();
         // Clear cache
         branchMessagesCache.clear();
 

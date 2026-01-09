@@ -7,6 +7,7 @@ interface MessageActionsProps {
   copied: boolean;
   isEditing: boolean;
   isComplete?: boolean;
+  disableBranching?: boolean;
   onCopyMessage: () => void;
   onSetIsEditing: (editing: boolean) => void;
   onEditMessage?: (messageId: string, newText: string) => void;
@@ -24,7 +25,8 @@ const MessageActions = memo<MessageActionsProps>(({
   onSetIsEditing, 
   onEditMessage, 
   onRegenerateResponse,
-  onMessagePairCapture 
+  onMessagePairCapture,
+  disableBranching
 }) => {
   return (
     <div className="flex gap-1 items-center">
@@ -51,7 +53,7 @@ const MessageActions = memo<MessageActionsProps>(({
       )}
       
       {/* For user messages: Create Branch button (replacing edit) */}
-      {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && (
+      {sender === 'user' && isComplete !== false && onEditMessage && !isEditing && !disableBranching && (
         <button 
           className="flex items-center justify-center w-7 h-7 p-0 bg-transparent border-none rounded-md text-text-tertiary cursor-pointer transition-all duration-150 relative overflow-hidden hover:text-accent-primary active:scale-90"
           onClick={() => onSetIsEditing(true)}

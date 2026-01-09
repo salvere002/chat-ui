@@ -1,4 +1,5 @@
 import { Message, Chat, ResponseMode, BranchNode, Agent, Model, ChatMetadata } from './chat';
+import { StudioChatState, StudioViewMode } from './studio';
 
 // Define interface for the chat store state
 export interface ChatStore {
@@ -15,7 +16,7 @@ export interface ChatStore {
   isSuggestionsLoading: boolean;
 
   // Actions
-  createChat: (name?: string) => string;
+  createChat: (name?: string, options?: { studioEnabled?: boolean }) => string;
   deleteChat: (id: string) => void;
   clearAllChats: () => void;
   setActiveChat: (id: string) => void;
@@ -115,4 +116,20 @@ export interface UiSettingsStore {
   setShowSuggestions: (show: boolean) => void;
   toggleSuggestions: () => void;
   setBackgroundTexture: (texture: boolean) => void;
-} 
+}
+
+// Define interface for the studio store state
+export interface StudioStore {
+  chats: Record<string, StudioChatState>;
+  ensureChat: (chatId: string) => void;
+  startFile: (chatId: string, file: { name: string; language?: string }) => void;
+  appendToFile: (chatId: string, fileName: string, chunk: string) => void;
+  finalizeFile: (chatId: string, fileName: string) => void;
+  setActiveFile: (chatId: string, fileName: string) => void;
+  setActiveVersion: (chatId: string, fileName: string, versionId: string) => void;
+  setViewMode: (chatId: string, fileName: string, viewMode: StudioViewMode) => void;
+  updateFileContent: (chatId: string, fileName: string, versionId: string, content: string) => void;
+  setPanelCollapsed: (chatId: string, collapsed: boolean) => void;
+  clearChat: (chatId: string) => void;
+  clearAll: () => void;
+}

@@ -12,6 +12,8 @@ import { EmbeddedImage } from './FileComponents';
 import ChartRenderer from '../ChartRenderer';
 import ExpressionRenderer from '../ExpressionRenderer';
 import LoadingIndicator from '../LoadingIndicator';
+import StudioFileInline from '../StudioFileInline';
+import { STUDIO_FILE_TOKEN_REGEX } from '../../utils/studioTokens';
 
 interface MemoizedMarkdownProps {
   text: string; 
@@ -29,6 +31,17 @@ const MemoizedMarkdown: React.FC<MemoizedMarkdownProps> = memo(({ text, isIncomp
         remarkPlugins={[remarkGfm as any, remarkMath as any, remarkBreaks as any]}
         rehypePlugins={[rehypeKatex]}
         components={{
+          p({ children, ...props }) {
+            const childArray = Array.isArray(children) ? children : [children];
+            if (childArray.length === 1 && typeof childArray[0] === 'string') {
+              const token = childArray[0].trim();
+              const match = STUDIO_FILE_TOKEN_REGEX.exec(token);
+              if (match) {
+                return <StudioFileInline fileName={match[1]} />;
+              }
+            }
+            return <p {...props}>{children}</p>;
+          },
           // Custom table components for better styling
           table({ children, ...props }) {
             return (

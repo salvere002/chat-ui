@@ -1,9 +1,11 @@
 import { useCallback, useRef } from 'react';
 import { useChatActions, useChatUtils } from '../stores';
+import useStudioStore from '../stores/studioStore';
 import { StreamingMessageHandler, StreamingContext } from '../services/streamingMessageHandler';
 import { createThinkingUpdateData } from '../utils/thinkingUtils';
 import { Message } from '../types/chat';
 import throttle from 'lodash.throttle';
+import { StudioStreamParser } from '../utils/studioParser';
 
 export const useStreamingMessage = (responseMode: 'stream' | 'fetch') => {
   const { updateMessageInChat } = useChatActions();
@@ -16,13 +18,32 @@ export const useStreamingMessage = (responseMode: 'stream' | 'fetch') => {
     
     // Throttle text updates to reduce re-renders while keeping UX smooth
     const FLUSH_INTERVAL = 80; // ms
-    let latestText = '';
+    let latestRawText = '';
+    let latestDisplayText = '';
     let latestImageUrl: string | undefined = undefined;
+    let previousRawText = '';
+
+    const studioActions = useStudioStore.getState();
+    const studioEnabled = Boolean(getChatById(chatId)?.studioEnabled);
+    const studioParser = studioEnabled
+      ? new StudioStreamParser({
+        onFileStart: (file) => {
+          studioActions.startFile(chatId, file);
+        },
+        onFileChunk: (file, chunk) => {
+          studioActions.appendToFile(chatId, file.name, chunk);
+        },
+        onFileEnd: (file) => {
+          studioActions.finalizeFile(chatId, file.name);
+        }
+      })
+      : null;
 
     const flushNow = () => {
-      if (latestText !== '' || latestImageUrl !== undefined) {
+      if (latestRawText !== '' || latestImageUrl !== undefined || latestDisplayText !== '') {
         updateMessageInChat(chatId, context.messageId, {
-          text: latestText,
+          text: latestDisplayText,
+          rawText: latestRawText,
           imageUrl: latestImageUrl,
         });
       }
@@ -43,7 +64,21 @@ export const useStreamingMessage = (responseMode: 'stream' | 'fetch') => {
       },
       
       onTextChunk: (text: string, imageUrl?: string) => {
-        latestText = text;
+        latestRawText = text;
+
+        if (studioParser) {
+          if (text.length < previousRawText.length) {
+            studioParser.reset();
+            previousRawText = '';
+          }
+          const delta = text.slice(previousRawText.length);
+          studioParser.process(delta);
+          latestDisplayText = studioParser.getDisplayText();
+          previousRawText = text;
+        } else {
+          latestDisplayText = text;
+        }
+
         if (imageUrl) {
           latestImageUrl = imageUrl;
           // Show images ASAP and cancel any pending trailing call
@@ -71,6 +106,7 @@ export const useStreamingMessage = (responseMode: 'stream' | 'fetch') => {
         if (error.name !== 'AbortError') {
           updateMessageInChat(chatId, context.messageId, {
             text: 'Sorry, there was an error processing your request.',
+            rawText: 'Sorry, there was an error processing your request.',
             isComplete: true
           });
         } else {

@@ -12,7 +12,7 @@ export function buildHistory(messages: Message[], upToIndex?: number): Conversat
   
   return messagesToProcess.map((msg: Message) => ({
     role: msg.sender === 'user' ? 'user' : 'assistant',
-    content: msg.text,
+    content: msg.rawText ?? msg.text,
     timestamp: msg.timestamp
   }));
 }
@@ -22,6 +22,7 @@ export function buildHistory(messages: Message[], upToIndex?: number): Conversat
  */
 export interface AiMessageResetData {
   text: string;
+  rawText: string;
   isComplete: boolean;
   thinkingContent?: string;
   isThinkingComplete: boolean;
@@ -37,6 +38,7 @@ export interface AiMessageResetData {
 export function createAiMessageReset(): AiMessageResetData {
   return {
     text: "",
+    rawText: "",
     isComplete: false,
     thinkingContent: undefined,
     isThinkingComplete: false,

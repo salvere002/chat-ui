@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, make_response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from streaming import create_sse_response, stream_response_generator
+from streaming import create_sse_response, stream_response_generator, detect_studio_request, build_studio_response
 from config_loader import config_manager
 from chart_generator import ChartGenerator
 
@@ -173,7 +173,10 @@ def fetch_message():
         image_url = f"https://picsum.photos/{image_size}/{image_size}?random={int(time.time())}"
     
     # Generate response text
-    if chart_response:
+    studio_file = detect_studio_request(text)
+    if studio_file:
+        response_text = build_studio_response(text, uploaded_files, studio_file)
+    elif chart_response:
         response_text = chart_response
     else:
         response_text = f"AI fetch response to: \"{text}\". Files received: {', '.join([f['name'] for f in uploaded_files]) if uploaded_files else 'None'}. This is a complete response."

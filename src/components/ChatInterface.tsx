@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { FaCode } from 'react-icons/fa';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import LoadingIndicator from './LoadingIndicator';
@@ -17,9 +18,10 @@ import { streamManager } from '../services/streamManager';
 interface ChatInterfaceProps {
   selectedResponseMode: ResponseMode;
   onMessagePairCapture?: (messageId: string) => void;
+  isLargeScreen?: boolean;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onMessagePairCapture }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onMessagePairCapture, isLargeScreen = false }) => {
   // Get chat data and actions using selective subscriptions
   const { activeChatId, chatSessions, activeBranchPath } = useChatData();
   const {
@@ -89,6 +91,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
   // Track input focus state for suggestions display
   const [isInputFocused, setIsInputFocused] = useState(false);
   const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [pendingStudioEnabled, setPendingStudioEnabled] = useState(false);
 
   // Get file upload state and handlers from custom hook
   const {
@@ -195,6 +198,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
     setIsInputFocused(false);
   };
 
+  const handleStudioToggle = () => {
+    if (!canToggleStudio) return;
+    if (activeChatId) {
+      updateChatMetadata(activeChatId, { studioEnabled: !activeChat?.studioEnabled });
+    } else {
+      setPendingStudioEnabled((prev) => !prev);
+    }
+  };
+
   // Handle sending a new message
   const handleSendMessage = async (messageText: string, filesToUpload?: { id: string; file: File }[]) => {
     // Don't process empty messages
@@ -211,8 +223,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
         ? (messageText.length > 30 ? messageText.substring(0, 27) + '...' : messageText)
         : 'New Conversation';
 
-      currentChatId = createChat(chatTitle);
+      currentChatId = createChat(chatTitle, { studioEnabled: pendingStudioEnabled });
       setActiveChat(currentChatId);
+      setPendingStudioEnabled(false);
     }
 
     try {
@@ -239,6 +252,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
       const userMessage: Message = {
         id: messageId,
         text: messageText,
+        rawText: messageText,
         sender: 'user',
         timestamp: new Date(),
         files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
@@ -260,6 +274,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
       const aiMessage: Message = {
         id: aiMessageId,
         text: '',
+        rawText: '',
         sender: 'ai',
         timestamp: new Date(),
         isComplete: false,
@@ -292,6 +307,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
   const hasActiveChatButEmpty = activeChatId && activeChatMessages.length === 0;
   const hasMessages = activeChatId && activeChatMessages.length > 0;
   const showWelcome = hasNoActiveChat || hasActiveChatButEmpty;
+  const canToggleStudio = showWelcome && isLargeScreen;
+  const effectiveStudioEnabled = activeChatId ? Boolean(activeChat?.studioEnabled) : pendingStudioEnabled;
 
   // Track when we transition from empty to having messages for animation
   const previousMessageCount = useRef(0);
@@ -318,6 +335,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
 
     previousMessageCount.current = currentMessageCount;
   }, [activeChatMessages.length]);
+
+  useEffect(() => {
+    if (activeChatId) {
+      setPendingStudioEnabled(false);
+    }
+  }, [activeChatId]);
 
   // Background texture is now centralized at the app root
 
@@ -352,6 +375,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
               </div>
             )}
 
+            {canToggleStudio && (
+              <div className="flex justify-center mt-4">
+                <div className="w-full max-w-2xl flex items-center justify-between gap-4 px-4 py-3 bg-bg-secondary border border-border-secondary rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-text-primary">Studio mode</div>
+                    <div className="text-xs text-text-tertiary mt-1">
+                      Code/File workspace
+                    </div>
+                  </div>
+                  <div
+                    className="relative inline-flex items-center cursor-pointer"
+                    onClick={handleStudioToggle}
+                  >
+                    <div className={`relative w-11 h-6 rounded-full transition-all duration-200 ${effectiveStudioEnabled ? 'bg-accent-primary' : 'bg-bg-tertiary'}`}>
+                      <div className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-200 ${effectiveStudioEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={effectiveStudioEnabled}
+                      onChange={() => {}}
+                      className="sr-only"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <MessageInput
               onSendMessage={handleSendMessage}
               onPauseRequest={handlePauseRequest}
@@ -368,6 +418,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
       ) : (
         /* Active conversation with messages */
         <>
+          {/* Studio Mode indicator */}
+          {activeChat?.studioEnabled && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-bg-secondary/80 border-b border-border-secondary text-text-secondary text-xs">
+              <FaCode className="text-accent-primary" />
+              <span className="font-medium">Studio Mode</span>
+            </div>
+          )}
+
           <MessageList
             messages={activeChatMessages}
             chatId={activeChatId}

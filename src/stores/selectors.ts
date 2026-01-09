@@ -1,6 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import useChatStore from './chatStore';
 import useMcpStore from './mcpStore';
+import useStudioStore from './studioStore';
 import type { MCPToolInfo } from '../services/mcpService';
 
 // Selective chat data subscriptions (read-only data)
@@ -95,4 +96,23 @@ export const useMcpActions = () => useMcpStore(useShallow((state) => ({
   setEnabled: state.setEnabled,
   refreshServer: state.refreshServer,
   refreshAll: state.refreshAll,
+})));
+
+// Studio data selectors
+export const useStudioData = () => useStudioStore(useShallow((state) => ({
+  chats: state.chats,
+})));
+
+export const useStudioActions = () => useStudioStore(useShallow((state) => ({
+  ensureChat: state.ensureChat,
+  startFile: state.startFile,
+  appendToFile: state.appendToFile,
+  finalizeFile: state.finalizeFile,
+  setActiveFile: state.setActiveFile,
+  setActiveVersion: state.setActiveVersion,
+  setViewMode: state.setViewMode,
+  updateFileContent: state.updateFileContent,
+  setPanelCollapsed: state.setPanelCollapsed,
+  clearChat: state.clearChat,
+  clearAll: state.clearAll,
 })));

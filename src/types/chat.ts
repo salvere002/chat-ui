@@ -10,6 +10,7 @@ export interface MessageFile {
 export interface Message {
   id: string; // Unique ID for the message itself
   text: string;
+  rawText?: string; // Original content (includes studio file blocks if present)
   sender: 'user' | 'ai';
   timestamp: Date;
   files?: MessageFile[]; // User message can have multiple files
@@ -53,6 +54,7 @@ export interface Chat {
   name?: string; // Include name for compatibility 
   createdAt: Date;
   updatedAt: Date;
+  studioEnabled?: boolean; // Studio mode enabled for this conversation
   // Per-conversation selections
   selectedAgentId?: string | null;
   selectedModelId?: string | null;

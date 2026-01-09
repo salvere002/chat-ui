@@ -9,6 +9,7 @@ export { default as useServiceConfigStore } from './serviceConfigStore';
 export { default as useAgentStore } from './agentStore';
 export { default as useModelStore } from './modelStore';
 export { default as useUiSettingsStore } from './uiSettingsStore';
+export { default as useStudioStore } from './studioStore';
 
 // Main branch performance optimizations
 export { default as useInputStore } from './inputStore';

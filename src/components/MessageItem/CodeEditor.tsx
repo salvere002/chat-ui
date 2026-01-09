@@ -20,9 +20,20 @@ interface CodeEditorProps {
   language: string;
   onSave: (newCode: string) => void;
   onClose: () => void;
+  variant?: 'modal' | 'panel';
+  commitOnSave?: boolean;
+  showCloseButton?: boolean;
 }
 
-const CodeEditor = memo<CodeEditorProps>(({ code, language, onSave, onClose }) => {
+const CodeEditor = memo<CodeEditorProps>(({
+  code,
+  language,
+  onSave,
+  onClose,
+  variant = 'modal',
+  commitOnSave = false,
+  showCloseButton = true,
+}) => {
   const [savedCode, setSavedCode] = useState(code);
   const [editedCode, setEditedCode] = useState(code);
   const [copied, setCopied] = useState(false);
@@ -93,18 +104,20 @@ const CodeEditor = memo<CodeEditorProps>(({ code, language, onSave, onClose }) =
   }, [updateCursorFromTextarea]);
 
   const handleSave = useCallback(() => {
-    // Update savedCode used for preview and eventual commit,
-    // but don't close the editor or notify parent yet.
+    // Update savedCode used for preview and optional commit.
+    if (commitOnSave) {
+      onSave(editedCode);
+    }
     setSavedCode(editedCode);
-  }, [editedCode]);
+  }, [commitOnSave, editedCode, onSave]);
 
   const handleCloseInternal = useCallback(() => {
-    // Commit last saved version (not live unsaved edits)
-    if (savedCode !== code) {
+    // Commit last saved version (not live unsaved edits) when not committing on save.
+    if (!commitOnSave && savedCode !== code) {
       onSave(savedCode);
     }
     onClose();
-  }, [savedCode, code, onSave, onClose]);
+  }, [commitOnSave, savedCode, code, onSave, onClose]);
 
   // Handle escape key to close, and Cmd/Ctrl+S to save preview state
   useEffect(() => {
@@ -370,8 +383,12 @@ const CodeEditor = memo<CodeEditorProps>(({ code, language, onSave, onClose }) =
     variable: { color: 'var(--code-token-variable)' },
   } as any;
 
+  const containerClasses = variant === 'modal'
+    ? 'fixed inset-0 z-modal bg-bg-primary flex flex-col animate-fade-in'
+    : 'h-full w-full bg-bg-primary flex flex-col';
+
   return (
-    <div className="fixed inset-0 z-modal bg-bg-primary flex flex-col animate-fade-in">
+    <div className={containerClasses}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-secondary bg-bg-secondary">
         <div className="flex items-center gap-3">
@@ -453,14 +470,16 @@ const CodeEditor = memo<CodeEditorProps>(({ code, language, onSave, onClose }) =
           </button>
           
           {/* Close button */}
-          <button
-            type="button"
-            onClick={handleCloseInternal}
-            className="flex items-center justify-center w-8 h-8 text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors ml-2"
-            title="Close (Esc)"
-          >
-            <FaTimes />
-          </button>
+          {showCloseButton && (
+            <button
+              type="button"
+              onClick={handleCloseInternal}
+              className="flex items-center justify-center w-8 h-8 text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors ml-2"
+              title="Close (Esc)"
+            >
+              <FaTimes />
+            </button>
+          )}
         </div>
       </div>
       

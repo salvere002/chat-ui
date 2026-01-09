@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import NavBar from './components/NavBar';
 import { ToastContainer } from './components/Toast';
 import { toast } from 'sonner';
-import { useThemeStore, useResponseModeStore, useChatStore, useUiSettingsStore, useServiceConfigStore, useMcpStore } from './stores';
+import { useThemeStore, useResponseModeStore, useChatStore, useUiSettingsStore, useServiceConfigStore, useMcpStore, useStudioStore } from './stores';
 import { getMcpConfigViaAdapter, isMcpConfigSupported } from './services/mcpConfigService';
 import { AgentService } from './services/agentService';
 import { ModelService } from './services/modelService';
@@ -14,6 +14,7 @@ import Settings from './components/Settings';
 import ShareModal from './components/ShareModal';
 import LoadingIndicator from './components/LoadingIndicator';
 import { captureConversationScreenshot } from './utils/screenshot';
+import StudioPanel from './components/StudioPanel';
 
 const App: React.FC = () => {
   // Use the theme store
@@ -31,6 +32,10 @@ const App: React.FC = () => {
     chatSessions: state.chatSessions,
     activeChatId: state.activeChatId
   })));
+
+  const studioChatState = useStudioStore(useShallow(state => (
+    sidebarData.activeChatId ? state.chats[sidebarData.activeChatId] : undefined
+  )));
 
   const sidebarActions = useChatStore(useShallow(state => ({
     selectChat: state.selectChat,
@@ -54,6 +59,7 @@ const App: React.FC = () => {
 
   // State for sidebar collapse/expand (desktop only)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const autoCollapsedStudioChatsRef = useRef<Set<string>>(new Set());
 
   // State for share modal
   const [showShareModal, setShowShareModal] = useState(false);
@@ -233,6 +239,35 @@ const App: React.FC = () => {
     setScreenshotBlob(null);
   }, [screenshotUrl]);
 
+  const activeChat = sidebarData.activeChatId
+    ? sidebarData.chatSessions.find(c => c.id === sidebarData.activeChatId)
+    : undefined;
+  const hasStudioFiles = Boolean(studioChatState && studioChatState.order.length > 0);
+  const shouldShowStudio = isLargeScreen && Boolean(activeChat?.studioEnabled) && hasStudioFiles;
+
+  useEffect(() => {
+    const chatId = sidebarData.activeChatId;
+    if (!chatId) return;
+    if (!isLargeScreen) return;
+    if (!activeChat?.studioEnabled) return;
+    if (!hasStudioFiles) return;
+
+    if (!autoCollapsedStudioChatsRef.current.has(chatId)) {
+      autoCollapsedStudioChatsRef.current.add(chatId);
+      if (!sidebarCollapsed || sidebarOpen) {
+        setSidebarCollapsed(true);
+        setSidebarOpen(false);
+      }
+    }
+  }, [
+    sidebarData.activeChatId,
+    isLargeScreen,
+    activeChat?.studioEnabled,
+    hasStudioFiles,
+    sidebarCollapsed,
+    sidebarOpen
+  ]);
+
   return (
     <div
       className={`flex flex-col h-screen w-screen bg-bg-primary ${getTextureClass()} text-text-primary relative overflow-hidden`}
@@ -306,10 +341,24 @@ const App: React.FC = () => {
         {/* Chat content */}
         <div className="flex-1 overflow-hidden w-full lg:w-auto @container">
           <ErrorBoundary>
-            <ChatInterface
-              selectedResponseMode={selectedResponseMode}
-              onMessagePairCapture={handleMessagePairCapture}
-            />
+            {shouldShowStudio && sidebarData.activeChatId ? (
+              <div className="flex h-full">
+                <div className="flex-1 min-w-0">
+                  <ChatInterface
+                    selectedResponseMode={selectedResponseMode}
+                    onMessagePairCapture={handleMessagePairCapture}
+                    isLargeScreen={isLargeScreen}
+                  />
+                </div>
+                <StudioPanel chatId={sidebarData.activeChatId} />
+              </div>
+            ) : (
+              <ChatInterface
+                selectedResponseMode={selectedResponseMode}
+                onMessagePairCapture={handleMessagePairCapture}
+                isLargeScreen={isLargeScreen}
+              />
+            )}
           </ErrorBoundary>
         </div>
 

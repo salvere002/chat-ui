@@ -24,6 +24,7 @@ interface MessageItemProps {
   onMessagePairCapture?: (messageId: string) => void;
   chatId: string;
   canRegenerate?: boolean;
+  disableBranching?: boolean;
 }
 
 
@@ -164,6 +165,7 @@ const MessageFooter: React.FC<{
   branchData: BranchData;
   onPreviousBranch: () => void;
   onNextBranch: () => void;
+  showBranchNavigator?: boolean;
   // Message actions props
   text?: string;
   copied: boolean;
@@ -173,6 +175,7 @@ const MessageFooter: React.FC<{
   onEditMessage?: (messageId: string, newText: string) => void;
   onRegenerateResponse?: () => void;
   onMessagePairCapture?: () => void;
+  disableBranching?: boolean;
 }> = memo(({ 
   sender, 
   timestamp, 
@@ -181,6 +184,7 @@ const MessageFooter: React.FC<{
   branchData, 
   onPreviousBranch, 
   onNextBranch,
+  showBranchNavigator = true,
   // Message actions
   text,
   copied,
@@ -189,16 +193,19 @@ const MessageFooter: React.FC<{
   onSetIsEditing,
   onEditMessage,
   onRegenerateResponse,
-  onMessagePairCapture
+  onMessagePairCapture,
+  disableBranching
 }) => {
 
   return (
     <>
-      <BranchNavigator
-        branchData={branchData}
-        onPreviousBranch={onPreviousBranch}
-        onNextBranch={onNextBranch}
-      />
+      {showBranchNavigator && (
+        <BranchNavigator
+          branchData={branchData}
+          onPreviousBranch={onPreviousBranch}
+          onNextBranch={onNextBranch}
+        />
+      )}
       
       {/* Actions footer - only show when hovering */}
       <div className="flex items-center mt-1 px-1 opacity-0 transition-opacity duration-150 text-xs text-text-tertiary gap-2 group-hover:opacity-100">
@@ -217,6 +224,7 @@ const MessageFooter: React.FC<{
           copied={copied}
           isEditing={isEditing}
           isComplete={isComplete}
+          disableBranching={disableBranching}
           onCopyMessage={onCopyMessage}
           onSetIsEditing={onSetIsEditing}
           onEditMessage={onEditMessage}
@@ -234,7 +242,15 @@ MessageFooter.displayName = 'MessageFooter';
 
 
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse, onEditMessage, onMessagePairCapture, chatId, canRegenerate }) => {
+const MessageItem: React.FC<MessageItemProps> = ({
+  message,
+  onRegenerateResponse,
+  onEditMessage,
+  onMessagePairCapture,
+  chatId,
+  canRegenerate,
+  disableBranching
+}) => {
   // Destructure files array instead of single file
   const { text, sender, timestamp, files, imageUrl, isComplete, id, thinkingContent, isThinkingComplete, thinkingCollapsed, wasPaused } = message;
   const hasThinking = sender === 'ai' && !!thinkingContent;
@@ -346,6 +362,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
       const aiMessage: Message = {
         id: aiMessageId,
         text: '',
+        rawText: '',
         sender: 'ai',
         timestamp: new Date(),
         isComplete: false,
@@ -382,6 +399,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
 
   // Handle creating new branch (replacing edit functionality)
   const handleCreateBranch = () => {
+    if (disableBranching) {
+      setIsEditing(false);
+      return;
+    }
     if (!editText.trim()) {
       setIsEditing(false);
       return;
@@ -393,6 +414,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     const newMessage = {
       id: generateMessageId(), // New unique ID
       text: editText.trim(),
+      rawText: editText.trim(),
       sender: message.sender,
       timestamp: new Date(), // New timestamp
       files: message.files || [],
@@ -414,6 +436,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
 
   // Handle edit save (now creates branch instead)
   const handleSaveEdit = () => {
+    if (disableBranching) {
+      setIsEditing(false);
+      return;
+    }
     handleCreateBranch();
   };
 
@@ -433,9 +459,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
     const updatedText = text.replace(oldCode, newCode);
     
     if (updatedText !== text) {
-      updateMessageInChat(chatId, id, { text: updatedText });
+      const updates: Partial<Message> = { text: updatedText };
+      if (!message.rawText || message.rawText === text) {
+        updates.rawText = updatedText;
+      }
+      updateMessageInChat(chatId, id, updates);
     }
-  }, [text, chatId, id, updateMessageInChat]);
+  }, [text, chatId, id, updateMessageInChat, message.rawText]);
 
   // Memoized copy message handler
   const handleCopyMessage = useCallback(() => {
@@ -529,6 +559,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         branchData={branchData}
         onPreviousBranch={handlePreviousBranch}
         onNextBranch={handleNextBranch}
+        showBranchNavigator={!disableBranching}
         text={text}
         copied={copied}
         isEditing={isEditing}
@@ -537,6 +568,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onRegenerateResponse
         onEditMessage={onEditMessage}
         onRegenerateResponse={canRegenerate ? handleRegenerateClick : undefined}
         onMessagePairCapture={sender === 'ai' && isComplete !== false ? handleMessagePairCapture : undefined}
+        disableBranching={disableBranching}
       />
     </div>
   );

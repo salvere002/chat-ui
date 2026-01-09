@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import MessageItem from './MessageItem';
 import { Message } from '../types/chat';
-import { useChatActions, useBranchData, useResponseModeStore } from '../stores';
+import { useChatActions, useBranchData, useResponseModeStore, useChatStore } from '../stores';
 import { useStreamingMessage } from '../hooks/useStreamingMessage';
 import { ConversationMessage } from '../types/api';
 import { buildHistory, createAiMessageReset } from '../utils/messageUtils';
@@ -27,6 +27,11 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId, onMessagePa
   const { updateMessageInChat } = useChatActions();
   const { getCurrentBranchMessages } = useBranchData();
   const { selectedResponseMode } = useResponseModeStore();
+  const isStudioChat = useChatStore((state) => {
+    if (!chatId) return false;
+    const chat = state.chatSessions.find((c) => c.id === chatId);
+    return Boolean(chat?.studioEnabled);
+  });
 
   // Get streaming message handler
   const { sendStreamingMessage } = useStreamingMessage(selectedResponseMode);
@@ -114,6 +119,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId, onMessagePa
       console.error("Error generating AI response:", error);
       updateMessageInChatRef.current(chatId, aiMessageId, {
         text: 'Sorry, there was an error processing your request.',
+        rawText: 'Sorry, there was an error processing your request.',
         isComplete: true
       });
       // Error handling completed - streaming automatically stopped by streamManager
@@ -150,7 +156,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId, onMessagePa
     if (messageIndex < 0) return;
 
     // Update the user message
-    updateMessageInChatRef.current(chatId, messageId, { text: newText });
+    updateMessageInChatRef.current(chatId, messageId, { text: newText, rawText: newText });
 
     // If there's a following AI message response, regenerate it
     if (messageIndex < messages.length - 1 && messages[messageIndex + 1].sender === 'ai') {
@@ -189,6 +195,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, chatId, onMessagePa
                 message={msg}
                 chatId={chatId || ''}
                 canRegenerate={canRegenerate}
+                disableBranching={isStudioChat}
                 onRegenerateResponse={handleRegenerateResponse}
                 onEditMessage={msg.sender === 'user' ? handleEditMessage : undefined}
                 onMessagePairCapture={msg.sender === 'ai' ? onMessagePairCapture : undefined}
