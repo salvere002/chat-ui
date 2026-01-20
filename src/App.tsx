@@ -342,7 +342,7 @@ const App: React.FC = () => {
         <div className="flex-1 overflow-hidden w-full lg:w-auto @container">
           <ErrorBoundary>
             {shouldShowStudio && sidebarData.activeChatId ? (
-              <div className="flex h-full">
+              <div className="relative flex h-full">
                 <div className="flex-1 min-w-0">
                   <ChatInterface
                     selectedResponseMode={selectedResponseMode}

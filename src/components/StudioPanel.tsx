@@ -83,12 +83,12 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId }) => {
   const fileLabel = activeFileName || 'Select file';
   const fileLanguage = activeFile?.language || (activeFile ? languageFromFileName(activeFile.name) : 'text');
 
-  // Collapsed state: compact file list at top
+  // Collapsed state: compact file list floating above chat
   if (panelCollapsed) {
     return (
-      <div className="w-48 border-l border-border-secondary bg-bg-secondary flex flex-col self-start transition-all duration-200">
+      <div className="absolute top-2 right-2 z-dropdown w-48 border border-border-secondary bg-bg-secondary rounded-lg shadow-lg flex flex-col transition-all duration-200">
         {/* Header with expand button */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary bg-bg-tertiary">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary bg-bg-tertiary rounded-t-lg">
           <span className="text-xs font-medium text-text-secondary">Files</span>
           <button
             type="button"
@@ -101,7 +101,7 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId }) => {
         </div>
 
         {/* Compact file list */}
-        <div className="py-1">
+        <div className="py-1 max-h-[300px] overflow-y-auto">
           {files.map((file) => (
             <button
               key={file.name}
