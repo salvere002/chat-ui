@@ -354,6 +354,109 @@ For charts with multiple data series, use arrays for `yKey`:
 ```
 
 
+### **Studio Mode - Document Generation**
+
+The Studio feature enables AI assistants to generate and manage code files that appear in a dedicated side panel with editing capabilities and version history.
+
+#### **How Studio Works**
+
+When the backend includes specially formatted file blocks in responses, the UI automatically:
+- Extracts the file content and displays it in the Studio panel
+- Shows a clickable file reference in the chat message
+- Maintains version history when files are updated
+- Provides a code editor for viewing and editing
+
+#### **Backend Integration Format**
+
+To create a document in Studio mode, backends should wrap file content with the `<studio:file>` tag:
+
+```xml
+<studio:file name="example.py" lang="python">
+def hello():
+    print("Hello, World!")
+
+if __name__ == "__main__":
+    hello()
+</studio:file>
+```
+
+**Tag Attributes:**
+- **`name`** (required): The filename to display (e.g., `"app.tsx"`, `"styles.css"`)
+- **`lang`** or **`language`** (optional): Language for syntax highlighting
+
+**Supported Languages:**
+`javascript`, `jsx`, `typescript`, `tsx`, `json`, `html`, `css`, `scss`, `markdown`, `yaml`, `python`, `ruby`, `go`, `rust`, `java`, `bash`, and more.
+
+#### **Multiple Files in One Response**
+
+Backends can include multiple files in a single response:
+
+```xml
+Here's a simple React component with its styles:
+
+<studio:file name="Button.tsx" lang="tsx">
+import React from 'react';
+import './Button.css';
+
+interface ButtonProps {
+  label: string;
+  onClick: () => void;
+}
+
+export const Button: React.FC<ButtonProps> = ({ label, onClick }) => {
+  return (
+    <button className="custom-button" onClick={onClick}>
+      {label}
+    </button>
+  );
+};
+</studio:file>
+
+<studio:file name="Button.css" lang="css">
+.custom-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.custom-button:hover {
+  background: #2563eb;
+}
+</studio:file>
+```
+
+#### **Version History**
+
+When the same filename appears in subsequent responses, Studio automatically creates a new version:
+- All versions are preserved and accessible
+- Users can switch between versions using the version dropdown
+- Each version has a timestamp for reference
+
+#### **Chat Display**
+
+In the chat message, file blocks are replaced with clickable inline buttons:
+- Shows the filename with a file icon
+- Clicking opens the file in the Studio panel
+- Multiple files appear as separate buttons
+
+#### **Studio Panel Features**
+
+- **File Selector**: Dropdown to switch between generated files
+- **Version Selector**: Switch between file versions when multiple exist
+- **Code Editor**: Syntax-highlighted editor with editing support
+- **Collapse/Expand**: Panel can be collapsed to a floating file list
+- **Auto-Focus**: Panel automatically opens when new files are generated
+
+#### **Streaming Support**
+
+Studio works seamlessly with streaming responses:
+- Files are parsed and displayed incrementally during streaming
+- Content appears in the editor as it streams in
+- Panel updates in real-time
+
 ### **Service Adapter System**
 
 Flexible backend communication through adapter pattern:

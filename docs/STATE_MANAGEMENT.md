@@ -14,6 +14,7 @@ The application uses multiple specialized stores, each handling a specific domai
 - **Toast Store** (`toastStore.ts`) - Manages toast notifications  
 - **Response Mode Store** (`responseModeStore.ts`) - Controls response delivery mode (stream/fetch)
 - **Service Config Store** (`serviceConfigStore.ts`) - Manages service configurations per adapter type
+- **Studio Store** (`studioStore.ts`) - Manages Studio files, versions, and panel state
 
 ### Benefits Over Context API
 - **Performance**: Avoids unnecessary re-renders
@@ -134,7 +135,53 @@ function BranchingComponent() {
 }
 ```
 
-### 5. Monitoring Store Changes
+### 5. Studio File Management
+
+```typescript
+import { useStudioStore } from '../stores';
+
+function StudioComponent() {
+  const chatState = useStudioStore((state) => state.chats['chat-id']);
+  const { setActiveFile, setActiveVersion, setPanelCollapsed } = useStudioStore.getState();
+  
+  // Get all files for a chat
+  const files = chatState?.order.map(name => chatState.files[name]) || [];
+  
+  // Get active file and version
+  const activeFile = chatState?.activeFileName 
+    ? chatState.files[chatState.activeFileName] 
+    : undefined;
+  const activeVersion = activeFile?.versions.find(
+    v => v.id === activeFile.activeVersionId
+  );
+  
+  const handleFileSelect = (fileName: string) => {
+    setActiveFile('chat-id', fileName);
+    setPanelCollapsed('chat-id', false);
+  };
+  
+  const handleVersionChange = (versionId: string) => {
+    if (activeFile) {
+      setActiveVersion('chat-id', activeFile.name, versionId);
+    }
+  };
+  
+  return (
+    <div>
+      <select onChange={(e) => handleFileSelect(e.target.value)}>
+        {files.map(file => (
+          <option key={file.name} value={file.name}>{file.name}</option>
+        ))}
+      </select>
+      {activeFile && activeVersion && (
+        <pre>{activeVersion.content}</pre>
+      )}
+    </div>
+  );
+}
+```
+
+### 6. Monitoring Store Changes
 
 ```typescript
 import { useEffect } from 'react';
@@ -188,6 +235,13 @@ function ChatMonitor() {
 - Queue and stack multiple notifications
 - Animated show/hide transitions
 
+### Studio Store Features
+- Manage generated files per chat session
+- Track file versions with timestamps
+- Handle active file and version selection
+- Control panel collapse/expand state
+- Stream-friendly file content updates
+
 ## File Structure
 
 ```
@@ -198,15 +252,26 @@ src/
 │   ├── themeStore.ts          # Theme management store
 │   ├── toastStore.ts          # Toast notifications store
 │   ├── responseModeStore.ts   # Response mode selection store
-│   └── serviceConfigStore.ts  # Service configuration store
+│   ├── serviceConfigStore.ts  # Service configuration store
+│   └── studioStore.ts         # Studio files and panel state
 ├── types/
 │   ├── store.ts               # TypeScript interfaces for all stores
 │   ├── chat.ts                # Chat and message type definitions
+│   ├── studio.ts              # Studio file and version types
 │   └── api.ts                 # API-related type definitions
 ├── hooks/
-│   └── useFileUpload.ts       # Custom hooks for file upload
+│   ├── useFileUpload.ts       # Custom hooks for file upload
+│   ├── useScreenshotShare.ts  # Screenshot capture and share modal
+│   ├── useServiceBootstrap.ts # Service initialization on adapter change
+│   ├── useResponsiveLayout.ts # Window width and breakpoint tracking
+│   └── useSidebarState.ts     # Sidebar state management
+├── utils/
+│   ├── studioParser.ts        # Streaming parser for studio:file tags
+│   └── studioTokens.ts        # Studio file token utilities
 └── components/
-    └── Settings.tsx           # Settings UI using stores
+    ├── Settings.tsx           # Settings UI using stores
+    ├── StudioPanel.tsx        # Studio file editor panel
+    └── StudioFileInline.tsx   # Inline file reference button
 ```
 
 ## Migration Notes

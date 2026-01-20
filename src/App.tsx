@@ -1,115 +1,64 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import NavBar from './components/NavBar';
 import { ToastContainer } from './components/Toast';
-import { toast } from 'sonner';
-import { useThemeStore, useResponseModeStore, useChatStore, useUiSettingsStore, useServiceConfigStore, useMcpStore, useStudioStore } from './stores';
-import { getMcpConfigViaAdapter, isMcpConfigSupported } from './services/mcpConfigService';
-import { AgentService } from './services/agentService';
-import { ModelService } from './services/modelService';
-import { useShallow } from 'zustand/react/shallow';
+import { useThemeStore, useResponseModeStore, useUiSettingsStore } from './stores';
 import Settings from './components/Settings';
 import ShareModal from './components/ShareModal';
 import LoadingIndicator from './components/LoadingIndicator';
-import { captureConversationScreenshot } from './utils/screenshot';
 import StudioPanel from './components/StudioPanel';
+import { useScreenshotShare } from './hooks/useScreenshotShare';
+import { useServiceBootstrap } from './hooks/useServiceBootstrap';
+import { useResponsiveLayout } from './hooks/useResponsiveLayout';
+import { useSidebarState } from './hooks/useSidebarState';
 
 const App: React.FC = () => {
-  // Use the theme store
+  // Theme and UI settings
   const { theme, toggleTheme } = useThemeStore();
   const { backgroundTexture } = useUiSettingsStore();
+  const { selectedResponseMode, setSelectedResponseMode } = useResponseModeStore();
+
+  // Responsive layout breakpoints
+  const { isWideScreen, isLargeScreen } = useResponsiveLayout();
+
+  // Service bootstrapping (MCP, Agents, Models)
+  useServiceBootstrap();
+
+  // Screenshot and share modal
+  const {
+    showShareModal,
+    screenshotBlob,
+    screenshotUrl,
+    isCapturing,
+    captureFullConversation,
+    captureMessagePair,
+    closeShareModal,
+  } = useScreenshotShare();
+
+  // Sidebar state management
+  const {
+    sidebarOpen,
+    sidebarCollapsed,
+    chatSessions,
+    activeChatId,
+    shouldShowStudio,
+    sidebarActions,
+    handleSidebarToggle,
+    handleSidebarCollapse,
+    handleMobileSidebarClose,
+    handleChatSelected,
+    handleNewChatAndClose,
+  } = useSidebarState({ isLargeScreen });
+
+  // Settings modal state
+  const [showSettings, setShowSettings] = useState(false);
 
   // Generate texture class based on setting
   const getTextureClass = () => {
     return backgroundTexture ? 'texture-subtle' : 'texture-off';
   };
-
-
-  // Use selective subscriptions for sidebar-specific data
-  const sidebarData = useChatStore(useShallow(state => ({
-    chatSessions: state.chatSessions,
-    activeChatId: state.activeChatId
-  })));
-
-  const studioChatState = useStudioStore(useShallow(state => (
-    sidebarData.activeChatId ? state.chats[sidebarData.activeChatId] : undefined
-  )));
-
-  const sidebarActions = useChatStore(useShallow(state => ({
-    selectChat: state.selectChat,
-    createChat: state.createChat,
-    deleteChat: state.deleteChat,
-    clearAllChats: state.clearAllChats
-  })));
-
-  // Use the response mode store for response mode selection
-  const { selectedResponseMode, setSelectedResponseMode } = useResponseModeStore();
-
-  // State for settings modal
-  const [showSettings, setShowSettings] = useState(false);
-  // Track window width once and derive responsive flags
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const isWideScreen = windowWidth >= 1280;
-  const isLargeScreen = windowWidth >= 1024;
-
-  // State for mobile sidebar visibility
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // State for sidebar collapse/expand (desktop only)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const autoCollapsedStudioChatsRef = useRef<Set<string>>(new Set());
-
-  // State for share modal
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [screenshotBlob, setScreenshotBlob] = useState<Blob | null>(null);
-  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
-  // UI blocking during capture
-  const [isCapturing, setIsCapturing] = useState(false);
-
-  // Service initialization is handled automatically by serviceConfigStore
-
-  // Handle window resize for responsive settings
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Bootstrap + re-sync: pull MCP config whenever adapter changes
-  const { type: currentAdapterType, url: currentAdapterBaseUrl } = useServiceConfigStore(useShallow((s) => ({
-    type: s.currentAdapterType,
-    url: s.configs[s.currentAdapterType].baseUrl,
-  })));
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        if (!isMcpConfigSupported()) return;
-        const remote = await getMcpConfigViaAdapter();
-        if (cancelled) return;
-        if (remote && typeof remote === 'object') {
-          await useMcpStore.getState().setJson(JSON.stringify(remote));
-        }
-      } catch (e: any) {
-        // Ignore adapters/backends that don't support MCP sync or any fetch errors
-        // Local persisted config remains in effect
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [currentAdapterType, currentAdapterBaseUrl]);
-
-  // Bootstrap agents/models whenever adapter changes
-  useEffect(() => {
-    void AgentService.bootstrap();
-    void ModelService.bootstrap();
-  }, [currentAdapterType, currentAdapterBaseUrl]);
-
-  // Removed handleNewChat - using handleNewChatAndClose instead
 
   // Memoized click handlers
   const handleThemeClick = useCallback(() => {
@@ -117,156 +66,12 @@ const App: React.FC = () => {
   }, [toggleTheme]);
 
   const handleSettingsClick = useCallback(() => {
-    setShowSettings(prev => !prev);
+    setShowSettings((prev) => !prev);
   }, []);
 
   const handleSettingsClose = useCallback(() => {
     setShowSettings(false);
   }, []);
-
-  const handleSidebarToggle = useCallback(() => {
-    setSidebarOpen(prev => {
-      const next = !prev;
-      // When opening on mobile (< lg), ensure sidebar is expanded
-      if (next && typeof window !== 'undefined' && window.innerWidth < 1024) {
-        setSidebarCollapsed(false);
-      }
-      return next;
-    });
-  }, []);
-
-  const handleSidebarCollapse = useCallback(() => {
-    // On mobile (< lg), closing should hide the sidebar entirely
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      setSidebarOpen(false);
-      return;
-    }
-    // Desktop: toggle collapsed width
-    setSidebarCollapsed(prev => !prev);
-  }, []);
-
-  const handleMobileSidebarClose = useCallback(() => {
-    setSidebarOpen(false);
-  }, []);
-
-  // Memoized sidebar event handlers
-  const handleChatSelected = useCallback((chatId: string) => {
-    sidebarActions.selectChat(chatId);
-    setSidebarOpen(false); // Close sidebar on mobile after selection
-  }, [sidebarActions]);
-
-  const handleNewChatAndClose = useCallback(() => {
-    const newChatId = sidebarActions.createChat('New Conversation');
-    sidebarActions.selectChat(newChatId);
-    setSidebarOpen(false); // Close sidebar on mobile after creating new chat
-  }, [sidebarActions]);
-
-  // Handle share button click
-  const handleShareClick = useCallback(async () => {
-    // Block UI interactions while capturing
-    setIsCapturing(true);
-    try {
-      const result = await captureConversationScreenshot({
-        width: 800,
-        pixelRatio: 2,
-      });
-      // Store blob and create an object URL for fast preview
-      try {
-        const url = URL.createObjectURL(result.blob);
-        setScreenshotBlob(result.blob);
-        setScreenshotUrl(url);
-      } catch (e) {
-        // Fallback to dataUrl only if object URL creation fails
-        setScreenshotBlob(result.blob);
-        setScreenshotUrl(result.dataUrl);
-      }
-      setShowShareModal(true);
-    } catch (error) {
-      console.error('Error capturing screenshot:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to capture screenshot. Please try again.'
-      );
-    } finally {
-      setIsCapturing(false);
-    }
-  }, []);
-
-  // Handle share message pair (current message + previous message)
-  const handleMessagePairCapture = useCallback(async (messageId: string) => {
-    // Block UI interactions while capturing
-    setIsCapturing(true);
-    try {
-      const result = await captureConversationScreenshot({
-        width: 800,
-        pixelRatio: 2,
-        selection: {
-          mode: 'window',
-          anchorMessageId: messageId,
-          beforeCount: 1, // Capture the previous message
-          afterCount: 0,  // Only capture up to the anchor message
-          allowPartial: true, // Allow capture even if there's no previous message
-        },
-        paddingTop: 16,    // Add padding for visual spacing
-        paddingBottom: 16,
-      });
-      // Store blob and create an object URL for fast preview
-      try {
-        const url = URL.createObjectURL(result.blob);
-        setScreenshotBlob(result.blob);
-        setScreenshotUrl(url);
-      } catch (e) {
-        // Fallback to dataUrl only if object URL creation fails
-        setScreenshotBlob(result.blob);
-        setScreenshotUrl(result.dataUrl);
-      }
-      setShowShareModal(true);
-    } catch (error) {
-      console.error('Error capturing message pair:', error);
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to capture message pair. Please try again.'
-      );
-    } finally {
-      setIsCapturing(false);
-    }
-  }, []);
-
-  const handleShareModalClose = useCallback(() => {
-    setShowShareModal(false);
-    if (screenshotUrl && screenshotUrl.startsWith('blob:')) {
-      try { URL.revokeObjectURL(screenshotUrl); } catch { }
-    }
-    setScreenshotUrl('');
-    setScreenshotBlob(null);
-  }, [screenshotUrl]);
-
-  const activeChat = sidebarData.activeChatId
-    ? sidebarData.chatSessions.find(c => c.id === sidebarData.activeChatId)
-    : undefined;
-  const hasStudioFiles = Boolean(studioChatState && studioChatState.order.length > 0);
-  const shouldShowStudio = isLargeScreen && Boolean(activeChat?.studioEnabled) && hasStudioFiles;
-
-  useEffect(() => {
-    const chatId = sidebarData.activeChatId;
-    if (!chatId) return;
-    if (!isLargeScreen) return;
-    if (!activeChat?.studioEnabled) return;
-    if (!hasStudioFiles) return;
-
-    if (!autoCollapsedStudioChatsRef.current.has(chatId)) {
-      autoCollapsedStudioChatsRef.current.add(chatId);
-      if (!sidebarCollapsed || sidebarOpen) {
-        setSidebarCollapsed(true);
-        setSidebarOpen(false);
-      }
-    }
-  }, [
-    sidebarData.activeChatId,
-    isLargeScreen,
-    activeChat?.studioEnabled,
-    hasStudioFiles,
-    sidebarCollapsed,
-    sidebarOpen
-  ]);
 
   return (
     <div
@@ -280,7 +85,7 @@ const App: React.FC = () => {
         onSidebarToggle={handleSidebarToggle}
         theme={theme}
         onThemeToggle={handleThemeClick}
-        onShareClick={handleShareClick}
+        onShareClick={captureFullConversation}
         onSettingsClick={handleSettingsClick}
         isCapturing={isCapturing}
       />
@@ -303,7 +108,7 @@ const App: React.FC = () => {
         <ShareModal
           imageUrl={screenshotUrl}
           screenshotBlob={screenshotBlob || undefined}
-          onClose={handleShareModalClose}
+          onClose={closeShareModal}
         />
       )}
 
@@ -324,8 +129,8 @@ const App: React.FC = () => {
         >
           <ErrorBoundary>
             <Sidebar
-              chats={sidebarData.chatSessions}
-              activeChatId={sidebarData.activeChatId}
+              chats={chatSessions}
+              activeChatId={activeChatId}
               onChatSelected={handleChatSelected}
               onNewChat={handleNewChatAndClose}
               onDeleteChat={sidebarActions.deleteChat}
@@ -341,21 +146,21 @@ const App: React.FC = () => {
         {/* Chat content */}
         <div className="flex-1 overflow-hidden w-full lg:w-auto @container">
           <ErrorBoundary>
-            {shouldShowStudio && sidebarData.activeChatId ? (
+            {shouldShowStudio && activeChatId ? (
               <div className="relative flex h-full">
                 <div className="flex-1 min-w-0">
                   <ChatInterface
                     selectedResponseMode={selectedResponseMode}
-                    onMessagePairCapture={handleMessagePairCapture}
+                    onMessagePairCapture={captureMessagePair}
                     isLargeScreen={isLargeScreen}
                   />
                 </div>
-                <StudioPanel chatId={sidebarData.activeChatId} />
+                <StudioPanel chatId={activeChatId} />
               </div>
             ) : (
               <ChatInterface
                 selectedResponseMode={selectedResponseMode}
-                onMessagePairCapture={handleMessagePairCapture}
+                onMessagePairCapture={captureMessagePair}
                 isLargeScreen={isLargeScreen}
               />
             )}
