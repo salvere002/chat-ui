@@ -1,7 +1,8 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import * as ReactModule from 'react';
 import { Runner } from 'react-runner';
 import * as Recharts from 'recharts';
+import Plotly from 'plotly.js-dist-min';
 
 const REACT_IMPORT_REGEX = /from\s+['"]react['"]|require\(['"]react['"]\)/;
 const EXPORT_DEFAULT_REGEX = /export\s+default\s+/;
@@ -15,45 +16,69 @@ export const isReactModuleCode = (code: string): boolean => {
 interface CodePreviewProps {
   code: string;
   isOpen: boolean;
+  variant?: 'modal' | 'panel';
+  loading?: boolean;
+  externalError?: string | null;
 }
 
-const CodePreview = memo<CodePreviewProps>(({ code, isOpen }) => {
+const CodePreview = memo<CodePreviewProps>(({
+  code,
+  isOpen,
+  variant = 'modal',
+  loading = false,
+  externalError = null,
+}) => {
   const [error, setError] = useState<string | null>(null);
+  const displayError = externalError || error;
 
   const scope = useMemo(
     () => ({
       import: {
         react: ReactModule,
         recharts: Recharts,
+        'plotly.js-dist-min': Plotly,
       },
     }),
     []
   );
 
-  if (!isOpen || !isReactModuleCode(code)) {
+  useEffect(() => {
+    setError(null);
+  }, [code]);
+
+  if (!isOpen || (!isReactModuleCode(code) && !loading && !externalError)) {
     return null;
   }
 
   return (
-    <div className="code-preview-root w-1/2 border-l border-border-secondary bg-bg-secondary flex flex-col">
+    <div className={`code-preview-root bg-bg-secondary flex flex-col ${variant === 'modal' ? 'w-1/2 border-l border-border-secondary' : 'w-full'}`}>
       <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary text-xs text-text-tertiary">
         <span className="font-medium text-text-primary">Preview</span>
-        {error && (
-          <span className="text-warning truncate max-w-[60%]">
-            {error}
+        {loading && !displayError && (
+          <span className="text-text-tertiary">Generating…</span>
+        )}
+        {displayError && (
+          <span className="text-warning truncate max-w-[80%]">
+            {displayError}
           </span>
         )}
       </div>
       <div className="flex-1 overflow-auto bg-bg-primary">
-        <Runner
-          code={code}
-          scope={scope}
-          onRendered={(runnerError) => {
-            setError(
-              runnerError ? runnerError.message || String(runnerError) : null
-            );
-          }}
-        />
+        {isReactModuleCode(code) ? (
+          <Runner
+            code={code}
+            scope={scope}
+            onRendered={(runnerError) => {
+              setError(
+                runnerError ? runnerError.message || String(runnerError) : null
+              );
+            }}
+          />
+        ) : (
+          <div className="h-full flex items-center justify-center text-sm text-text-tertiary">
+            {externalError ? 'Preview failed.' : 'Generating preview…'}
+          </div>
+        )}
       </div>
     </div>
   );

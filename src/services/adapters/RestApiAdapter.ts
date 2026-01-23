@@ -1,6 +1,6 @@
 import { ApiClient, DataTransformer } from '../apiClient';
 import { AbstractBaseAdapter, StreamCallbacks, ProgressCallback } from './BaseAdapter';
-import { ApiError, MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
+import { ApiError, MessageRequest, MessageResponse, FileUploadResponse, PythonPreviewResponse } from '../../types/api';
 
 /**
  * REST API adapter for standard HTTP backend
@@ -9,6 +9,7 @@ import { ApiError, MessageRequest, MessageResponse, FileUploadResponse } from '.
 export class RestApiAdapter extends AbstractBaseAdapter {
   constructor(apiClient: ApiClient) {
     super(apiClient);
+    this.capabilities.pythonPreview = true;
   }
 
   /**
@@ -187,4 +188,27 @@ export class RestApiAdapter extends AbstractBaseAdapter {
       this.transformFileUploadResponse
     );
   }
-} 
+
+  /**
+   * Render a Python preview to a React module
+   */
+  async renderPythonPreview(code: string, abortSignal?: AbortSignal): Promise<PythonPreviewResponse> {
+    return this.apiClient.request<PythonPreviewResponse>(
+      '/preview/python',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      },
+      this.transformPythonPreviewResponse,
+      abortSignal
+    );
+  }
+
+  /**
+   * Transform raw preview response
+   */
+  private transformPythonPreviewResponse: DataTransformer<any, PythonPreviewResponse> = (rawData) => {
+    return rawData as PythonPreviewResponse;
+  };
+}

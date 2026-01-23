@@ -3,7 +3,8 @@ import {
   MessageRequest, 
   MessageResponse, 
   StreamMessageChunk,
-  FileUploadResponse
+  FileUploadResponse,
+  PythonPreviewResponse
 } from '../../types/api';
 import type { Agent, Model } from '../../types/chat';
 
@@ -27,6 +28,7 @@ export type ProgressCallback = (fileId: string, progress: number) => void;
  */
 export type AdapterCapabilities = {
   mcpConfig?: boolean;
+  pythonPreview?: boolean;
 };
 
 export interface BaseAdapter {
@@ -84,6 +86,12 @@ export interface BaseAdapter {
    * Fetch MCP configuration from backend via adapter-specific path/logic
    */
   getMcpConfig(): Promise<import('../../types/mcp').MCPConfigPayload>;
+
+  /**
+   * Render a Python preview to a React module for client-only rendering.
+   * Optional: adapters can choose to implement or expose this capability.
+   */
+  renderPythonPreview?: (code: string, abortSignal?: AbortSignal) => Promise<PythonPreviewResponse>;
 }
 
 /**

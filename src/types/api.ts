@@ -67,6 +67,14 @@ export interface StreamMessageChunk {
   };
 }
 
+export interface PythonPreviewRequest {
+  code: string;
+}
+
+export type PythonPreviewResponse =
+  | { ok: true; reactCode: string; warnings?: string[] }
+  | { ok: false; error: string };
+
 export interface FileUploadResponse {
   id: string;
   name: string;
@@ -95,6 +103,11 @@ export interface ApiEndpoints {
   'message/stream': {
     request: MessageRequest;
     response: StreamMessageChunk;
+  };
+  // Preview endpoints
+  'preview/python': {
+    request: PythonPreviewRequest;
+    response: PythonPreviewResponse;
   };
   // File endpoints
   'upload': {

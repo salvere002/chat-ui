@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
-import { FaTimes, FaSave, FaUndo, FaCopy, FaCheck, FaPlay } from 'react-icons/fa';
+import { FaTimes, FaSave, FaUndo, FaCopy, FaCheck, FaPlay, FaCode } from 'react-icons/fa';
 import copyToClipboard from 'copy-to-clipboard';
 import CodeMirror from '@uiw/react-codemirror';
 import {
@@ -29,6 +29,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { yaml } from '@codemirror/lang-yaml';
 import { python } from '@codemirror/lang-python';
 import { java } from '@codemirror/lang-java';
+import { isPythonPreviewSupported, renderPythonPreview } from '../../services/pythonPreviewService';
 
 const REACT_IMPORT_REGEX = /from\s+['"]react['"]|require\(['"]react['"]\)/;
 const EXPORT_DEFAULT_REGEX = /export\s+default\s+/;
@@ -113,7 +114,7 @@ const editorHighlightStyle = HighlightStyle.define([
   { tag: tags.string, color: 'var(--code-token-string)' },
   { tag: tags.operator, color: 'var(--code-token-operator)' },
   { tag: tags.keyword, color: 'var(--code-token-keyword)' },
-  { tag: tags.function, color: 'var(--code-token-function)' },
+  { tag: tags.function(tags.variableName), color: 'var(--code-token-function)' },
   { tag: tags.className, color: 'var(--code-token-class-name)' },
   { tag: tags.variableName, color: 'var(--code-token-variable)' },
   { tag: tags.regexp, color: 'var(--code-token-regex)' },
@@ -149,6 +150,14 @@ const CodeEditor = memo<CodeEditorProps>(({
   const editedCodeRef = useRef(editedCode);
   const saveHandlerRef = useRef<() => void>(() => undefined);
   const didFocusRef = useRef(false);
+  const pythonPreviewAbortRef = useRef<AbortController | null>(null);
+  const lastPreviewedCodeRef = useRef<string | null>(null);
+  const normalizedLanguage = language.toLowerCase();
+  const isPython = normalizedLanguage === 'python' || normalizedLanguage === 'py';
+  const pythonPreviewSupported = isPython && isPythonPreviewSupported();
+  const [pythonPreviewCode, setPythonPreviewCode] = useState('');
+  const [pythonPreviewError, setPythonPreviewError] = useState<string | null>(null);
+  const [pythonPreviewLoading, setPythonPreviewLoading] = useState(false);
 
   // Keep local savedCode in sync with parent prop
   useEffect(() => {
@@ -161,13 +170,65 @@ const CodeEditor = memo<CodeEditorProps>(({
     editedCodeRef.current = editedCode;
   }, [editedCode]);
 
+  useEffect(() => {
+    return () => {
+      pythonPreviewAbortRef.current?.abort();
+    };
+  }, []);
+
+  const requestPythonPreview = useCallback(async (overrideCode?: string) => {
+    if (!pythonPreviewSupported) return;
+    const codeToSend = overrideCode ?? editedCodeRef.current;
+    if (!codeToSend.trim()) {
+      setPythonPreviewError('No code to preview.');
+      setPythonPreviewCode('');
+      return;
+    }
+    if (lastPreviewedCodeRef.current === codeToSend) {
+      return;
+    }
+
+    pythonPreviewAbortRef.current?.abort();
+    const controller = new AbortController();
+    pythonPreviewAbortRef.current = controller;
+
+    setPythonPreviewLoading(true);
+    setPythonPreviewError(null);
+
+    try {
+      const response = await renderPythonPreview(codeToSend, controller.signal);
+      if (controller.signal.aborted) return;
+      if (!response.ok) {
+        setPythonPreviewCode('');
+        setPythonPreviewError(response.error || 'Preview failed.');
+        return;
+      }
+      lastPreviewedCodeRef.current = codeToSend;
+      setPythonPreviewCode(response.reactCode);
+      if (response.warnings?.length) {
+        setPythonPreviewError(response.warnings.join(' • '));
+      }
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setPythonPreviewCode('');
+      setPythonPreviewError(error instanceof Error ? error.message : 'Preview failed.');
+    } finally {
+      if (!controller.signal.aborted) {
+        setPythonPreviewLoading(false);
+      }
+    }
+  }, [pythonPreviewSupported]);
+
   const handleSave = useCallback(() => {
     const nextCode = editedCodeRef.current;
     if (commitOnSave) {
       onSave(nextCode);
     }
     setSavedCode(nextCode);
-  }, [commitOnSave, onSave]);
+    if (pythonPreviewSupported) {
+      void requestPythonPreview(nextCode);
+    }
+  }, [commitOnSave, onSave, pythonPreviewSupported, requestPythonPreview]);
 
   useEffect(() => {
     saveHandlerRef.current = handleSave;
@@ -210,9 +271,19 @@ const CodeEditor = memo<CodeEditorProps>(({
     }
   };
 
+  const handleTogglePreview = useCallback(() => {
+    setShowPreview((prev) => {
+      const next = !prev;
+      if (next && pythonPreviewSupported) {
+        void requestPythonPreview();
+      }
+      return next;
+    });
+  }, [pythonPreviewSupported, requestPythonPreview]);
+
   const canPreview = useMemo(
-    () => isReactModuleCode(savedCode),
-    [savedCode]
+    () => pythonPreviewSupported || isReactModuleCode(savedCode),
+    [pythonPreviewSupported, savedCode]
   );
 
   useEffect(() => {
@@ -220,6 +291,20 @@ const CodeEditor = memo<CodeEditorProps>(({
       setShowPreview(false);
     }
   }, [canPreview, showPreview]);
+
+  useEffect(() => {
+    if (!pythonPreviewSupported) {
+      pythonPreviewAbortRef.current?.abort();
+      setPythonPreviewCode('');
+      setPythonPreviewError(null);
+      setPythonPreviewLoading(false);
+      lastPreviewedCodeRef.current = null;
+      return;
+    }
+    if (showPreview) {
+      void requestPythonPreview(code);
+    }
+  }, [pythonPreviewSupported, showPreview, code, requestPythonPreview]);
 
   const editorKeymaps = useMemo(
     () => keymap.of([
@@ -312,6 +397,9 @@ const CodeEditor = memo<CodeEditorProps>(({
 
   const lineCount = editedCode.split('\n').length;
   const hasChanges = editedCode !== savedCode;
+  const previewCode = pythonPreviewSupported ? pythonPreviewCode : savedCode;
+  const previewLoading = pythonPreviewSupported && pythonPreviewLoading;
+  const previewError = pythonPreviewSupported ? pythonPreviewError : null;
 
   const containerClasses = variant === 'modal'
     ? 'fixed inset-0 z-modal bg-bg-primary flex flex-col animate-fade-in'
@@ -369,10 +457,10 @@ const CodeEditor = memo<CodeEditorProps>(({
             <span>Reset</span>
           </button>
 
-          {/* Preview toggle - only for React default export modules */}
+          {/* Preview toggle - React modules or Python preview */}
           {canPreview && (
             <button
-              onClick={() => setShowPreview((prev) => !prev)}
+              onClick={handleTogglePreview}
               onMouseEnter={() => {
                 void loadCodePreview();
               }}
@@ -380,10 +468,21 @@ const CodeEditor = memo<CodeEditorProps>(({
                 void loadCodePreview();
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors"
-              title={showPreview ? 'Hide preview' : 'Show preview'}
+              title={showPreview ? (variant === 'panel' ? 'Show editor' : 'Hide preview') : 'Show preview'}
             >
-              <FaPlay className="text-xs" />
-              <span>{showPreview ? 'Hide preview' : 'Preview'}</span>
+              {variant === 'panel' ? (
+                // Panel: toggle between editor/preview
+                showPreview ? <FaCode className="text-xs" /> : <FaPlay className="text-xs" />
+              ) : (
+                // Modal: show/hide preview alongside editor
+                <FaPlay className="text-xs" />
+              )}
+              <span>
+                {variant === 'panel'
+                  ? (showPreview ? 'Editor' : 'Preview')
+                  : (showPreview ? 'Hide Preview' : 'Preview')
+                }
+              </span>
             </button>
           )}
 
@@ -416,27 +515,31 @@ const CodeEditor = memo<CodeEditorProps>(({
       {/* Editor area */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Editor pane */}
-        <div
-          className="flex flex-col min-h-0"
-          style={{ width: showPreview && canPreview ? '50%' : '100%' }}
-        >
-          <div className="flex-1 min-h-0 overflow-auto">
-            <CodeMirror
-              value={editedCode}
-              height="100%"
-              basicSetup={false}
-              extensions={editorExtensions}
-              onChange={handleEditorChange}
-              onUpdate={handleEditorUpdate}
-            />
+        {/* In modal: always show (split view); In panel: hide when preview active (toggle view) */}
+        {(variant === 'modal' || !(showPreview && canPreview)) && (
+          <div
+            className="flex flex-col min-h-0"
+            style={{ width: variant === 'modal' && showPreview && canPreview ? '50%' : '100%' }}
+          >
+            <div className="flex-1 min-h-0 overflow-auto">
+              <CodeMirror
+                value={editedCode}
+                height="100%"
+                basicSetup={false}
+                extensions={editorExtensions}
+                onChange={handleEditorChange}
+                onUpdate={handleEditorUpdate}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* React preview pane */}
+        {/* Preview pane */}
+        {/* In modal: split view (50%); In panel: full width toggle */}
         {showPreview && canPreview && (
           <Suspense
             fallback={
-              <div className="code-preview-root w-1/2 border-l border-border-secondary bg-bg-secondary flex flex-col">
+              <div className={`code-preview-root bg-bg-secondary flex flex-col ${variant === 'modal' ? 'w-1/2 border-l border-border-secondary' : 'w-full'}`}>
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary text-xs text-text-tertiary">
                   <span className="font-medium text-text-primary">Preview</span>
                 </div>
@@ -446,7 +549,13 @@ const CodeEditor = memo<CodeEditorProps>(({
               </div>
             }
           >
-            <CodePreview code={savedCode} isOpen={true} />
+            <CodePreview
+              code={previewCode}
+              isOpen={true}
+              variant={variant}
+              loading={previewLoading}
+              externalError={previewError}
+            />
           </Suspense>
         )}
       </div>

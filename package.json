@@ -92,6 +92,7 @@
     "lodash.throttle": "^4.1.1",
     "mime": "^4.0.7",
     "pretty-bytes": "^7.0.1",
+    "plotly.js-dist-min": "^2.32.0",
     "qs": "^6.14.0",
     "react-dropzone": "^14.3.8",
     "react-icons": "^5.5.0",

@@ -55,7 +55,7 @@ const brotliCompressionPlugin = ({
 export default defineConfig(({ command }) => ({
     plugins: [basicSsl(), react(), dynamicProxyPlugin(), brotliCompressionPlugin()],
     server: {
-      https: true, // Enable HTTPS
+      https: {}, // Enable HTTPS (basicSsl fills cert/key)
       port: config.frontend.dev.port, // Use configured dev server port
       // We provide our own dynamic proxy middleware for /api/proxy/*
     },

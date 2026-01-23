@@ -1,6 +1,6 @@
 import { AbstractBaseAdapter } from './BaseAdapter';
 import { ApiClient, RequestInterceptor, ResponseInterceptor, DataTransformer } from '../apiClient';
-import { MessageRequest, MessageResponse, FileUploadResponse } from '../../types/api';
+import { MessageRequest, MessageResponse, FileUploadResponse, PythonPreviewResponse } from '../../types/api';
 import { StreamCallbacks, ProgressCallback } from './BaseAdapter';
 import type { MCPConfigPayload } from '../../types/mcp';
 
@@ -14,6 +14,7 @@ export class SessionAdapter extends AbstractBaseAdapter {
   constructor(apiClient: ApiClient) {
     super(apiClient);
     this.capabilities.mcpConfig = true;
+    this.capabilities.pythonPreview = true;
 
     // Add a request interceptor to include the session cookie
     const requestInterceptor: RequestInterceptor = (requestConfig) => {
@@ -145,6 +146,29 @@ export class SessionAdapter extends AbstractBaseAdapter {
       this.transformFileUploadResponse
     );
   }
+
+  /**
+   * Render a Python preview to a React module
+   */
+  async renderPythonPreview(code: string, abortSignal?: AbortSignal): Promise<PythonPreviewResponse> {
+    return this.apiClient.request<PythonPreviewResponse>(
+      '/session/preview/python',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      },
+      this.transformPythonPreviewResponse,
+      abortSignal
+    );
+  }
+
+  /**
+   * Transform raw preview response
+   */
+  private transformPythonPreviewResponse: DataTransformer<any, PythonPreviewResponse> = (rawData) => {
+    return rawData as PythonPreviewResponse;
+  };
 
   /**
    * Save MCP config via Session adapter
