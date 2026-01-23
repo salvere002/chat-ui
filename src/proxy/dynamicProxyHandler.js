@@ -94,7 +94,14 @@ export function handleProxyRequest(req, res, logger = console) {
     const isHttps = base.protocol === 'https:';
     const client = isHttps ? https : http;
 
-    const headers = { ...req.headers };
+    // Filter out HTTP/2 pseudo-headers (they start with ':')
+    // These are not valid in HTTP/1.1 requests
+    const headers = {};
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (!key.startsWith(':')) {
+        headers[key] = value;
+      }
+    }
     headers.host = base.host;
 
     const requestOptions = {

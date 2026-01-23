@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 import { dynamicProxyPlugin } from './src/proxy/dynamicProxyPlugin';
 import config from './config.json';
 import { brotliCompressSync, constants } from 'zlib';
@@ -52,8 +53,9 @@ const brotliCompressionPlugin = ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
-    plugins: [react(), dynamicProxyPlugin(), brotliCompressionPlugin()],
+    plugins: [basicSsl(), react(), dynamicProxyPlugin(), brotliCompressionPlugin()],
     server: {
+      https: true, // Enable HTTPS
       port: config.frontend.dev.port, // Use configured dev server port
       // We provide our own dynamic proxy middleware for /api/proxy/*
     },

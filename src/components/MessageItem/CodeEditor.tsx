@@ -1,7 +1,34 @@
-import { memo, useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
+import { memo, useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { FaTimes, FaSave, FaUndo, FaCopy, FaCheck, FaPlay } from 'react-icons/fa';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import copyToClipboard from 'copy-to-clipboard';
+import CodeMirror from '@uiw/react-codemirror';
+import {
+  EditorView,
+  keymap,
+  lineNumbers,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  ViewUpdate,
+} from '@codemirror/view';
+import { EditorSelection, EditorState } from '@codemirror/state';
+import {
+  bracketMatching,
+  HighlightStyle,
+  indentOnInput,
+  indentUnit,
+  syntaxHighlighting,
+} from '@codemirror/language';
+import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import { history, historyKeymap, indentLess, indentWithTab } from '@codemirror/commands';
+import { tags } from '@lezer/highlight';
+import { javascript } from '@codemirror/lang-javascript';
+import { json } from '@codemirror/lang-json';
+import { html } from '@codemirror/lang-html';
+import { css } from '@codemirror/lang-css';
+import { markdown } from '@codemirror/lang-markdown';
+import { yaml } from '@codemirror/lang-yaml';
+import { python } from '@codemirror/lang-python';
+import { java } from '@codemirror/lang-java';
 
 const REACT_IMPORT_REGEX = /from\s+['"]react['"]|require\(['"]react['"]\)/;
 const EXPORT_DEFAULT_REGEX = /export\s+default\s+/;
@@ -14,6 +41,85 @@ const isReactModuleCode = (code: string): boolean => {
 
 const loadCodePreview = () => import('./CodePreview');
 const CodePreview = lazy(loadCodePreview);
+
+const editorTheme = EditorView.theme({
+  '&': {
+    height: '100%',
+    backgroundColor: 'var(--color-bg-primary)',
+    color: 'var(--code-fg)',
+  },
+  '.cm-scroller': {
+    fontFamily: 'var(--font-mono)',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    overflow: 'auto',
+    backgroundColor: 'var(--color-bg-primary)',
+  },
+  '.cm-content': {
+    padding: '16px',
+    backgroundColor: 'var(--color-bg-primary)',
+  },
+  '.cm-line': {
+    lineHeight: '1.6',
+  },
+  '.cm-gutters': {
+    backgroundColor: 'var(--color-bg-secondary)',
+    borderRight: '1px solid var(--color-border-secondary)',
+  },
+  '.cm-lineNumbers': {
+    minWidth: '50px',
+  },
+  '.cm-lineNumbers .cm-gutterElement': {
+    color: 'var(--color-text-tertiary)',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    padding: '0 12px',
+    textAlign: 'right',
+    boxSizing: 'border-box',
+  },
+  '.cm-activeLine': {
+    backgroundColor: 'var(--color-accent-light)',
+  },
+  '.cm-activeLineGutter': {
+    color: 'var(--color-text-primary)',
+    backgroundColor: 'var(--color-bg-tertiary)',
+    fontWeight: '500',
+  },
+  '.cm-selectionBackground': {
+    backgroundColor: 'var(--color-accent-light)',
+  },
+  '&.cm-focused .cm-selectionBackground': {
+    backgroundColor: 'var(--color-accent-light)',
+  },
+  '.cm-cursor': {
+    borderLeftColor: 'var(--color-text-primary)',
+  },
+  '.cm-selectionMatch': {
+    backgroundColor: 'var(--color-accent-light)',
+  },
+});
+
+const editorHighlightStyle = HighlightStyle.define([
+  { tag: tags.comment, color: 'var(--code-token-comment)' },
+  { tag: tags.lineComment, color: 'var(--code-token-comment)' },
+  { tag: tags.blockComment, color: 'var(--code-token-comment)' },
+  { tag: tags.docComment, color: 'var(--code-token-comment)' },
+  { tag: tags.punctuation, color: 'var(--code-token-punctuation)' },
+  { tag: tags.propertyName, color: 'var(--code-token-property)' },
+  { tag: tags.tagName, color: 'var(--code-token-tag)' },
+  { tag: tags.attributeName, color: 'var(--code-token-attr-name)' },
+  { tag: tags.bool, color: 'var(--code-token-boolean)' },
+  { tag: tags.number, color: 'var(--code-token-number)' },
+  { tag: tags.string, color: 'var(--code-token-string)' },
+  { tag: tags.operator, color: 'var(--code-token-operator)' },
+  { tag: tags.keyword, color: 'var(--code-token-keyword)' },
+  { tag: tags.function, color: 'var(--code-token-function)' },
+  { tag: tags.className, color: 'var(--code-token-class-name)' },
+  { tag: tags.variableName, color: 'var(--code-token-variable)' },
+  { tag: tags.regexp, color: 'var(--code-token-regex)' },
+  { tag: tags.constant(tags.name), color: 'var(--code-token-constant)' },
+  { tag: tags.invalid, color: 'var(--color-error)' },
+]);
 
 interface CodeEditorProps {
   code: string;
@@ -40,76 +146,32 @@ const CodeEditor = memo<CodeEditorProps>(({
   const [showPreview, setShowPreview] = useState(false);
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
-  const [scrollTop, setScrollTop] = useState(0);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null);
-  const syntaxHighlighterRef = useRef<HTMLDivElement>(null);
+  const editedCodeRef = useRef(editedCode);
+  const saveHandlerRef = useRef<() => void>(() => undefined);
+  const didFocusRef = useRef(false);
 
   // Keep local savedCode in sync with parent prop
   useEffect(() => {
     setSavedCode(code);
     setEditedCode(code);
+    editedCodeRef.current = code;
   }, [code]);
 
-  const updateCursorFromSelection = useCallback((value: string, selectionStart: number | null | undefined) => {
-    const pos = typeof selectionStart === 'number' ? selectionStart : 0;
-    const beforeCursor = value.slice(0, pos);
-    const line = beforeCursor.split('\n').length;
-    const lastNewline = beforeCursor.lastIndexOf('\n');
-    const col = pos - (lastNewline + 1) + 1;
-    setCursorLine(line);
-    setCursorCol(col);
-  }, []);
-
-  const updateCursorFromTextarea = useCallback(
-    (textarea: HTMLTextAreaElement | null) => {
-      if (!textarea) return;
-      updateCursorFromSelection(textarea.value, textarea.selectionStart);
-    },
-    [updateCursorFromSelection]
-  );
-
-  const canPreview = useMemo(
-    () => isReactModuleCode(savedCode),
-    [savedCode]
-  );
-
   useEffect(() => {
-    if (!canPreview && showPreview) {
-      setShowPreview(false);
-    }
-  }, [canPreview, showPreview]);
-
-  // Sync scroll between textarea, line numbers, and syntax highlighter
-  const handleScroll = useCallback(() => {
-    if (textareaRef.current && lineNumbersRef.current && syntaxHighlighterRef.current) {
-      const newScrollTop = textareaRef.current.scrollTop;
-      lineNumbersRef.current.scrollTop = newScrollTop;
-      syntaxHighlighterRef.current.scrollTop = newScrollTop;
-      syntaxHighlighterRef.current.scrollLeft = textareaRef.current.scrollLeft;
-      setScrollTop(newScrollTop);
-    }
-  }, []);
-
-  // Focus textarea on mount
-  useEffect(() => {
-    if (textareaRef.current) {
-      const textarea = textareaRef.current;
-      textarea.focus();
-      // Move cursor to end
-      const len = textarea.value.length;
-      textarea.setSelectionRange(len, len);
-      updateCursorFromTextarea(textarea);
-    }
-  }, [updateCursorFromTextarea]);
+    editedCodeRef.current = editedCode;
+  }, [editedCode]);
 
   const handleSave = useCallback(() => {
-    // Update savedCode used for preview and optional commit.
+    const nextCode = editedCodeRef.current;
     if (commitOnSave) {
-      onSave(editedCode);
+      onSave(nextCode);
     }
-    setSavedCode(editedCode);
-  }, [commitOnSave, editedCode, onSave]);
+    setSavedCode(nextCode);
+  }, [commitOnSave, onSave]);
+
+  useEffect(() => {
+    saveHandlerRef.current = handleSave;
+  }, [handleSave]);
 
   const handleCloseInternal = useCallback(() => {
     // Commit last saved version (not live unsaved edits) when not committing on save.
@@ -141,247 +203,115 @@ const CodeEditor = memo<CodeEditorProps>(({
   };
 
   const handleCopy = () => {
-    const ok = copyToClipboard(editedCode);
+    const ok = copyToClipboard(editedCodeRef.current);
     if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     }
   };
 
-  // Bracket pairs for auto-completion
-  const BRACKET_PAIRS: Record<string, string> = {
-    '(': ')',
-    '[': ']',
-    '{': '}',
-    '"': '"',
-    "'": "'",
-    '`': '`',
-  };
+  const canPreview = useMemo(
+    () => isReactModuleCode(savedCode),
+    [savedCode]
+  );
 
-  const CLOSING_BRACKETS = new Set([')', ']', '}', '"', "'", '`']);
+  useEffect(() => {
+    if (!canPreview && showPreview) {
+      setShowPreview(false);
+    }
+  }, [canPreview, showPreview]);
 
-  // Handle keyboard shortcuts for indentation, auto-indent, and bracket completion
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const textarea = e.currentTarget;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const hasSelection = start !== end;
+  const editorKeymaps = useMemo(
+    () => keymap.of([
+      ...closeBracketsKeymap,
+      ...historyKeymap,
+      indentWithTab,
+      { key: 'Shift-Tab', run: indentLess },
+      { key: 'Mod-s', run: () => {
+        saveHandlerRef.current();
+        return true;
+      } },
+    ]),
+    []
+  );
 
-    // Bracket auto-completion
-    if (BRACKET_PAIRS[e.key]) {
-      const closingChar = BRACKET_PAIRS[e.key];
-      
-      if (hasSelection) {
-        // Wrap selected text with brackets
-        e.preventDefault();
-        const selectedText = editedCode.slice(start, end);
-        const newValue = editedCode.slice(0, start) + e.key + selectedText + closingChar + editedCode.slice(end);
-        setEditedCode(newValue);
-        
-        requestAnimationFrame(() => {
-          textarea.selectionStart = start + 1;
-          textarea.selectionEnd = end + 1;
-          updateCursorFromTextarea(textarea);
-        });
-        return;
-      } else {
-        // Auto-insert closing bracket/quote
-        e.preventDefault();
-        const newValue = editedCode.slice(0, start) + e.key + closingChar + editedCode.slice(end);
-        setEditedCode(newValue);
-        
-        requestAnimationFrame(() => {
-          textarea.selectionStart = textarea.selectionEnd = start + 1;
-          updateCursorFromTextarea(textarea);
-        });
-        return;
-      }
+  const languageExtension = useMemo(() => {
+    const normalized = language.toLowerCase();
+    switch (normalized) {
+      case 'js':
+      case 'javascript':
+        return javascript();
+      case 'jsx':
+        return javascript({ jsx: true });
+      case 'ts':
+      case 'typescript':
+        return javascript({ typescript: true });
+      case 'tsx':
+        return javascript({ typescript: true, jsx: true });
+      case 'json':
+        return json();
+      case 'htm':
+      case 'html':
+        return html();
+      case 'css':
+      case 'scss':
+        return css();
+      case 'md':
+      case 'markdown':
+        return markdown();
+      case 'yml':
+      case 'yaml':
+        return yaml();
+      case 'py':
+      case 'python':
+        return python();
+      case 'java':
+        return java();
+      default:
+        return [];
+    }
+  }, [language]);
+
+  const editorExtensions = useMemo(
+    () => [
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      highlightActiveLine(),
+      history(),
+      indentOnInput(),
+      bracketMatching(),
+      closeBrackets(),
+      EditorState.tabSize.of(2),
+      indentUnit.of('  '),
+      editorKeymaps,
+      editorTheme,
+      syntaxHighlighting(editorHighlightStyle),
+      languageExtension,
+    ],
+    [editorKeymaps, languageExtension]
+  );
+
+  const handleEditorChange = useCallback((value: string) => {
+    editedCodeRef.current = value;
+    setEditedCode(value);
+  }, []);
+
+  const handleEditorUpdate = useCallback((viewUpdate: ViewUpdate) => {
+    if (!didFocusRef.current) {
+      const view = viewUpdate.view;
+      view.focus();
+      view.dispatch({ selection: EditorSelection.cursor(view.state.doc.length) });
+      didFocusRef.current = true;
     }
 
-    // Skip over closing bracket if typing it when it's already there
-    if (CLOSING_BRACKETS.has(e.key) && editedCode[start] === e.key) {
-      e.preventDefault();
-      requestAnimationFrame(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + 1;
-        updateCursorFromTextarea(textarea);
-      });
-      return;
-    }
+    const pos = viewUpdate.state.selection.main.head;
+    const line = viewUpdate.state.doc.lineAt(pos);
+    setCursorLine(line.number);
+    setCursorCol(pos - line.from + 1);
+  }, []);
 
-    // Backspace: delete matching bracket pair if cursor is between them
-    if (e.key === 'Backspace' && !hasSelection && start > 0) {
-      const charBefore = editedCode[start - 1];
-      const charAfter = editedCode[start];
-      if (BRACKET_PAIRS[charBefore] === charAfter) {
-        e.preventDefault();
-        const newValue = editedCode.slice(0, start - 1) + editedCode.slice(start + 1);
-        setEditedCode(newValue);
-        
-        requestAnimationFrame(() => {
-          textarea.selectionStart = textarea.selectionEnd = start - 1;
-          updateCursorFromTextarea(textarea);
-        });
-        return;
-      }
-    }
-
-    // Tab key handling
-    if (e.key === 'Tab') {
-      e.preventDefault();
-
-      if (hasSelection) {
-        // Multi-line indent/dedent
-        const lineStartIndex = editedCode.lastIndexOf('\n', start - 1) + 1;
-        const lineEndIndex = editedCode.indexOf('\n', end);
-        const actualEnd = lineEndIndex === -1 ? editedCode.length : lineEndIndex;
-        
-        const selectedLines = editedCode.slice(lineStartIndex, actualEnd);
-        const lines = selectedLines.split('\n');
-        
-        let newLines: string[];
-        let deltaFirst = 0; // Change in first line length
-        let deltaTotal = 0; // Total change in length
-        
-        if (e.shiftKey) {
-          // Dedent: remove up to 2 leading spaces from each line
-          newLines = lines.map((line, i) => {
-            const match = line.match(/^( {1,2})/);
-            const removed = match ? match[1].length : 0;
-            if (i === 0) deltaFirst = -removed;
-            deltaTotal -= removed;
-            return line.slice(removed);
-          });
-        } else {
-          // Indent: add 2 spaces to each line
-          newLines = lines.map((line, i) => {
-            if (i === 0) deltaFirst = 2;
-            deltaTotal += 2;
-            return '  ' + line;
-          });
-        }
-        
-        const newValue = editedCode.slice(0, lineStartIndex) + newLines.join('\n') + editedCode.slice(actualEnd);
-        setEditedCode(newValue);
-        
-        requestAnimationFrame(() => {
-          // Adjust selection to cover the modified lines
-          textarea.selectionStart = Math.max(lineStartIndex, start + deltaFirst);
-          textarea.selectionEnd = end + deltaTotal;
-          updateCursorFromTextarea(textarea);
-        });
-      } else if (e.shiftKey) {
-        // Single line dedent (Shift+Tab)
-        const lineStart = editedCode.lastIndexOf('\n', start - 1) + 1;
-        const lineContent = editedCode.slice(lineStart, start);
-        const leadingSpaces = lineContent.match(/^( {1,2})/);
-        
-        if (leadingSpaces) {
-          const spacesToRemove = leadingSpaces[1].length;
-          const newValue = editedCode.slice(0, lineStart) + editedCode.slice(lineStart + spacesToRemove);
-          setEditedCode(newValue);
-          
-          requestAnimationFrame(() => {
-            textarea.selectionStart = textarea.selectionEnd = Math.max(lineStart, start - spacesToRemove);
-            updateCursorFromTextarea(textarea);
-          });
-        }
-      } else {
-        // Single cursor indent (Tab)
-        const newValue = editedCode.substring(0, start) + '  ' + editedCode.substring(end);
-        setEditedCode(newValue);
-        
-        requestAnimationFrame(() => {
-          textarea.selectionStart = textarea.selectionEnd = start + 2;
-          updateCursorFromTextarea(textarea);
-        });
-      }
-      return;
-    }
-
-    // Enter key: auto-indent
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      
-      // Get current line's indentation
-      const lineStart = editedCode.lastIndexOf('\n', start - 1) + 1;
-      const lineContent = editedCode.slice(lineStart, start);
-      const indentMatch = lineContent.match(/^(\s*)/);
-      const currentIndent = indentMatch ? indentMatch[1] : '';
-      
-      // Check if we should add extra indent (after opening brackets or colons)
-      const charBefore = editedCode[start - 1];
-      const charAfter = editedCode[start];
-      const shouldExtraIndent = ['{', '(', '[', ':'].includes(charBefore);
-      const extraIndent = shouldExtraIndent ? '  ' : '';
-      
-      // Check if cursor is between matching brackets like {}
-      const isBetweenBrackets = 
-        (charBefore === '{' && charAfter === '}') ||
-        (charBefore === '(' && charAfter === ')') ||
-        (charBefore === '[' && charAfter === ']');
-      
-      let insertText: string;
-      let cursorOffset: number;
-      
-      if (isBetweenBrackets) {
-        // Insert new line with extra indent, then another line with original indent
-        insertText = '\n' + currentIndent + '  \n' + currentIndent;
-        cursorOffset = 1 + currentIndent.length + 2; // Position cursor on the indented line
-      } else {
-        insertText = '\n' + currentIndent + extraIndent;
-        cursorOffset = insertText.length;
-      }
-      
-      const newValue = editedCode.slice(0, start) + insertText + editedCode.slice(end);
-      setEditedCode(newValue);
-      
-      requestAnimationFrame(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + cursorOffset;
-        updateCursorFromTextarea(textarea);
-        // Sync scroll after cursor moves
-        handleScroll();
-      });
-      return;
-    }
-  };
-
-  const lines = editedCode.split('\n');
-  const lineCount = lines.length;
+  const lineCount = editedCode.split('\n').length;
   const hasChanges = editedCode !== savedCode;
-
-  // Theme-agnostic syntax highlighting style
-  const syntaxTheme = {
-    'pre[class*="language-"]': {
-      color: 'var(--code-fg)',
-      fontSize: '14px',
-      fontFamily: 'var(--font-mono)',
-      lineHeight: '1.6',
-      padding: '1rem',
-      margin: 0,
-      background: 'transparent',
-      whiteSpace: 'pre',
-      wordSpacing: 'normal',
-      wordBreak: 'normal',
-      tabSize: 2,
-    },
-    'code[class*="language-"]': {
-      color: 'var(--code-fg)',
-      fontSize: '14px',
-      fontFamily: 'var(--font-mono)',
-    },
-    comment: { color: 'var(--code-token-comment)' },
-    punctuation: { color: 'var(--code-token-punctuation)' },
-    property: { color: 'var(--code-token-property)' },
-    tag: { color: 'var(--code-token-tag)' },
-    boolean: { color: 'var(--code-token-boolean)' },
-    number: { color: 'var(--code-token-number)' },
-    string: { color: 'var(--code-token-string)' },
-    operator: { color: 'var(--code-token-operator)' },
-    keyword: { color: 'var(--code-token-keyword)' },
-    function: { color: 'var(--code-token-function)' },
-    'class-name': { color: 'var(--code-token-class-name)' },
-    variable: { color: 'var(--code-token-variable)' },
-  } as any;
 
   const containerClasses = variant === 'modal'
     ? 'fixed inset-0 z-modal bg-bg-primary flex flex-col animate-fade-in'
@@ -405,7 +335,7 @@ const CodeEditor = memo<CodeEditorProps>(({
             </span>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Copy button */}
           <button
@@ -426,7 +356,7 @@ const CodeEditor = memo<CodeEditorProps>(({
               </>
             )}
           </button>
-          
+
           {/* Reset button */}
           <button
             type="button"
@@ -450,13 +380,13 @@ const CodeEditor = memo<CodeEditorProps>(({
                 void loadCodePreview();
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors"
-              title={showPreview ? "Hide preview" : "Show preview"}
+              title={showPreview ? 'Hide preview' : 'Show preview'}
             >
               <FaPlay className="text-xs" />
               <span>{showPreview ? 'Hide preview' : 'Preview'}</span>
             </button>
           )}
-          
+
           {/* Save button */}
           <button
             type="button"
@@ -468,7 +398,7 @@ const CodeEditor = memo<CodeEditorProps>(({
             <FaSave className="text-xs" />
             <span>Save</span>
           </button>
-          
+
           {/* Close button */}
           {showCloseButton && (
             <button
@@ -482,90 +412,22 @@ const CodeEditor = memo<CodeEditorProps>(({
           )}
         </div>
       </div>
-      
+
       {/* Editor area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Editor pane */}
         <div
-          className="flex overflow-hidden"
+          className="flex flex-col min-h-0"
           style={{ width: showPreview && canPreview ? '50%' : '100%' }}
         >
-          {/* Line numbers */}
-          <div
-            ref={lineNumbersRef}
-            className="flex-shrink-0 py-4 px-3 bg-bg-secondary border-r border-border-secondary overflow-hidden select-none"
-            style={{ minWidth: '50px' }}
-          >
-            {lines.map((_, index) => (
-              <div
-                key={index}
-                className={`text-right text-xs leading-[1.6] font-mono transition-colors ${
-                  index + 1 === cursorLine 
-                    ? 'text-text-primary font-medium' 
-                    : 'text-text-tertiary'
-                }`}
-                style={{ height: '22.4px' }}
-              >
-                {index + 1}
-              </div>
-            ))}
-          </div>
-          
-          {/* Code editor with overlay */}
-          <div className="flex-1 relative overflow-hidden">
-            {/* Current line highlight (bottom layer) */}
-            <div 
-              className="absolute left-0 right-0 bg-accent-primary/8 pointer-events-none transition-transform duration-75"
-              style={{ 
-                height: '22.4px',
-                top: `${16 + (cursorLine - 1) * 22.4 - scrollTop}px`, // 16px padding + line offset - scroll
-              }}
-            />
-            
-            {/* Syntax highlighted preview (behind) */}
-            <div 
-              ref={syntaxHighlighterRef}
-              className="absolute inset-0 overflow-auto pointer-events-none"
-            >
-              <SyntaxHighlighter
-                style={syntaxTheme}
-                language={language}
-                PreTag="div"
-                customStyle={{
-                  margin: 0,
-                  padding: '1rem',
-                  background: 'transparent',
-                  minHeight: '100%',
-                }}
-              >
-                {editedCode}
-              </SyntaxHighlighter>
-            </div>
-            
-            {/* Transparent textarea (on top) */}
-            <textarea
-              ref={textareaRef}
+          <div className="flex-1 min-h-0 overflow-auto">
+            <CodeMirror
               value={editedCode}
-              onChange={(e) => {
-                setEditedCode(e.target.value);
-                updateCursorFromTextarea(e.currentTarget);
-              }}
-              onScroll={handleScroll}
-              onKeyDown={handleKeyDown}
-              onClick={(e) => updateCursorFromTextarea(e.currentTarget)}
-              onKeyUp={(e) => updateCursorFromTextarea(e.currentTarget)}
-              onMouseUp={(e) => updateCursorFromTextarea(e.currentTarget)}
-              className="absolute inset-0 w-full h-full resize-none bg-transparent text-transparent caret-text-primary outline-none p-4 font-mono text-sm leading-[1.6] overflow-auto"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '14px',
-                lineHeight: '1.6',
-                tabSize: 2,
-              }}
-              spellCheck={false}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
+              height="100%"
+              basicSetup={false}
+              extensions={editorExtensions}
+              onChange={handleEditorChange}
+              onUpdate={handleEditorUpdate}
             />
           </div>
         </div>
@@ -588,7 +450,7 @@ const CodeEditor = memo<CodeEditorProps>(({
           </Suspense>
         )}
       </div>
-      
+
       {/* Footer with keyboard shortcuts */}
       <div className="flex items-center justify-between px-4 py-2 border-t border-border-secondary bg-bg-secondary text-xs text-text-tertiary">
         <div className="flex items-center gap-4">
