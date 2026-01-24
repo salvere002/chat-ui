@@ -120,7 +120,21 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
           const currentConfig = state.getCurrentConfig();
           serviceFactory.switchAdapter(currentConfig.adapterType, currentConfig.baseUrl);
         } catch (e) {
-          console.error('Error applying hydrated service config:', e);
+          console.error('Error applying hydrated service config, falling back to config.json:', e);
+          // Fallback: reset to default adapter type from config.json
+          if (state) {
+            try {
+              const defaultAdapterType = (configManager.getServicesConfig().adapterType as AdapterType) || 'rest';
+              const defaultConfigs = getDefaultConfig();
+              state.currentAdapterType = defaultAdapterType;
+              state.configs = defaultConfigs;
+              const fallbackConfig = defaultConfigs[defaultAdapterType];
+              serviceFactory.switchAdapter(fallbackConfig.adapterType, fallbackConfig.baseUrl);
+              console.log(`Fallback successful: using adapter type '${defaultAdapterType}' from config.json`);
+            } catch (fallbackError) {
+              console.error('Fallback to config.json failed:', fallbackError);
+            }
+          }
         }
       }
     }
