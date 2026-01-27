@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Chat } from '../types/chat';
 import { useChatActions } from '../stores';
-import { FaPlus } from 'react-icons/fa';
+import { FaPlus, FaCode } from 'react-icons/fa';
 import { HiOutlineBars3BottomLeft, HiOutlineBars3 } from 'react-icons/hi2';
 import { formatChatDate } from '../utils/timeUtils';
 
@@ -12,10 +12,13 @@ interface SidebarProps {
   onNewChat: () => void;
   onDeleteChat: (chatId: string) => void;
   onClearAllChats: () => void;
+  onStudioClick?: () => void; // Handler for studio button click
+  studioActive?: boolean; // Whether studio mode is active (pending or current chat has it)
   collapsed: boolean;
   onCollapse: () => void;
   maxHeight?: React.CSSProperties['maxHeight']; // Optional max-height constraint (e.g., "500px", "calc(100vh - 100px)")
   isVisible?: boolean; // For overlay mode - tracks if sidebar is visible to trigger animations
+  isLargeScreen?: boolean; // To show/hide studio button (only on large screens)
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -25,10 +28,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   onNewChat,
   onDeleteChat,
   onClearAllChats,
+  onStudioClick,
+  studioActive = false,
   collapsed,
   onCollapse,
   maxHeight,
-  isVisible = true
+  isVisible = true,
+  isLargeScreen = false
 }) => {
   const dynamicHeight = maxHeight != null;
   const { renameChatSession } = useChatActions();
@@ -329,6 +335,32 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
+          {/* Studio Button - Fixed at bottom */}
+          {isLargeScreen && onStudioClick && (
+            <div className="border-t border-r border-border-primary bg-bg-secondary flex-shrink-0">
+              <div className="p-2">
+                <button
+                  onClick={onStudioClick}
+                  className={`flex items-center rounded-md cursor-pointer transition-all duration-200 ${collapsed
+                      ? 'w-10 h-10 p-0 justify-center mx-auto'
+                      : 'w-full px-3 py-2.5 gap-3'
+                    } ${studioActive
+                      ? 'bg-accent-primary text-text-inverse border border-accent-primary hover:bg-accent-hover'
+                      : 'bg-bg-tertiary text-text-primary border border-border-secondary hover:bg-accent-light hover:border-accent-primary hover:text-accent-primary'
+                    }`}
+                  title={studioActive ? 'Studio mode enabled - Click to disable' : 'Enable Studio mode'}
+                  aria-label={studioActive ? 'Disable Studio' : 'Enable Studio'}
+                >
+                  <FaCode className={`${collapsed ? 'text-base' : 'text-sm'} flex-shrink-0`} />
+                  <span
+                    className={`whitespace-nowrap text-sm font-medium ${collapsed ? 'hidden' : 'block'}`}
+                  >
+                    Studio
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

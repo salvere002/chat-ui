@@ -10,6 +10,8 @@ const useUiSettingsStore = create<UiSettingsStore>()(
       // Default settings
       showSuggestions: configManager.getDefaultShowSuggestions(),
       backgroundTexture: configManager.getDefaultBackgroundTextureEnabled(),
+      // Session-only state (not persisted)
+      pendingStudioEnabled: false,
       
       // Actions
       setShowSuggestions: (show: boolean) => {
@@ -22,10 +24,15 @@ const useUiSettingsStore = create<UiSettingsStore>()(
       
       setBackgroundTexture: (texture: boolean) => {
         set({ backgroundTexture: texture });
+      },
+      
+      setPendingStudioEnabled: (enabled: boolean) => {
+        set({ pendingStudioEnabled: enabled });
       }
     }),
     {
       name: 'ui-settings-store',
+      // Only persist these fields (pendingStudioEnabled is session-only)
       partialize: (state) => ({
         showSuggestions: state.showSuggestions,
         backgroundTexture: state.backgroundTexture

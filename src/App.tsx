@@ -4,7 +4,7 @@ import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
 import NavBar from './components/NavBar';
 import { ToastContainer } from './components/Toast';
-import { useThemeStore, useResponseModeStore, useUiSettingsStore } from './stores';
+import { useThemeStore, useResponseModeStore, useUiSettingsStore, useChatStore, useToastStore } from './stores';
 import Settings from './components/Settings';
 import ShareModal from './components/ShareModal';
 import LoadingIndicator from './components/LoadingIndicator';
@@ -21,7 +21,7 @@ const App: React.FC = () => {
   const { selectedResponseMode, setSelectedResponseMode } = useResponseModeStore();
 
   // Responsive layout breakpoints
-  const { isWideScreen, isLargeScreen } = useResponsiveLayout();
+  const { isExtraWideScreen, isWideScreen, isLargeScreen } = useResponsiveLayout();
 
   // Service bootstrapping (MCP, Agents, Models)
   useServiceBootstrap();
@@ -43,6 +43,7 @@ const App: React.FC = () => {
     sidebarCollapsed,
     chatSessions,
     activeChatId,
+    activeChat,
     shouldShowStudio,
     sidebarActions,
     handleSidebarToggle,
@@ -51,6 +52,12 @@ const App: React.FC = () => {
     handleChatSelected,
     handleNewChatAndClose,
   } = useSidebarState({ isLargeScreen });
+
+  // Get pending studio state from UI settings
+  const { pendingStudioEnabled } = useUiSettingsStore();
+
+  // Calculate if studio is active (pending or current chat has it enabled)
+  const studioActive = activeChatId ? Boolean(activeChat?.studioEnabled) : pendingStudioEnabled;
 
   // Settings modal state
   const [showSettings, setShowSettings] = useState(false);
@@ -71,6 +78,36 @@ const App: React.FC = () => {
 
   const handleSettingsClose = useCallback(() => {
     setShowSettings(false);
+  }, []);
+
+  // Handle Studio button click - enable studio mode for next conversation
+  const handleStudioClick = useCallback(() => {
+    const { pendingStudioEnabled, setPendingStudioEnabled } = useUiSettingsStore.getState();
+    const { showToast } = useToastStore.getState();
+    const { activeChatId } = useChatStore.getState();
+    
+    // If there's an active chat, we could toggle studio on it
+    // But for now, just set pending state for next new chat
+    if (!activeChatId) {
+      const newEnabled = !pendingStudioEnabled;
+      setPendingStudioEnabled(newEnabled);
+      if (newEnabled) {
+        showToast('Studio mode enabled for next conversation', 'success');
+      } else {
+        showToast('Studio mode disabled', 'info');
+      }
+    } else {
+      // If there's an active chat, toggle studio on it
+      const { updateChatMetadata, chatSessions } = useChatStore.getState();
+      const chat = chatSessions.find(c => c.id === activeChatId);
+      const newEnabled = !chat?.studioEnabled;
+      updateChatMetadata(activeChatId, { studioEnabled: newEnabled });
+      if (newEnabled) {
+        showToast('Studio mode enabled', 'success');
+      } else {
+        showToast('Studio mode disabled', 'info');
+      }
+    }
   }, []);
 
   return (
@@ -135,10 +172,13 @@ const App: React.FC = () => {
               onNewChat={handleNewChatAndClose}
               onDeleteChat={sidebarActions.deleteChat}
               onClearAllChats={sidebarActions.clearAllChats}
+              onStudioClick={handleStudioClick}
+              studioActive={studioActive}
               collapsed={sidebarCollapsed}
               onCollapse={handleSidebarCollapse}
               maxHeight={!isLargeScreen ? 'calc(100vh - 80px)' : undefined}
               isVisible={isLargeScreen || sidebarOpen}
+              isLargeScreen={isLargeScreen}
             />
           </ErrorBoundary>
         </div>
@@ -152,16 +192,14 @@ const App: React.FC = () => {
                   <ChatInterface
                     selectedResponseMode={selectedResponseMode}
                     onMessagePairCapture={captureMessagePair}
-                    isLargeScreen={isLargeScreen}
                   />
                 </div>
-                <StudioPanel chatId={activeChatId} />
+                <StudioPanel chatId={activeChatId} splitView={isExtraWideScreen} />
               </div>
             ) : (
               <ChatInterface
                 selectedResponseMode={selectedResponseMode}
                 onMessagePairCapture={captureMessagePair}
-                isLargeScreen={isLargeScreen}
               />
             )}
           </ErrorBoundary>

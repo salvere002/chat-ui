@@ -130,6 +130,8 @@ interface CodeEditorProps {
   variant?: 'modal' | 'panel';
   commitOnSave?: boolean;
   showCloseButton?: boolean;
+  /** When true, shows editor + preview side-by-side (like modal) even in panel variant */
+  splitView?: boolean;
 }
 
 const CodeEditor = memo<CodeEditorProps>(({
@@ -140,6 +142,7 @@ const CodeEditor = memo<CodeEditorProps>(({
   variant = 'modal',
   commitOnSave = false,
   showCloseButton = true,
+  splitView = false,
 }) => {
   const [savedCode, setSavedCode] = useState(code);
   const [editedCode, setEditedCode] = useState(code);
@@ -384,9 +387,12 @@ const CodeEditor = memo<CodeEditorProps>(({
   const handleEditorUpdate = useCallback((viewUpdate: ViewUpdate) => {
     if (!didFocusRef.current) {
       const view = viewUpdate.view;
-      view.focus();
-      view.dispatch({ selection: EditorSelection.cursor(view.state.doc.length) });
       didFocusRef.current = true;
+      view.focus();
+      const endPos = view.state.doc.length;
+      if (view.state.selection.main.head !== endPos) {
+        view.dispatch({ selection: EditorSelection.cursor(endPos) });
+      }
     }
 
     const pos = viewUpdate.state.selection.main.head;
@@ -468,17 +474,17 @@ const CodeEditor = memo<CodeEditorProps>(({
                 void loadCodePreview();
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors"
-              title={showPreview ? (variant === 'panel' ? 'Show editor' : 'Hide preview') : 'Show preview'}
+              title={showPreview ? ((variant === 'panel' && !splitView) ? 'Show editor' : 'Hide preview') : 'Show preview'}
             >
-              {variant === 'panel' ? (
-                // Panel: toggle between editor/preview
+              {(variant === 'panel' && !splitView) ? (
+                // Panel without split: toggle between editor/preview
                 showPreview ? <FaCode className="text-xs" /> : <FaPlay className="text-xs" />
               ) : (
-                // Modal: show/hide preview alongside editor
+                // Modal or panel with split: show/hide preview alongside editor
                 <FaPlay className="text-xs" />
               )}
               <span>
-                {variant === 'panel'
+                {(variant === 'panel' && !splitView)
                   ? (showPreview ? 'Editor' : 'Preview')
                   : (showPreview ? 'Hide Preview' : 'Preview')
                 }
@@ -515,11 +521,11 @@ const CodeEditor = memo<CodeEditorProps>(({
       {/* Editor area */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Editor pane */}
-        {/* In modal: always show (split view); In panel: hide when preview active (toggle view) */}
-        {(variant === 'modal' || !(showPreview && canPreview)) && (
+        {/* In modal or panel with splitView: always show (split view); In panel without splitView: hide when preview active (toggle view) */}
+        {(variant === 'modal' || splitView || !(showPreview && canPreview)) && (
           <div
             className="flex flex-col min-h-0"
-            style={{ width: variant === 'modal' && showPreview && canPreview ? '50%' : '100%' }}
+            style={{ width: (variant === 'modal' || splitView) && showPreview && canPreview ? '50%' : '100%' }}
           >
             <div className="flex-1 min-h-0 overflow-auto">
               <CodeMirror
@@ -535,11 +541,11 @@ const CodeEditor = memo<CodeEditorProps>(({
         )}
 
         {/* Preview pane */}
-        {/* In modal: split view (50%); In panel: full width toggle */}
+        {/* In modal or panel with splitView: split view (50%); In panel without splitView: full width toggle */}
         {showPreview && canPreview && (
           <Suspense
             fallback={
-              <div className={`code-preview-root bg-bg-secondary flex flex-col ${variant === 'modal' ? 'w-1/2 border-l border-border-secondary' : 'w-full'}`}>
+              <div className={`code-preview-root bg-bg-secondary flex flex-col ${(variant === 'modal' || splitView) ? 'w-1/2 border-l border-border-secondary' : 'w-full'}`}>
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary text-xs text-text-tertiary">
                   <span className="font-medium text-text-primary">Preview</span>
                 </div>
@@ -552,7 +558,7 @@ const CodeEditor = memo<CodeEditorProps>(({
             <CodePreview
               code={previewCode}
               isOpen={true}
-              variant={variant}
+              variant={splitView ? 'modal' : variant}
               loading={previewLoading}
               externalError={previewError}
             />

@@ -6,6 +6,8 @@ import CodeEditor from './MessageItem/CodeEditor';
 
 interface StudioPanelProps {
   chatId: string;
+  /** When true, editor and preview show side-by-side instead of toggle */
+  splitView?: boolean;
 }
 
 const languageFromFileName = (fileName: string): string => {
@@ -32,7 +34,7 @@ const languageFromFileName = (fileName: string): string => {
   return map[ext] || 'text';
 };
 
-const StudioPanel: React.FC<StudioPanelProps> = ({ chatId }) => {
+const StudioPanel: React.FC<StudioPanelProps> = ({ chatId, splitView = false }) => {
   const chatState = useStudioStore((state) => state.chats[chatId]);
   const {
     setActiveFile,
@@ -75,10 +77,6 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId }) => {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [menuOpen]);
-
-  if (!chatState) {
-    return null;
-  }
 
   const fileLabel = activeFileName || 'Select file';
   const fileLanguage = activeFile?.language || (activeFile ? languageFromFileName(activeFile.name) : 'text');
@@ -205,6 +203,7 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId }) => {
             variant="panel"
             commitOnSave={true}
             showCloseButton={false}
+            splitView={splitView}
           />
         ) : (
           <div className="h-full flex items-center justify-center text-sm text-text-tertiary">

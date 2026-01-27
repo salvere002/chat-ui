@@ -54,6 +54,10 @@ const brotliCompressionPlugin = ({
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
     plugins: [basicSsl(), react(), dynamicProxyPlugin(), brotliCompressionPlugin()],
+    resolve: {
+      // Ensure single React instance for react-runner and other libraries
+      dedupe: ['react', 'react-dom'],
+    },
     server: {
       https: {}, // Enable HTTPS (basicSsl fills cert/key)
       port: config.frontend.dev.port, // Use configured dev server port

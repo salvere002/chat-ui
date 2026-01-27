@@ -3,6 +3,8 @@ import { useState, useEffect, useMemo } from 'react';
 interface ResponsiveBreakpoints {
   /** Window width in pixels */
   windowWidth: number;
+  /** Screen width >= 1800px (extra wide - for studio split view) */
+  isExtraWideScreen: boolean;
   /** Screen width >= 1280px (xl breakpoint) */
   isWideScreen: boolean;
   /** Screen width >= 1024px (lg breakpoint) */
@@ -33,6 +35,7 @@ export function useResponsiveLayout(): ResponsiveBreakpoints {
 
   const breakpoints = useMemo(() => ({
     windowWidth,
+    isExtraWideScreen: windowWidth >= 1800,
     isWideScreen: windowWidth >= 1280,
     isLargeScreen: windowWidth >= 1024,
     isMediumScreen: windowWidth >= 768,

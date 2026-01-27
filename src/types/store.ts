@@ -111,11 +111,14 @@ export interface UiSettingsStore {
   // Settings
   showSuggestions: boolean;
   backgroundTexture: boolean;
+  // Session-only state (not persisted)
+  pendingStudioEnabled: boolean;
   
   // Actions
   setShowSuggestions: (show: boolean) => void;
   toggleSuggestions: () => void;
   setBackgroundTexture: (texture: boolean) => void;
+  setPendingStudioEnabled: (enabled: boolean) => void;
 }
 
 // Define interface for the studio store state

@@ -22,7 +22,7 @@ interface SidebarState {
   // Actions
   sidebarActions: {
     selectChat: (id: string) => void;
-    createChat: (title: string) => string;
+    createChat: (title?: string, options?: { studioEnabled?: boolean }) => string;
     deleteChat: (id: string) => void;
     clearAllChats: () => void;
   };
@@ -72,9 +72,10 @@ export function useSidebarState({ isLargeScreen }: SidebarStateOptions): Sidebar
     ? sidebarData.chatSessions.find((c) => c.id === sidebarData.activeChatId)
     : undefined;
   const hasStudioFiles = Boolean(studioChatState && studioChatState.order.length > 0);
+  // Only show studio panel when there are actual files
   const shouldShowStudio = isLargeScreen && Boolean(activeChat?.studioEnabled) && hasStudioFiles;
 
-  // Auto-collapse sidebar when studio is shown for first time
+  // Auto-collapse sidebar when studio panel is shown for first time
   useEffect(() => {
     const chatId = sidebarData.activeChatId;
     if (!chatId) return;
