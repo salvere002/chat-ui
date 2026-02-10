@@ -32,7 +32,7 @@ interface SidebarState {
   handleSidebarCollapse: () => void;
   handleMobileSidebarClose: () => void;
   handleChatSelected: (chatId: string) => void;
-  handleNewChatAndClose: () => void;
+  handleNewChatAndClose: (mode?: 'regular' | 'studio') => void;
 }
 
 /**
@@ -133,8 +133,12 @@ export function useSidebarState({ isLargeScreen }: SidebarStateOptions): Sidebar
     [sidebarActions]
   );
 
-  const handleNewChatAndClose = useCallback(() => {
-    const newChatId = sidebarActions.createChat('New Conversation');
+  const handleNewChatAndClose = useCallback((mode: 'regular' | 'studio' = 'regular') => {
+    const isStudio = mode === 'studio';
+    const newChatId = sidebarActions.createChat(
+      isStudio ? 'New Studio' : 'New Conversation',
+      isStudio ? { studioEnabled: true } : undefined
+    );
     sidebarActions.selectChat(newChatId);
     setSidebarOpen(false); // Close sidebar on mobile after creating new chat
   }, [sidebarActions]);

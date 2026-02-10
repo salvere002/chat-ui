@@ -36,7 +36,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
   const { showToast } = useToastStore();
 
   // Get UI settings from Zustand store
-  const { showSuggestions, pendingStudioEnabled, setPendingStudioEnabled } = useUiSettingsStore();
+  const { showSuggestions } = useUiSettingsStore();
 
   // Get suggestions functionality from main store (not available in selectors yet)
   const { getSuggestions, isSuggestionsLoading } = useChatStore();
@@ -212,14 +212,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
         ? (messageText.length > 30 ? messageText.substring(0, 27) + '...' : messageText)
         : 'New Conversation';
 
-      // Use pending studio enabled state if set
-      currentChatId = createChat(chatTitle, { studioEnabled: pendingStudioEnabled });
+      currentChatId = createChat(chatTitle);
       setActiveChat(currentChatId);
-      
-      // Reset pending state after chat is created
-      if (pendingStudioEnabled) {
-        setPendingStudioEnabled(false);
-      }
     }
 
     try {
@@ -301,6 +295,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
   const hasActiveChatButEmpty = activeChatId && activeChatMessages.length === 0;
   const hasMessages = activeChatId && activeChatMessages.length > 0;
   const showWelcome = hasNoActiveChat || hasActiveChatButEmpty;
+  const showStudioWelcome = Boolean(activeChatId && hasActiveChatButEmpty && activeChat?.studioEnabled);
 
   // Track when we transition from empty to having messages for animation
   const previousMessageCount = useRef(0);
@@ -338,11 +333,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedResponseMode, onM
           {/* Welcome content */}
           <div className="text-center max-w-[420px] mb-2 animate-fade-in">
             <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-bg-elevated border border-border-secondary text-accent-primary rounded-2xl text-4xl">
-              💬
+              {showStudioWelcome ? <FaCode className="text-3xl" /> : '💬'}
             </div>
-            <h3 className="text-xl font-semibold text-text-primary mb-3">Start a Conversation</h3>
+            <h3 className="text-xl font-semibold text-text-primary mb-3">
+              {showStudioWelcome ? 'Start a Studio Conversation' : 'Start a Conversation'}
+            </h3>
             <p className="text-base text-text-secondary leading-relaxed m-0">
-              Ask me anything! I'm here to help with your questions, tasks, and creative projects.
+              {showStudioWelcome
+                ? 'Build files and code in Studio mode. Ask for components, scripts, or full project scaffolds.'
+                : "Ask me anything! I'm here to help with your questions, tasks, and creative projects."}
             </p>
           </div>
 

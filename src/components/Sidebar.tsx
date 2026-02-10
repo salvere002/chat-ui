@@ -1,24 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Chat } from '../types/chat';
 import { useChatActions } from '../stores';
-import { FaPlus, FaCode } from 'react-icons/fa';
-import { HiOutlineBars3BottomLeft, HiOutlineBars3 } from 'react-icons/hi2';
+import { FaCode, FaPlus } from 'react-icons/fa';
+import { HiChevronDown, HiOutlineBars3, HiOutlineBars3BottomLeft } from 'react-icons/hi2';
 import { formatChatDate } from '../utils/timeUtils';
 
 interface SidebarProps {
   chats: Chat[];
   activeChatId: string | null;
   onChatSelected: (chatId: string) => void;
-  onNewChat: () => void;
+  onNewChat: (mode?: 'regular' | 'studio') => void;
   onDeleteChat: (chatId: string) => void;
   onClearAllChats: () => void;
-  onStudioClick?: () => void; // Handler for studio button click
-  studioActive?: boolean; // Whether studio mode is active (pending or current chat has it)
   collapsed: boolean;
   onCollapse: () => void;
   maxHeight?: React.CSSProperties['maxHeight']; // Optional max-height constraint (e.g., "500px", "calc(100vh - 100px)")
   isVisible?: boolean; // For overlay mode - tracks if sidebar is visible to trigger animations
-  isLargeScreen?: boolean; // To show/hide studio button (only on large screens)
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -28,19 +25,18 @@ const Sidebar: React.FC<SidebarProps> = ({
   onNewChat,
   onDeleteChat,
   onClearAllChats,
-  onStudioClick,
-  studioActive = false,
   collapsed,
   onCollapse,
   maxHeight,
-  isVisible = true,
-  isLargeScreen = false
+  isVisible = true
 }) => {
   const dynamicHeight = maxHeight != null;
   const { renameChatSession } = useChatActions();
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingChatName, setEditingChatName] = useState('');
   const [showClearModal, setShowClearModal] = useState(false);
+  const [showNewChatMenu, setShowNewChatMenu] = useState(false);
+  const newChatMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Function to format the chat title or generate a default one
   const getChatTitle = (chat: Chat, index: number) => {
@@ -116,13 +112,31 @@ const Sidebar: React.FC<SidebarProps> = ({
     setShowClearModal(false);
   };
 
+  useEffect(() => {
+    if (!showNewChatMenu) return;
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (newChatMenuRef.current && !newChatMenuRef.current.contains(target)) {
+        setShowNewChatMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleDocumentClick);
+    return () => document.removeEventListener('mousedown', handleDocumentClick);
+  }, [showNewChatMenu]);
+
+  useEffect(() => {
+    if (collapsed && showNewChatMenu) {
+      setShowNewChatMenu(false);
+    }
+  }, [collapsed, showNewChatMenu]);
+
   // Format the date to a readable string
 
   return (
     <>
       <div className={`flex flex-col ${collapsed ? 'w-0 lg:w-[60px]' : 'w-[280px] sm:w-[300px] lg:w-[280px]'} min-w-0 ${dynamicHeight ? 'h-auto' : 'h-full'} bg-bg-secondary border-r border-border-primary flex-shrink-0 transition-[width] duration-300 ease-in-out`} style={{ willChange: 'width', contain: 'layout paint', maxHeight }}>
         <div className={`w-full ${dynamicHeight ? 'h-auto' : 'h-full'} flex flex-col overflow-hidden`}>
-          <div className="bg-bg-secondary border-b border-border-primary border-r border-border-primary overflow-hidden flex-shrink-0">
+          <div className="relative z-20 bg-bg-secondary border-b border-border-primary border-r border-border-primary overflow-visible flex-shrink-0">
             <div className="p-4 relative" style={{ height: '112px' }}>
               {/* Header row - absolutely positioned when collapsed to not affect layout */}
               <div className={`flex items-center w-full transition-opacity duration-150 ease-in-out ${collapsed
@@ -170,12 +184,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <HiOutlineBars3 className="w-7 h-7" />
               </button>
 
-              {/* New Chat button - at second row, centered horizontally when expanded */}
-              <button
-                className={`flex items-center bg-accent-primary text-text-inverse border-none rounded-md cursor-pointer hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98] ${collapsed
-                    ? 'w-8 h-8 p-0 text-sm justify-center'
-                    : 'px-3 py-2 text-sm font-medium justify-center gap-2'
-                  }`}
+              {/* New Chat split button */}
+              <div
+                ref={newChatMenuRef}
                 style={{
                   position: 'absolute',
                   top: '56px',
@@ -186,28 +197,70 @@ const Sidebar: React.FC<SidebarProps> = ({
                   transition: 'width 300ms ease-out, transform 300ms ease-out',
                   willChange: 'transform, width'
                 }}
-                onClick={onNewChat}
-                aria-label="Start new chat"
-                title="New Chat"
               >
-                <FaPlus className={`${collapsed ? 'text-sm' : 'text-sm flex-shrink-0'}`} style={{
-                  transition: 'margin-right 300ms ease-out',
-                  marginRight: collapsed ? '0' : '8px'
-                }} />
-                <span
-                  className={`whitespace-nowrap ${collapsed ? 'opacity-0 w-0 overflow-hidden ml-0' : 'opacity-100 w-auto ml-0'}`}
-                  style={{
-                    transition: 'opacity 150ms ease-out, width 300ms ease-out',
-                    transitionDelay: collapsed ? '0ms' : '150ms'
-                  }}
-                >
-                  New Chat
-                </span>
-              </button>
+                <div className="flex items-stretch w-full">
+                  <button
+                    className={`flex items-center bg-accent-primary text-text-inverse border-none cursor-pointer hover:bg-accent-hover hover:-translate-y-px hover:shadow-sm active:scale-[0.98] text-sm ${collapsed
+                      ? 'w-full h-8 p-0 rounded-md justify-center'
+                      : 'px-3 py-2 font-medium justify-center rounded-l-md flex-1'
+                      }`}
+                    onClick={() => {
+                      setShowNewChatMenu(false);
+                      onNewChat('regular');
+                    }}
+                    aria-label="Start new regular chat"
+                    title="New Chat"
+                  >
+                    <FaPlus
+                      className="text-sm flex-shrink-0"
+                      style={{
+                        transition: 'margin-right 300ms ease-out',
+                        marginRight: collapsed ? '0' : '8px'
+                      }}
+                    />
+                    <span
+                      className={`whitespace-nowrap ${collapsed ? 'opacity-0 w-0 overflow-hidden ml-0' : 'opacity-100 w-auto ml-0'}`}
+                      style={{
+                        transition: 'opacity 150ms ease-out, width 300ms ease-out',
+                        transitionDelay: collapsed ? '0ms' : '150ms'
+                      }}
+                    >
+                      New Chat
+                    </span>
+                  </button>
+                  <button
+                    className={`bg-accent-primary text-text-inverse rounded-r-md cursor-pointer hover:bg-accent-hover active:scale-[0.98] flex items-center justify-center border-l border-white/20 ${collapsed ? 'w-0 opacity-0 pointer-events-none border-l-0' : 'w-9 opacity-100'
+                      }`}
+                    style={{
+                      transition: 'width 300ms ease-out, opacity 150ms ease-out'
+                    }}
+                    onClick={() => setShowNewChatMenu((prev) => !prev)}
+                    aria-label="New chat options"
+                    title="New chat options"
+                  >
+                    <HiChevronDown className={`w-4 h-4 transition-transform duration-150 ${showNewChatMenu ? 'rotate-180' : 'rotate-0'}`} />
+                  </button>
+                </div>
+
+                {!collapsed && showNewChatMenu && (
+                  <div className="absolute top-full right-0 mt-2 w-[200px] bg-bg-elevated border border-border-primary rounded-md shadow-lg z-tooltip overflow-hidden">
+                    <button
+                      className="w-full px-3 py-2 text-sm text-left text-text-primary hover:bg-bg-tertiary transition-colors flex items-center gap-2"
+                      onClick={() => {
+                        setShowNewChatMenu(false);
+                        onNewChat('studio');
+                      }}
+                    >
+                      <FaCode className="text-accent-primary flex-shrink-0" />
+                      <span>New Studio</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex-1 border-r border-border-primary min-h-0 flex flex-col">
+          <div className="relative z-0 flex-1 border-r border-border-primary min-h-0 flex flex-col">
             {/* Conversation list - always rendered; items handle their own fade */}
             <div
               className={`flex-1 overflow-y-auto overflow-x-hidden p-2 min-h-0 flex flex-col ${collapsed ? 'pointer-events-none' : ''}`}
@@ -335,32 +388,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
-          {/* Studio Button - Fixed at bottom */}
-          {isLargeScreen && onStudioClick && (
-            <div className="border-t border-r border-border-primary bg-bg-secondary flex-shrink-0">
-              <div className="p-2">
-                <button
-                  onClick={onStudioClick}
-                  className={`flex items-center rounded-md cursor-pointer transition-all duration-200 ${collapsed
-                      ? 'w-10 h-10 p-0 justify-center mx-auto'
-                      : 'w-full px-3 py-2.5 gap-3'
-                    } ${studioActive
-                      ? 'bg-accent-primary text-text-inverse border border-accent-primary hover:bg-accent-hover'
-                      : 'bg-bg-tertiary text-text-primary border border-border-secondary hover:bg-accent-light hover:border-accent-primary hover:text-accent-primary'
-                    }`}
-                  title={studioActive ? 'Studio mode enabled - Click to disable' : 'Enable Studio mode'}
-                  aria-label={studioActive ? 'Disable Studio' : 'Enable Studio'}
-                >
-                  <FaCode className={`${collapsed ? 'text-base' : 'text-sm'} flex-shrink-0`} />
-                  <span
-                    className={`whitespace-nowrap text-sm font-medium ${collapsed ? 'hidden' : 'block'}`}
-                  >
-                    Studio
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
