@@ -64,6 +64,7 @@
     "vite": "^7.2.2"
   },
   "dependencies": {
+    "@amcharts/amcharts5": "^5.15.6",
     "@codemirror/autocomplete": "^6.0.0",
     "@codemirror/commands": "^6.0.0",
     "@codemirror/lang-css": "^6.0.0",
@@ -91,8 +92,8 @@
     "katex": "^0.16.22",
     "lodash.throttle": "^4.1.1",
     "mime": "^4.0.7",
-    "pretty-bytes": "^7.0.1",
     "plotly.js-dist-min": "^2.32.0",
+    "pretty-bytes": "^7.0.1",
     "qs": "^6.14.0",
     "react-dropzone": "^14.3.8",
     "react-icons": "^5.5.0",

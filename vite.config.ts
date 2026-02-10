@@ -87,16 +87,47 @@ export default defineConfig(({ command }) => ({
             runner: ['react-runner', 'sucrase'],
             // Screenshot capture
             screenshot: ['html-to-image'],
-            // Charts (recharts pulls in d3 automatically)
-            charts: ['recharts'],
+            // Charting libs used by preview/code runner
+            charts: [
+              'recharts',
+              '@amcharts/amcharts5',
+              '@amcharts/amcharts5/xy',
+              '@amcharts/amcharts5/percent',
+              '@amcharts/amcharts5/radar',
+              '@amcharts/amcharts5/hierarchy',
+              '@amcharts/amcharts5/map',
+              '@amcharts/amcharts5/flow',
+              '@amcharts/amcharts5/themes/Animated',
+              '@amcharts/amcharts5/themes/Dark',
+            ],
             // Icons
             icons: ['react-icons', '@heroicons/react'],
           },
         },
       },
     },
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        'zustand',
+        'recharts',
+        '@amcharts/amcharts5',
+        '@amcharts/amcharts5/xy',
+        '@amcharts/amcharts5/percent',
+        '@amcharts/amcharts5/radar',
+        '@amcharts/amcharts5/hierarchy',
+        '@amcharts/amcharts5/map',
+        '@amcharts/amcharts5/flow',
+        '@amcharts/amcharts5/themes/Animated',
+        '@amcharts/amcharts5/themes/Dark',
+      ],
+      // Keep this out of dev pre-bundling due size.
+      exclude: ['plotly.js-dist-min'],
+    },
     // Strip dev logging/debuggers in production builds only
     esbuild: command === 'build'
       ? { drop: ['console', 'debugger'] }
       : undefined,
-})); 
+}));
