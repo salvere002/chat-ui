@@ -42,6 +42,9 @@ const isReactModuleCode = (code: string): boolean => {
 
 const loadCodePreview = () => import('./CodePreview');
 const CodePreview = lazy(loadCodePreview);
+const DEFAULT_SPLIT_RATIO = 0.5;
+const MIN_SPLIT_PANE_RATIO = 0.2;
+const MAX_SPLIT_PANE_RATIO = 0.8;
 
 const editorTheme = EditorView.theme({
   '&': {
@@ -148,11 +151,15 @@ const CodeEditor = memo<CodeEditorProps>(({
   const [editedCode, setEditedCode] = useState(code);
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(DEFAULT_SPLIT_RATIO);
+  const [isResizingSplit, setIsResizingSplit] = useState(false);
+  const [previewRerenderToken, setPreviewRerenderToken] = useState(0);
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
   const editedCodeRef = useRef(editedCode);
   const saveHandlerRef = useRef<() => void>(() => undefined);
   const didFocusRef = useRef(false);
+  const splitContainerRef = useRef<HTMLDivElement | null>(null);
   const pythonPreviewAbortRef = useRef<AbortController | null>(null);
   const lastPreviewedCodeRef = useRef<string | null>(null);
   const normalizedLanguage = language.toLowerCase();
@@ -309,6 +316,60 @@ const CodeEditor = memo<CodeEditorProps>(({
     }
   }, [pythonPreviewSupported, showPreview, code, requestPythonPreview]);
 
+  const updateSplitRatioFromPosition = useCallback((clientX: number) => {
+    const container = splitContainerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const rawRatio = (clientX - rect.left) / rect.width;
+    const clampedRatio = Math.min(
+      MAX_SPLIT_PANE_RATIO,
+      Math.max(MIN_SPLIT_PANE_RATIO, rawRatio)
+    );
+    setSplitRatio(clampedRatio);
+  }, []);
+
+  const handleSplitDragStart = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsResizingSplit(true);
+    updateSplitRatioFromPosition(event.clientX);
+  }, [updateSplitRatioFromPosition]);
+
+  useEffect(() => {
+    if (!isResizingSplit) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      updateSplitRatioFromPosition(event.clientX);
+    };
+    const handlePointerUp = () => {
+      setIsResizingSplit(false);
+      setPreviewRerenderToken((token) => token + 1);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
+    const previousUserSelect = document.body.style.userSelect;
+    const previousCursor = document.body.style.cursor;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.cursor = previousCursor;
+    };
+  }, [isResizingSplit, updateSplitRatioFromPosition]);
+
+  useEffect(() => {
+    if (!(variant === 'modal' || splitView) || !showPreview || !canPreview) {
+      setIsResizingSplit(false);
+    }
+  }, [variant, splitView, showPreview, canPreview]);
+
   const editorKeymaps = useMemo(
     () => keymap.of([
       ...closeBracketsKeymap,
@@ -406,6 +467,9 @@ const CodeEditor = memo<CodeEditorProps>(({
   const previewCode = pythonPreviewSupported ? pythonPreviewCode : savedCode;
   const previewLoading = pythonPreviewSupported && pythonPreviewLoading;
   const previewError = pythonPreviewSupported ? pythonPreviewError : null;
+  const isSideBySidePreview = (variant === 'modal' || splitView) && showPreview && canPreview;
+  const editorPaneWidth = `${(splitRatio * 100).toFixed(1)}%`;
+  const previewPaneWidth = `${((1 - splitRatio) * 100).toFixed(1)}%`;
 
   const containerClasses = variant === 'modal'
     ? 'fixed inset-0 z-modal bg-bg-primary flex flex-col animate-fade-in'
@@ -519,13 +583,13 @@ const CodeEditor = memo<CodeEditorProps>(({
       </div>
 
       {/* Editor area */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div ref={splitContainerRef} className="flex-1 flex overflow-hidden min-h-0">
         {/* Editor pane */}
         {/* In modal or panel with splitView: always show (split view); In panel without splitView: hide when preview active (toggle view) */}
         {(variant === 'modal' || splitView || !(showPreview && canPreview)) && (
           <div
             className="flex flex-col min-h-0"
-            style={{ width: (variant === 'modal' || splitView) && showPreview && canPreview ? '50%' : '100%' }}
+            style={{ width: isSideBySidePreview ? editorPaneWidth : '100%' }}
           >
             <div className="flex-1 min-h-0 overflow-auto">
               <CodeMirror
@@ -540,29 +604,45 @@ const CodeEditor = memo<CodeEditorProps>(({
           </div>
         )}
 
-        {/* Preview pane */}
-        {/* In modal or panel with splitView: split view (50%); In panel without splitView: full width toggle */}
-        {showPreview && canPreview && (
-          <Suspense
-            fallback={
-              <div className={`code-preview-root bg-bg-secondary flex flex-col ${(variant === 'modal' || splitView) ? 'w-1/2 border-l border-border-secondary' : 'w-full'}`}>
-                <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary text-xs text-text-tertiary">
-                  <span className="font-medium text-text-primary">Preview</span>
-                </div>
-                <div className="flex-1 flex items-center justify-center text-sm text-text-tertiary">
-                  Loading preview…
-                </div>
-              </div>
-            }
+        {isSideBySidePreview && (
+          <div
+            role="separator"
+            aria-label="Resize editor and preview panels"
+            aria-orientation="vertical"
+            onPointerDown={handleSplitDragStart}
+            className="group w-2 shrink-0 cursor-col-resize touch-none bg-bg-secondary"
+            title="Drag to resize editor and preview"
           >
-            <CodePreview
-              code={previewCode}
-              isOpen={true}
-              variant={splitView ? 'modal' : variant}
-              loading={previewLoading}
-              externalError={previewError}
-            />
-          </Suspense>
+            <div className={`mx-auto h-full w-px transition-colors ${isResizingSplit ? 'bg-accent-primary' : 'bg-border-secondary group-hover:bg-accent-primary/70'}`} />
+          </div>
+        )}
+
+        {/* Preview pane */}
+        {/* In modal or panel with splitView: split view (resizable); In panel without splitView: full width toggle */}
+        {showPreview && canPreview && (
+          <div className="min-h-0 flex flex-col" style={{ width: isSideBySidePreview ? previewPaneWidth : '100%' }}>
+            <Suspense
+              fallback={
+                <div className="code-preview-root bg-bg-secondary flex flex-col w-full">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary text-xs text-text-tertiary">
+                    <span className="font-medium text-text-primary">Preview</span>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center text-sm text-text-tertiary">
+                    Loading preview…
+                  </div>
+                </div>
+              }
+            >
+              <CodePreview
+                code={previewCode}
+                isOpen={true}
+                variant="panel"
+                loading={previewLoading}
+                externalError={previewError}
+                rerenderToken={previewRerenderToken}
+              />
+            </Suspense>
+          </div>
         )}
       </div>
 

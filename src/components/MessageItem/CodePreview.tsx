@@ -19,6 +19,7 @@ interface CodePreviewProps {
   variant?: 'modal' | 'panel';
   loading?: boolean;
   externalError?: string | null;
+  rerenderToken?: number;
 }
 
 const CodePreview = memo<CodePreviewProps>(({
@@ -27,6 +28,7 @@ const CodePreview = memo<CodePreviewProps>(({
   variant = 'modal',
   loading = false,
   externalError = null,
+  rerenderToken = 0,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const displayError = externalError || error;
@@ -45,6 +47,14 @@ const CodePreview = memo<CodePreviewProps>(({
   useEffect(() => {
     setError(null);
   }, [code]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const frameId = window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [rerenderToken, isOpen]);
 
   if (!isOpen || (!isReactModuleCode(code) && !loading && !externalError)) {
     return null;
@@ -66,6 +76,7 @@ const CodePreview = memo<CodePreviewProps>(({
       <div className="flex-1 overflow-auto bg-bg-primary">
         {isReactModuleCode(code) ? (
           <Runner
+            key={rerenderToken}
             code={code}
             scope={scope}
             onRendered={(runnerError) => {

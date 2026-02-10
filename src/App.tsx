@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -9,10 +9,13 @@ import Settings from './components/Settings';
 import ShareModal from './components/ShareModal';
 import LoadingIndicator from './components/LoadingIndicator';
 import StudioPanel from './components/StudioPanel';
+import useStudioStore from './stores/studioStore';
 import { useScreenshotShare } from './hooks/useScreenshotShare';
 import { useServiceBootstrap } from './hooks/useServiceBootstrap';
 import { useResponsiveLayout } from './hooks/useResponsiveLayout';
 import { useSidebarState } from './hooks/useSidebarState';
+
+const STUDIO_PANEL_LAYOUT_TRANSITION_MS = 300;
 
 const App: React.FC = () => {
   // Theme and UI settings
@@ -51,6 +54,20 @@ const App: React.FC = () => {
     handleChatSelected,
     handleNewChatAndClose,
   } = useSidebarState({ isLargeScreen });
+  const isStudioPanelCollapsed = useStudioStore((state) => (
+    activeChatId ? (state.chats[activeChatId]?.panelCollapsed ?? false) : false
+  ));
+  const [isStudioCollapsedForLayout, setIsStudioCollapsedForLayout] = useState(isStudioPanelCollapsed);
+
+  useEffect(() => {
+    if (isStudioPanelCollapsed) {
+      const timerId = window.setTimeout(() => {
+        setIsStudioCollapsedForLayout(true);
+      }, STUDIO_PANEL_LAYOUT_TRANSITION_MS);
+      return () => window.clearTimeout(timerId);
+    }
+    setIsStudioCollapsedForLayout(false);
+  }, [isStudioPanelCollapsed]);
 
   // Settings modal state
   const [showSettings, setShowSettings] = useState(false);
@@ -148,7 +165,10 @@ const App: React.FC = () => {
           <ErrorBoundary>
             {shouldShowStudio && activeChatId ? (
               <div className="relative flex h-full">
-                <div className="flex-1 min-w-0">
+                <div
+                  className="min-w-0 shrink-0 transition-[flex-basis] duration-300 ease-in-out"
+                  style={{ flexBasis: isStudioCollapsedForLayout ? '100%' : 'clamp(460px, 38vw, 760px)' }}
+                >
                   <ChatInterface
                     selectedResponseMode={selectedResponseMode}
                     onMessagePairCapture={captureMessagePair}
