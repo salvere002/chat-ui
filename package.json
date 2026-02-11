@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.build.json && vite build",
+    "build": "tsc -p tsconfig.build.json && vite build && node scripts/check-dist-preload-helpers.mjs",
     "build:lib": "vite build --config vite.config.lib.ts && tsc -p tsconfig.build.json",
     "start:prod": "node server/prod-server.mjs",
     "preview": "node server/prod-server.mjs",

@@ -1,9 +1,10 @@
-import { memo, useMemo, useState, useEffect } from 'react';
+import { memo, useMemo, useState, useEffect, lazy, Suspense } from 'react';
 import { FaCheck, FaCopy, FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import copyToClipboard from 'copy-to-clipboard';
 import { createPortal } from 'react-dom';
-import CodeEditor from './CodeEditor';
+
+const CodeEditor = lazy(() => import('./CodeEditor'));
 
 interface CodeBlockProps {
   children: string; 
@@ -257,12 +258,22 @@ const CodeBlock = memo<CodeBlockProps>(({
 
       {/* Code Editor Portal - renders at document root */}
       {isEditorOpen && createPortal(
-        <CodeEditor
-          code={currentCode}
-          language={language}
-          onSave={handleSaveCode}
-          onClose={handleCloseEditor}
-        />,
+        <Suspense
+          fallback={(
+            <div className="fixed inset-0 z-tooltip bg-black/40 backdrop-blur-sm flex items-center justify-center">
+              <div className="px-5 py-3 rounded-md bg-bg-elevated border border-border-primary text-sm text-text-secondary shadow-lg">
+                Loading editor...
+              </div>
+            </div>
+          )}
+        >
+          <CodeEditor
+            code={currentCode}
+            language={language}
+            onSave={handleSaveCode}
+            onClose={handleCloseEditor}
+          />
+        </Suspense>,
         document.body
       )}
     </>
