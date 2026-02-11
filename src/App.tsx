@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, Suspense } from 'react';
 import ChatInterface from './components/ChatInterface';
 import Sidebar from './components/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -8,8 +8,11 @@ import { useThemeStore, useResponseModeStore, useUiSettingsStore } from './store
 import Settings from './components/Settings';
 import ShareModal from './components/ShareModal';
 import LoadingIndicator from './components/LoadingIndicator';
-import StudioPanel from './components/StudioPanel';
 import useStudioStore from './stores/studioStore';
+
+// Lazy-load the StudioPanel – it pulls in CodeEditor / CodeMirror / react-live
+// which are heavy and only needed when the studio is visible.
+const StudioPanel = React.lazy(() => import('./components/StudioPanel'));
 import { useScreenshotShare } from './hooks/useScreenshotShare';
 import { useServiceBootstrap } from './hooks/useServiceBootstrap';
 import { useResponsiveLayout } from './hooks/useResponsiveLayout';
@@ -174,7 +177,13 @@ const App: React.FC = () => {
                     onMessagePairCapture={captureMessagePair}
                   />
                 </div>
-                <StudioPanel chatId={activeChatId} splitView={isExtraWideScreen} />
+                <Suspense fallback={
+                  <div className="h-full min-w-[320px] flex-1 border-l border-border-secondary bg-bg-secondary flex items-center justify-center">
+                    <LoadingIndicator size="medium" type="spinner" text="Loading studio…" />
+                  </div>
+                }>
+                  <StudioPanel chatId={activeChatId} splitView={isExtraWideScreen} />
+                </Suspense>
               </div>
             ) : (
               <ChatInterface

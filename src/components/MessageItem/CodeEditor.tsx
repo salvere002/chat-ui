@@ -1,7 +1,8 @@
-import { memo, useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
+import { memo, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { FaTimes, FaSave, FaUndo, FaCopy, FaCheck, FaPlay, FaCode } from 'react-icons/fa';
 import copyToClipboard from 'copy-to-clipboard';
 import CodeMirror from '@uiw/react-codemirror';
+import CodePreview from './CodePreview';
 import {
   EditorView,
   keymap,
@@ -40,8 +41,6 @@ const isReactModuleCode = (code: string): boolean => {
   return true;
 };
 
-const loadCodePreview = () => import('./CodePreview');
-const CodePreview = lazy(loadCodePreview);
 const DEFAULT_SPLIT_RATIO = 0.5;
 const MIN_SPLIT_PANE_RATIO = 0.2;
 const MAX_SPLIT_PANE_RATIO = 0.8;
@@ -531,12 +530,6 @@ const CodeEditor = memo<CodeEditorProps>(({
           {canPreview && (
             <button
               onClick={handleTogglePreview}
-              onMouseEnter={() => {
-                void loadCodePreview();
-              }}
-              onFocus={() => {
-                void loadCodePreview();
-              }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded transition-colors"
               title={showPreview ? ((variant === 'panel' && !splitView) ? 'Show editor' : 'Hide preview') : 'Show preview'}
             >
@@ -621,27 +614,14 @@ const CodeEditor = memo<CodeEditorProps>(({
         {/* In modal or panel with splitView: split view (resizable); In panel without splitView: full width toggle */}
         {showPreview && canPreview && (
           <div className="min-h-0 flex flex-col" style={{ width: isSideBySidePreview ? previewPaneWidth : '100%' }}>
-            <Suspense
-              fallback={
-                <div className="code-preview-root bg-bg-secondary flex flex-col w-full">
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-border-secondary text-xs text-text-tertiary">
-                    <span className="font-medium text-text-primary">Preview</span>
-                  </div>
-                  <div className="flex-1 flex items-center justify-center text-sm text-text-tertiary">
-                    Loading preview…
-                  </div>
-                </div>
-              }
-            >
-              <CodePreview
-                code={previewCode}
-                isOpen={true}
-                variant="panel"
-                loading={previewLoading}
-                externalError={previewError}
-                rerenderToken={previewRerenderToken}
-              />
-            </Suspense>
+            <CodePreview
+              code={previewCode}
+              isOpen={true}
+              variant="panel"
+              loading={previewLoading}
+              externalError={previewError}
+              rerenderToken={previewRerenderToken}
+            />
           </div>
         )}
       </div>

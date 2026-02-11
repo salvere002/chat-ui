@@ -1,10 +1,8 @@
-import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FaChevronDown, FaChevronLeft, FaChevronRight, FaFileCode } from 'react-icons/fa';
 import { StudioFile } from '../types/studio';
 import useStudioStore from '../stores/studioStore';
-
-const loadCodeEditor = () => import('./MessageItem/CodeEditor');
-const CodeEditor = lazy(loadCodeEditor);
+import CodeEditor from './MessageItem/CodeEditor';
 
 interface StudioPanelProps {
   chatId: string;
@@ -299,24 +297,16 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId, splitView = false }) 
 
       <div className="flex-1 min-h-0">
         {activeFile && activeVersion ? (
-          <Suspense
-            fallback={
-              <div className="h-full flex items-center justify-center text-sm text-text-tertiary">
-                Loading editor...
-              </div>
-            }
-          >
-            <CodeEditor
-              code={activeVersion.content}
-              language={fileLanguage}
-              onSave={(newCode) => updateFileContent(chatId, activeFile.name, activeVersion.id, newCode)}
-              onClose={() => setPanelCollapsed(chatId, true)}
-              variant="panel"
-              commitOnSave={true}
-              showCloseButton={false}
-              splitView={shouldUseSplitView}
-            />
-          </Suspense>
+          <CodeEditor
+            code={activeVersion.content}
+            language={fileLanguage}
+            onSave={(newCode) => updateFileContent(chatId, activeFile.name, activeVersion.id, newCode)}
+            onClose={() => setPanelCollapsed(chatId, true)}
+            variant="panel"
+            commitOnSave={true}
+            showCloseButton={false}
+            splitView={shouldUseSplitView}
+          />
         ) : (
           <div className="h-full flex items-center justify-center text-sm text-text-tertiary">
             No file selected

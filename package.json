@@ -98,8 +98,8 @@
     "react-dropzone": "^14.3.8",
     "react-icons": "^5.5.0",
     "react-is": "^19.2.0",
+    "react-live": "^4.1.8",
     "react-markdown": "^10.1.0",
-    "react-runner": "^1.0.5",
     "react-syntax-highlighter": "^16.1.0",
     "react-textarea-autosize": "^8.5.9",
     "recharts": "^3.1.2",
@@ -109,6 +109,7 @@
     "remark-math": "^6.0.0",
     "sirv": "^3.0.2",
     "sonner": "^2.0.7",
+    "sucrase": "^3.35.1",
     "zustand": "^5.0.3"
   },
   "peerDependencies": {

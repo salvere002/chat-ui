@@ -1,6 +1,8 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import * as ReactModule from 'react';
-import { Runner } from 'react-runner';
+import * as ReactDomModule from 'react-dom';
+import { LiveError, LivePreview, LiveProvider } from 'react-live';
+import { transform } from 'sucrase';
 import * as Recharts from 'recharts';
 import Plotly from 'plotly.js-dist-min';
 import * as am5 from '@amcharts/amcharts5';
@@ -15,6 +17,32 @@ import am5themesDark from '@amcharts/amcharts5/themes/Dark';
 
 const REACT_IMPORT_REGEX = /from\s+['"]react['"]|require\(['"]react['"]\)/;
 const EXPORT_DEFAULT_REGEX = /export\s+default\s+/;
+
+const buildReactLiveCode = (code: string): string => {
+  const compiled = transform(code, {
+    transforms: ['typescript', 'jsx', 'imports'],
+  }).code;
+
+  return `
+const module = { exports: {} };
+const exports = module.exports;
+const require = (id) => {
+  const imported = __imports[id];
+  if (!imported) {
+    throw new Error('Unsupported import: ' + id);
+  }
+  return imported;
+};
+
+${compiled}
+
+const PreviewComponent = module.exports.default || exports.default || module.exports;
+if (!PreviewComponent) {
+  throw new Error('Missing default export. Use export default Component.');
+}
+render(React.createElement(PreviewComponent));
+`;
+};
 
 export const isReactModuleCode = (code: string): boolean => {
   if (!REACT_IMPORT_REGEX.test(code)) return false;
@@ -39,33 +67,52 @@ const CodePreview = memo<CodePreviewProps>(({
   externalError = null,
   rerenderToken = 0,
 }) => {
-  const [error, setError] = useState<string | null>(null);
-  const displayError = externalError || error;
-
-  const scope = useMemo(
+  const imports = useMemo(
     () => ({
-      import: {
-        react: ReactModule,
-        recharts: Recharts,
-        mchart: Recharts,
-        'plotly.js-dist-min': Plotly,
-        '@amcharts/amcharts5': am5,
-        '@amcharts/amcharts5/xy': am5xy,
-        '@amcharts/amcharts5/percent': am5percent,
-        '@amcharts/amcharts5/radar': am5radar,
-        '@amcharts/amcharts5/hierarchy': am5hierarchy,
-        '@amcharts/amcharts5/map': am5map,
-        '@amcharts/amcharts5/flow': am5flow,
-        '@amcharts/amcharts5/themes/Animated': am5themesAnimated,
-        '@amcharts/amcharts5/themes/Dark': am5themesDark,
-      },
+      react: ReactModule,
+      'react-dom': ReactDomModule,
+      recharts: Recharts,
+      mchart: Recharts,
+      'plotly.js-dist-min': Plotly,
+      '@amcharts/amcharts5': am5,
+      '@amcharts/amcharts5/xy': am5xy,
+      '@amcharts/amcharts5/percent': am5percent,
+      '@amcharts/amcharts5/radar': am5radar,
+      '@amcharts/amcharts5/hierarchy': am5hierarchy,
+      '@amcharts/amcharts5/map': am5map,
+      '@amcharts/amcharts5/flow': am5flow,
+      '@amcharts/amcharts5/themes/Animated': am5themesAnimated,
+      '@amcharts/amcharts5/themes/Dark': am5themesDark,
     }),
     []
   );
 
-  useEffect(() => {
-    setError(null);
+  const scope = useMemo(
+    () => ({
+      React: ReactModule,
+      __imports: imports,
+    }),
+    [imports]
+  );
+
+  const preparedCode = useMemo(() => {
+    if (!isReactModuleCode(code)) {
+      return { liveCode: null, prepareError: null };
+    }
+    try {
+      return { liveCode: buildReactLiveCode(code), prepareError: null };
+    } catch (runnerError) {
+      return {
+        liveCode: null,
+        prepareError:
+          runnerError instanceof Error
+            ? runnerError.message
+            : String(runnerError),
+      };
+    }
   }, [code]);
+
+  const displayError = externalError || preparedCode.prepareError;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -93,20 +140,19 @@ const CodePreview = memo<CodePreviewProps>(({
         )}
       </div>
       <div className="flex-1 overflow-auto bg-bg-primary">
-        {isReactModuleCode(code) ? (
-          <Runner
+        {isReactModuleCode(code) && preparedCode.liveCode ? (
+          <LiveProvider
             key={rerenderToken}
-            code={code}
+            code={preparedCode.liveCode}
             scope={scope}
-            onRendered={(runnerError) => {
-              setError(
-                runnerError ? runnerError.message || String(runnerError) : null
-              );
-            }}
-          />
+            noInline
+          >
+            <LivePreview />
+            <LiveError className="text-warning text-xs px-3 py-2 border-t border-border-secondary whitespace-pre-wrap" />
+          </LiveProvider>
         ) : (
           <div className="h-full flex items-center justify-center text-sm text-text-tertiary">
-            {externalError ? 'Preview failed.' : 'Generating preview…'}
+            {displayError ? 'Preview failed.' : 'Generating preview…'}
           </div>
         )}
       </div>
