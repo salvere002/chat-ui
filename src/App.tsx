@@ -27,7 +27,7 @@ const App: React.FC = () => {
   const { selectedResponseMode, setSelectedResponseMode } = useResponseModeStore();
 
   // Responsive layout breakpoints
-  const { isExtraWideScreen, isWideScreen, isLargeScreen } = useResponsiveLayout();
+  const { isWideScreen, isLargeScreen } = useResponsiveLayout();
 
   // Service bootstrapping (MCP, Agents, Models)
   useServiceBootstrap();
@@ -182,7 +182,7 @@ const App: React.FC = () => {
                     <LoadingIndicator size="medium" type="spinner" text="Loading studio…" />
                   </div>
                 }>
-                  <StudioPanel chatId={activeChatId} splitView={isExtraWideScreen} />
+                  <StudioPanel chatId={activeChatId} />
                 </Suspense>
               </div>
             ) : (

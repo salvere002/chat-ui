@@ -315,30 +315,40 @@ const CodeEditor = memo<CodeEditorProps>(({
     }
   }, [pythonPreviewSupported, showPreview, code, requestPythonPreview]);
 
-  const updateSplitRatioFromPosition = useCallback((clientX: number) => {
+  const useVerticalSplit = variant === 'panel' && splitView;
+
+  const updateSplitRatioFromPosition = useCallback((pointer: { clientX: number; clientY: number }) => {
     const container = splitContainerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const rawRatio = (clientX - rect.left) / rect.width;
+    const rawRatio = useVerticalSplit
+      ? (() => {
+        if (rect.height <= 0) return null;
+        return (pointer.clientY - rect.top) / rect.height;
+      })()
+      : (() => {
+        if (rect.width <= 0) return null;
+        return (pointer.clientX - rect.left) / rect.width;
+      })();
+    if (rawRatio == null) return;
     const clampedRatio = Math.min(
       MAX_SPLIT_PANE_RATIO,
       Math.max(MIN_SPLIT_PANE_RATIO, rawRatio)
     );
     setSplitRatio(clampedRatio);
-  }, []);
+  }, [useVerticalSplit]);
 
   const handleSplitDragStart = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsResizingSplit(true);
-    updateSplitRatioFromPosition(event.clientX);
+    updateSplitRatioFromPosition(event);
   }, [updateSplitRatioFromPosition]);
 
   useEffect(() => {
     if (!isResizingSplit) return;
 
     const handlePointerMove = (event: PointerEvent) => {
-      updateSplitRatioFromPosition(event.clientX);
+      updateSplitRatioFromPosition(event);
     };
     const handlePointerUp = () => {
       setIsResizingSplit(false);
@@ -352,7 +362,7 @@ const CodeEditor = memo<CodeEditorProps>(({
     const previousUserSelect = document.body.style.userSelect;
     const previousCursor = document.body.style.cursor;
     document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'col-resize';
+    document.body.style.cursor = useVerticalSplit ? 'row-resize' : 'col-resize';
 
     return () => {
       window.removeEventListener('pointermove', handlePointerMove);
@@ -361,13 +371,21 @@ const CodeEditor = memo<CodeEditorProps>(({
       document.body.style.userSelect = previousUserSelect;
       document.body.style.cursor = previousCursor;
     };
-  }, [isResizingSplit, updateSplitRatioFromPosition]);
+  }, [isResizingSplit, updateSplitRatioFromPosition, useVerticalSplit]);
 
   useEffect(() => {
     if (!(variant === 'modal' || splitView) || !showPreview || !canPreview) {
       setIsResizingSplit(false);
     }
   }, [variant, splitView, showPreview, canPreview]);
+
+  useEffect(() => {
+    if (!((variant === 'modal' || splitView) && showPreview && canPreview)) return;
+    const frameId = window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [variant, splitView, showPreview, canPreview, splitRatio]);
 
   const editorKeymaps = useMemo(
     () => keymap.of([
@@ -466,9 +484,15 @@ const CodeEditor = memo<CodeEditorProps>(({
   const previewCode = pythonPreviewSupported ? pythonPreviewCode : savedCode;
   const previewLoading = pythonPreviewSupported && pythonPreviewLoading;
   const previewError = pythonPreviewSupported ? pythonPreviewError : null;
-  const isSideBySidePreview = (variant === 'modal' || splitView) && showPreview && canPreview;
-  const editorPaneWidth = `${(splitRatio * 100).toFixed(1)}%`;
-  const previewPaneWidth = `${((1 - splitRatio) * 100).toFixed(1)}%`;
+  const isSplitPreview = (variant === 'modal' || splitView) && showPreview && canPreview;
+  const editorPaneSize = `${(splitRatio * 100).toFixed(1)}%`;
+  const previewPaneSize = `${((1 - splitRatio) * 100).toFixed(1)}%`;
+  const editorPaneStyle = useVerticalSplit
+    ? { height: isSplitPreview ? editorPaneSize : '100%' }
+    : { width: isSplitPreview ? editorPaneSize : '100%' };
+  const previewPaneStyle = useVerticalSplit
+    ? { height: isSplitPreview ? previewPaneSize : '100%' }
+    : { width: isSplitPreview ? previewPaneSize : '100%' };
 
   const containerClasses = variant === 'modal'
     ? 'fixed inset-0 z-modal bg-bg-primary flex flex-col animate-fade-in'
@@ -576,13 +600,13 @@ const CodeEditor = memo<CodeEditorProps>(({
       </div>
 
       {/* Editor area */}
-      <div ref={splitContainerRef} className="flex-1 flex overflow-hidden min-h-0">
+      <div ref={splitContainerRef} className={`flex-1 flex overflow-hidden min-h-0 ${useVerticalSplit ? 'flex-col' : 'flex-row'}`}>
         {/* Editor pane */}
-        {/* In modal or panel with splitView: always show (split view); In panel without splitView: hide when preview active (toggle view) */}
+        {/* In modal or panel with splitView: always show split layout; in panel without splitView: hide editor when preview is active */}
         {(variant === 'modal' || splitView || !(showPreview && canPreview)) && (
           <div
             className="flex flex-col min-h-0"
-            style={{ width: isSideBySidePreview ? editorPaneWidth : '100%' }}
+            style={editorPaneStyle}
           >
             <div className="flex-1 min-h-0 overflow-auto">
               <CodeMirror
@@ -597,23 +621,23 @@ const CodeEditor = memo<CodeEditorProps>(({
           </div>
         )}
 
-        {isSideBySidePreview && (
+        {isSplitPreview && (
           <div
             role="separator"
             aria-label="Resize editor and preview panels"
-            aria-orientation="vertical"
+            aria-orientation={useVerticalSplit ? 'horizontal' : 'vertical'}
             onPointerDown={handleSplitDragStart}
-            className="group w-2 shrink-0 cursor-col-resize touch-none bg-bg-secondary"
+            className={`group shrink-0 touch-none bg-bg-secondary ${useVerticalSplit ? 'h-2 w-full cursor-row-resize' : 'w-2 cursor-col-resize'}`}
             title="Drag to resize editor and preview"
           >
-            <div className={`mx-auto h-full w-px transition-colors ${isResizingSplit ? 'bg-accent-primary' : 'bg-border-secondary group-hover:bg-accent-primary/70'}`} />
+            <div className={`transition-colors ${useVerticalSplit ? 'my-auto h-px w-full' : 'mx-auto h-full w-px'} ${isResizingSplit ? 'bg-accent-primary' : 'bg-border-secondary group-hover:bg-accent-primary/70'}`} />
           </div>
         )}
 
         {/* Preview pane */}
-        {/* In modal or panel with splitView: split view (resizable); In panel without splitView: full width toggle */}
+        {/* In modal or panel with splitView: split view (resizable); in panel without splitView: full-size toggle */}
         {showPreview && canPreview && (
-          <div className="min-h-0 flex flex-col" style={{ width: isSideBySidePreview ? previewPaneWidth : '100%' }}>
+          <div className="min-h-0 flex flex-col" style={previewPaneStyle}>
             <CodePreview
               code={previewCode}
               isOpen={true}

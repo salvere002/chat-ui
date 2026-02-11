@@ -6,11 +6,8 @@ import CodeEditor from './MessageItem/CodeEditor';
 
 interface StudioPanelProps {
   chatId: string;
-  /** When true, editor and preview show side-by-side instead of toggle */
-  splitView?: boolean;
 }
 
-const STUDIO_SPLIT_MIN_WIDTH = 900;
 const STUDIO_PANEL_TRANSITION_MS = 280;
 
 const languageFromFileName = (fileName: string): string => {
@@ -37,7 +34,7 @@ const languageFromFileName = (fileName: string): string => {
   return map[ext] || 'text';
 };
 
-const StudioPanel: React.FC<StudioPanelProps> = ({ chatId, splitView = false }) => {
+const StudioPanel: React.FC<StudioPanelProps> = ({ chatId }) => {
   const chatState = useStudioStore((state) => state.chats[chatId]);
   const panelCollapsed = chatState?.panelCollapsed ?? false;
   const {
@@ -48,8 +45,6 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId, splitView = false }) 
   } = useStudioStore.getState();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const [panelWidth, setPanelWidth] = useState(0);
   const [isExpandedMounted, setIsExpandedMounted] = useState(!panelCollapsed);
   const [isCollapsedMounted, setIsCollapsedMounted] = useState(panelCollapsed);
   const [isPanelEntering, setIsPanelEntering] = useState(false);
@@ -91,7 +86,6 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId, splitView = false }) 
 
   const fileLabel = activeFileName || 'Select file';
   const fileLanguage = activeFile?.language || (activeFile ? languageFromFileName(activeFile.name) : 'text');
-  const shouldUseSplitView = splitView || panelWidth >= STUDIO_SPLIT_MIN_WIDTH;
 
   const finalizeCollapseAnimation = useCallback(() => {
     if (collapseFinalizeTimerRef.current != null) {
@@ -102,25 +96,6 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId, splitView = false }) 
     setIsExpandedMounted(false);
     setIsCollapsedMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!isExpandedMounted) return;
-    const panelEl = panelRef.current;
-    if (!panelEl) return;
-
-    const updateWidth = () => {
-      setPanelWidth(panelEl.getBoundingClientRect().width);
-    };
-    updateWidth();
-
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(() => {
-      updateWidth();
-    });
-    observer.observe(panelEl);
-
-    return () => observer.disconnect();
-  }, [isExpandedMounted]);
 
   useEffect(() => {
     const wasCollapsed = previousCollapsedRef.current;
@@ -226,7 +201,6 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId, splitView = false }) 
   // Expanded state: full panel with editor
   return (
     <div
-      ref={panelRef}
       onTransitionEnd={handleExpandedPanelTransitionEnd}
       className={`h-full min-w-[320px] flex-1 border-l border-border-secondary bg-bg-secondary flex flex-col will-change-transform transition-transform duration-300 ease-in-out ${isPanelEntering || isPanelExiting ? 'translate-x-full' : 'translate-x-0'}`}
     >
@@ -305,7 +279,7 @@ const StudioPanel: React.FC<StudioPanelProps> = ({ chatId, splitView = false }) 
             variant="panel"
             commitOnSave={true}
             showCloseButton={false}
-            splitView={shouldUseSplitView}
+            splitView={true}
           />
         ) : (
           <div className="h-full flex items-center justify-center text-sm text-text-tertiary">
