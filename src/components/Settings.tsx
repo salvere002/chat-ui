@@ -151,6 +151,8 @@ const Settings: React.FC<SettingsProps> = ({
                 >
                   <option value="rest">REST API</option>
                   <option value="session">Session Based</option>
+                  <option value="a2a">A2A Protocol</option>
+                  <option value="agui">AG-UI Protocol</option>
                   <option value="mock">Mock (Testing)</option>
                 </select>
               </div>
@@ -339,6 +341,8 @@ const Settings: React.FC<SettingsProps> = ({
                   >
                     <option value="rest">REST API</option>
                     <option value="session">Session Based</option>
+                    <option value="a2a">A2A Protocol</option>
+                    <option value="agui">AG-UI Protocol</option>
                     <option value="mock">Mock (Testing)</option>
                   </select>
                 </div>

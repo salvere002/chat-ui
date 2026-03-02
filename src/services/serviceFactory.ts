@@ -3,13 +3,15 @@ import { BaseAdapter } from './adapters/BaseAdapter';
 import { RestApiAdapter } from './adapters/RestApiAdapter';
 import { MockAdapter } from './adapters/MockAdapter';
 import { SessionAdapter } from './adapters/SessionAdapter';
+import { A2AAdapter } from './adapters/A2AAdapter';
+import { AgUiAdapter } from './adapters/AgUiAdapter';
 import { configManager } from '../utils/config';
 import useAuthStore from '../stores/authStore';
 
 /**
  * Service adapter types
  */
-export type AdapterType = 'rest' | 'mock' | 'session';
+export type AdapterType = 'rest' | 'mock' | 'session' | 'a2a' | 'agui';
 
 /**
  * Service environment configuration
@@ -155,6 +157,12 @@ export class ServiceFactory {
         break;
       case 'session':
         this.adapters.set(adapterType, new SessionAdapter(apiClient));
+        break;
+      case 'a2a':
+        this.adapters.set(adapterType, new A2AAdapter(apiClient));
+        break;
+      case 'agui':
+        this.adapters.set(adapterType, new AgUiAdapter(apiClient));
         break;
       default:
         throw new Error(`Unknown adapter type: ${adapterType}`);
