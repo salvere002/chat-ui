@@ -35,6 +35,14 @@ const getDefaultConfig = (): Record<AdapterType, ServiceConfig> => {
       adapterType: 'session',
       baseUrl
     },
+    a2a: {
+      adapterType: 'a2a',
+      baseUrl
+    },
+    agui: {
+      adapterType: 'agui',
+      baseUrl
+    },
     mock: {
       adapterType: 'mock',
       baseUrl: 'http://mock.local'
@@ -51,18 +59,19 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
       currentAdapterType: (configManager.getServicesConfig().adapterType as AdapterType) || 'rest',
       
       getConfig: (adapterType) => {
-        return get().configs[adapterType];
+        return get().configs[adapterType] || getDefaultConfig()[adapterType];
       },
       
       getCurrentConfig: () => {
         const state = get();
-        return state.configs[state.currentAdapterType];
+        return state.configs[state.currentAdapterType] || getDefaultConfig()[state.currentAdapterType];
       },
       
       updateConfig: (adapterType, updates) => {
         set((state) => {
+          const baseConfig = state.configs[adapterType] || getDefaultConfig()[adapterType];
           const newConfig = {
-            ...state.configs[adapterType],
+            ...baseConfig,
             ...updates,
             adapterType // Ensure adapter type is not changed
           };
@@ -82,10 +91,15 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
       },
       
       setCurrentAdapterType: (adapterType) => {
-        set({ currentAdapterType: adapterType });
+        set((state) => ({
+          currentAdapterType: adapterType,
+          configs: state.configs[adapterType]
+            ? state.configs
+            : { ...state.configs, [adapterType]: getDefaultConfig()[adapterType] },
+        }));
         
         // Configure ChatService with the new current config
-        const config = get().configs[adapterType];
+        const config = get().configs[adapterType] || getDefaultConfig()[adapterType];
         serviceFactory.switchAdapter(config.adapterType, config.baseUrl);
       },
       
@@ -117,6 +131,14 @@ const useServiceConfigStore = create<ServiceConfigStore>()(
         }
         try {
           if (!state) return;
+          const defaultConfigs = getDefaultConfig();
+          state.configs = {
+            ...defaultConfigs,
+            ...(state.configs || {}),
+          };
+          if (!state.configs[state.currentAdapterType]) {
+            state.currentAdapterType = ((configManager.getServicesConfig().adapterType as AdapterType) || 'rest');
+          }
           const currentConfig = state.getCurrentConfig();
           serviceFactory.switchAdapter(currentConfig.adapterType, currentConfig.baseUrl);
         } catch (e) {

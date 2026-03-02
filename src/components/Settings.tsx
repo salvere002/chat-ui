@@ -12,6 +12,21 @@ interface SettingsProps {
   scopeTo?: HTMLElement;
 }
 
+const getBackendPlaceholder = (adapterType: AdapterType): string => {
+  switch (adapterType) {
+    case 'a2a':
+      return 'https://your-a2a-agent.example.com';
+    case 'agui':
+      return 'https://your-agui-agent.example.com';
+    case 'mock':
+      return 'http://mock.local';
+    case 'session':
+    case 'rest':
+    default:
+      return 'http://localhost:5001/api';
+  }
+};
+
 
 const Settings: React.FC<SettingsProps> = ({ 
   onClose, 
@@ -152,6 +167,8 @@ const Settings: React.FC<SettingsProps> = ({
                   >
                     <option value="rest">REST API</option>
                     <option value="session">Session Based</option>
+                    <option value="a2a">A2A Protocol</option>
+                    <option value="agui">AG-UI Protocol</option>
                     <option value="mock">Mock (Testing)</option>
                   </select>
                 </div>
@@ -162,7 +179,7 @@ const Settings: React.FC<SettingsProps> = ({
                     type="text"
                     value={backendUrl}
                     onChange={(e) => setBackendUrl(e.target.value)}
-                    placeholder="http://localhost:5001/api"
+                    placeholder={getBackendPlaceholder(adapterType)}
                     className="w-full p-3 bg-bg-secondary text-text-primary border border-border-primary rounded-md font-sans text-sm transition-all duration-150 hover:border-text-tertiary focus:outline-none focus:border-border-focus focus:shadow-[0_0_0_3px_var(--color-accent-light)] focus:bg-bg-primary"
                   />
                 </div>
