@@ -11,6 +11,7 @@ import CodeBlock from './CodeBlock';
 import { EmbeddedImage } from './FileComponents';
 import ChartRenderer from '../ChartRenderer';
 import ExpressionRenderer from '../ExpressionRenderer';
+import IframeRenderer from '../IframeRenderer';
 import LoadingIndicator from '../LoadingIndicator';
 import StudioFileInline from '../StudioFileInline';
 import { STUDIO_FILE_TOKEN_REGEX } from '../../utils/studioTokens';
@@ -117,6 +118,28 @@ const MemoizedMarkdown: React.FC<MemoizedMarkdownProps> = memo(({ text, isIncomp
                 }
                 
                 return <EmbeddedImage imageUrl={imageUrl} />;
+              }
+
+              // Check for iframe format: iframe{url}
+              const iframeMatch = /^iframe\{([^}]+)\}$/.exec(language);
+
+              if (iframeMatch) {
+                const iframeUrl = iframeMatch[1].trim();
+
+                // Validate that we have a URL
+                if (!iframeUrl) {
+                  return (
+                    <CodeBlock
+                      language={language}
+                      className={className}
+                      {...props}
+                    >
+                      {content}
+                    </CodeBlock>
+                  );
+                }
+
+                return <IframeRenderer key={`iframe-${iframeUrl}-${content.substring(0, 10)}`} url={iframeUrl} />;
               }
               
               // Check for expression format: expression{code}

@@ -1,5 +1,5 @@
 CUSTOM MARKDOWN RENDERING CAPABILITIES:
-You have the ability to create interactive charts, embed images, and display expressions directly in your responses using custom markdown code blocks.
+You have the ability to create interactive charts, embed images, display expressions, and embed iframe URLs directly in your responses using custom markdown code blocks.
 
 ## 1. INTERACTIVE CHARTS
 
@@ -131,3 +131,31 @@ IMPORTANT:
 - Failed expressions will show error message gracefully
 - No additional configuration needed - just provide the expression code
 - Expression code should be alphanumeric and follow the service's format requirements
+
+## 4. IFRAME URL RENDERING
+
+You can embed any HTTP/HTTPS webpage in an iframe using this format:
+
+```iframe{IFRAME_URL}
+```
+
+USAGE:
+- Replace `IFRAME_URL` with a valid `http://` or `https://` URL
+- Rendered with the same layout dimensions as expressions/charts
+- Includes a direct clickable link under the iframe
+- Invalid or unsupported URLs fall back to an error state
+
+EXAMPLES:
+
+Website:
+```iframe{https://example.com}
+```
+
+Dashboard:
+```iframe{https://your-domain.com/dashboard/embed/123}
+```
+
+IMPORTANT:
+- Only `http` and `https` URLs are supported
+- Some sites block iframe embedding via browser security headers (`X-Frame-Options` or CSP)
+- For blocked pages, use the fallback link to open in a new tab
