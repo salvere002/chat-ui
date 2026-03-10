@@ -89,6 +89,9 @@ export { serviceFactory } from '../services/serviceFactory';
 export { useFileUpload } from '../hooks/useFileUpload';
 export { useStreamingMessage } from '../hooks/useStreamingMessage';
 export { useImageUrlCache } from '../hooks/useImageUrlCache';
+export { useChatHeadless } from '../headless/useChatHeadless';
+export { useIsolatedChatHeadless } from '../headless/useIsolatedChatHeadless';
+export { ChatHeadlessProvider, useChatHeadlessContext } from '../headless/ChatHeadlessProvider';
 
 // ============================================================================
 // Types
@@ -99,6 +102,17 @@ export type {
   Chat,
   ResponseMode,
 } from '../types/chat';
+
+export type {
+  ChatHeadlessRuntime,
+  PendingUploadFile,
+} from '../headless/types';
+
+export type {
+  IsolatedHeadlessServiceConfig,
+  IsolatedChatHeadlessOptions,
+  IsolatedChatHeadlessRuntime,
+} from '../headless/isolatedTypes';
 
 export type {
   ChatStore,

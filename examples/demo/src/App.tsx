@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import ChatUI from 'chat-ui';
+import IsolatedHeadlessExample from './IsolatedHeadlessExample';
 
-type Mode = 'full' | 'resizable';
+type Mode = 'full' | 'resizable' | 'headless';
 
 export default function App() {
   const [mode, setMode] = useState<Mode>('full');
@@ -51,6 +52,12 @@ export default function App() {
         >
           Resizable
         </button>
+        <button
+          className={mode === 'headless' ? 'active' : ''}
+          onClick={() => setMode('headless')}
+        >
+          Headless
+        </button>
       </div>
 
       <div className="content">
@@ -62,6 +69,8 @@ export default function App() {
             initialTheme="light"
             initialResponseMode="stream"
           />
+        ) : mode === 'headless' ? (
+          <IsolatedHeadlessExample />
         ) : (
           <div
             className="widget-anchor"
