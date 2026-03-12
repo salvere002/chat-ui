@@ -110,9 +110,18 @@ export type {
 
 export type {
   IsolatedHeadlessServiceConfig,
+  IsolatedHeadlessAdapterFactory,
+  IsolatedHeadlessAdapterFactoryParams,
   IsolatedChatHeadlessOptions,
   IsolatedChatHeadlessRuntime,
 } from '../headless/isolatedTypes';
+
+export type {
+  BaseAdapter,
+  AdapterCapabilities,
+  StreamCallbacks,
+  ProgressCallback,
+} from '../services/adapters/BaseAdapter';
 
 export type {
   ChatStore,

@@ -1,4 +1,5 @@
 import type { AdapterType } from '../services/serviceFactory';
+import type { BaseAdapter } from '../services/adapters/BaseAdapter';
 import type { Chat, Message, PreviewFile, ResponseMode } from '../types/chat';
 import type { PendingUploadFile } from './types';
 
@@ -7,8 +8,19 @@ export interface IsolatedHeadlessServiceConfig {
   baseUrl?: string;
 }
 
+export interface IsolatedHeadlessAdapterFactoryParams {
+  adapterType: AdapterType;
+  baseUrl: string;
+}
+
+export type IsolatedHeadlessAdapterFactory = (
+  params: IsolatedHeadlessAdapterFactoryParams
+) => BaseAdapter;
+
 export interface IsolatedChatHeadlessOptions {
   serviceConfig?: IsolatedHeadlessServiceConfig;
+  adapter?: BaseAdapter;
+  adapterFactory?: IsolatedHeadlessAdapterFactory;
   initialResponseMode?: ResponseMode;
   autoCreateChat?: boolean;
 }
