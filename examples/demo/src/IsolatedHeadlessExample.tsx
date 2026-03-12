@@ -1,11 +1,33 @@
-import React, { useState } from 'react';
-import { useIsolatedChatHeadless } from 'chat-ui';
+import React, { useMemo, useState } from 'react';
+import { serviceFactory, useIsolatedChatHeadless, type BaseAdapter } from 'chat-ui';
+
+const wrapAdapter = (adapter: BaseAdapter): BaseAdapter => {
+  return new Proxy(adapter, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value !== 'function') {
+        return value;
+      }
+
+      return (...args: unknown[]) => {
+        if (prop === 'sendMessage' || prop === 'sendStreamingMessage') {
+          console.debug(`[custom-adapter] ${String(prop)} called`);
+        }
+        return (value as (...innerArgs: unknown[]) => unknown).apply(target, args);
+      };
+    },
+  }) as BaseAdapter;
+};
 
 const IsolatedHeadlessExample: React.FC = () => {
   const [input, setInput] = useState('');
+  const customAdapter = useMemo(() => {
+    const builtInAdapter = serviceFactory.switchAdapter('mock', 'http://mock.local');
+    return wrapAdapter(builtInAdapter);
+  }, []);
 
   const chat = useIsolatedChatHeadless({
-    serviceConfig: { adapterType: 'mock' },
+    adapter: customAdapter,
     initialResponseMode: 'stream',
   });
 

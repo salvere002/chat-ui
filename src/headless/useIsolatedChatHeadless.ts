@@ -13,7 +13,11 @@ import { buildHistory } from '../utils/messageUtils';
 import { configManager } from '../utils/config';
 import { generateChatId, generateMessageId } from '../utils/id';
 import type { PendingUploadFile } from './types';
-import type { IsolatedChatHeadlessOptions, IsolatedChatHeadlessRuntime } from './isolatedTypes';
+import type {
+  IsolatedChatHeadlessOptions,
+  IsolatedChatHeadlessRuntime,
+  IsolatedHeadlessAdapterFactory,
+} from './isolatedTypes';
 
 const SUPPORTED_ADAPTER_TYPES: AdapterType[] = ['rest', 'mock', 'session', 'a2a', 'agui'];
 
@@ -28,7 +32,7 @@ const resolveAdapterType = (adapterType?: AdapterType): AdapterType => {
   return 'rest';
 };
 
-const createAdapter = (adapterType: AdapterType, baseUrl: string): BaseAdapter => {
+const createBuiltInAdapter = (adapterType: AdapterType, baseUrl: string): BaseAdapter => {
   const apiConfig = configManager.getApiConfig();
   const apiClient = new ApiClient({
     baseUrl,
@@ -51,6 +55,21 @@ const createAdapter = (adapterType: AdapterType, baseUrl: string): BaseAdapter =
     default:
       return new RestApiAdapter(apiClient);
   }
+};
+
+const createConfiguredAdapter = (
+  adapterType: AdapterType,
+  baseUrl: string,
+  adapter?: BaseAdapter,
+  adapterFactory?: IsolatedHeadlessAdapterFactory
+): BaseAdapter => {
+  if (adapter) {
+    return adapter;
+  }
+  if (adapterFactory) {
+    return adapterFactory({ adapterType, baseUrl });
+  }
+  return createBuiltInAdapter(adapterType, baseUrl);
 };
 
 const revokePreviewUrl = (previewFile: PreviewFile): void => {
@@ -82,6 +101,8 @@ const createChatShell = (chatId: string, title: string): Chat => {
 export const useIsolatedChatHeadless = (options: IsolatedChatHeadlessOptions = {}): IsolatedChatHeadlessRuntime => {
   const adapterType = resolveAdapterType(options.serviceConfig?.adapterType);
   const baseUrl = options.serviceConfig?.baseUrl || configManager.getApiConfig().baseUrl;
+  const providedAdapter = options.adapter;
+  const adapterFactory = options.adapterFactory;
   const autoCreateChat = options.autoCreateChat !== false;
   const initialResponseMode = options.initialResponseMode || 'stream';
 
@@ -102,7 +123,7 @@ export const useIsolatedChatHeadless = (options: IsolatedChatHeadlessOptions = {
   const activeBlobImageUrlsRef = useRef<Set<string>>(new Set());
 
   if (!adapterRef.current) {
-    adapterRef.current = createAdapter(adapterType, baseUrl);
+    adapterRef.current = createConfiguredAdapter(adapterType, baseUrl, providedAdapter, adapterFactory);
   }
 
   useEffect(() => {
@@ -144,15 +165,15 @@ export const useIsolatedChatHeadless = (options: IsolatedChatHeadlessOptions = {
 
   useEffect(() => {
     abortAllStreams();
-    adapterRef.current = createAdapter(adapterType, baseUrl);
-  }, [adapterType, baseUrl, abortAllStreams]);
+    adapterRef.current = createConfiguredAdapter(adapterType, baseUrl, providedAdapter, adapterFactory);
+  }, [adapterType, baseUrl, providedAdapter, adapterFactory, abortAllStreams]);
 
   const getAdapter = useCallback((): BaseAdapter => {
     if (!adapterRef.current) {
-      adapterRef.current = createAdapter(adapterType, baseUrl);
+      adapterRef.current = createConfiguredAdapter(adapterType, baseUrl, providedAdapter, adapterFactory);
     }
     return adapterRef.current;
-  }, [adapterType, baseUrl]);
+  }, [adapterType, baseUrl, providedAdapter, adapterFactory]);
 
   const updateMessageInChat = useCallback((chatId: string, messageId: string, updates: Partial<Message>) => {
     setChatSessions((prev) => prev.map((chat) => {
