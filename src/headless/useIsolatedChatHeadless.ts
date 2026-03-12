@@ -32,13 +32,13 @@ const resolveAdapterType = (adapterType?: AdapterType): AdapterType => {
   return 'rest';
 };
 
-const createBuiltInAdapter = (adapterType: AdapterType, baseUrl: string): BaseAdapter => {
+const createBuiltInAdapter = (adapterType: AdapterType, baseUrl: string, useProxy: boolean): BaseAdapter => {
   const apiConfig = configManager.getApiConfig();
   const apiClient = new ApiClient({
     baseUrl,
     defaultHeaders: apiConfig.defaultHeaders,
     timeout: apiConfig.timeout,
-    useProxy: apiConfig.useProxy !== false,
+    useProxy,
   });
 
   switch (adapterType) {
@@ -60,6 +60,7 @@ const createBuiltInAdapter = (adapterType: AdapterType, baseUrl: string): BaseAd
 const createConfiguredAdapter = (
   adapterType: AdapterType,
   baseUrl: string,
+  useProxy: boolean,
   adapter?: BaseAdapter,
   adapterFactory?: IsolatedHeadlessAdapterFactory
 ): BaseAdapter => {
@@ -67,9 +68,9 @@ const createConfiguredAdapter = (
     return adapter;
   }
   if (adapterFactory) {
-    return adapterFactory({ adapterType, baseUrl });
+    return adapterFactory({ adapterType, baseUrl, useProxy });
   }
-  return createBuiltInAdapter(adapterType, baseUrl);
+  return createBuiltInAdapter(adapterType, baseUrl, useProxy);
 };
 
 const revokePreviewUrl = (previewFile: PreviewFile): void => {
@@ -101,6 +102,7 @@ const createChatShell = (chatId: string, title: string): Chat => {
 export const useIsolatedChatHeadless = (options: IsolatedChatHeadlessOptions = {}): IsolatedChatHeadlessRuntime => {
   const adapterType = resolveAdapterType(options.serviceConfig?.adapterType);
   const baseUrl = options.serviceConfig?.baseUrl || configManager.getApiConfig().baseUrl;
+  const useProxy = options.serviceConfig?.useProxy ?? (configManager.getApiConfig().useProxy !== false);
   const providedAdapter = options.adapter;
   const adapterFactory = options.adapterFactory;
   const autoCreateChat = options.autoCreateChat !== false;
@@ -123,7 +125,7 @@ export const useIsolatedChatHeadless = (options: IsolatedChatHeadlessOptions = {
   const activeBlobImageUrlsRef = useRef<Set<string>>(new Set());
 
   if (!adapterRef.current) {
-    adapterRef.current = createConfiguredAdapter(adapterType, baseUrl, providedAdapter, adapterFactory);
+    adapterRef.current = createConfiguredAdapter(adapterType, baseUrl, useProxy, providedAdapter, adapterFactory);
   }
 
   useEffect(() => {
@@ -165,15 +167,15 @@ export const useIsolatedChatHeadless = (options: IsolatedChatHeadlessOptions = {
 
   useEffect(() => {
     abortAllStreams();
-    adapterRef.current = createConfiguredAdapter(adapterType, baseUrl, providedAdapter, adapterFactory);
-  }, [adapterType, baseUrl, providedAdapter, adapterFactory, abortAllStreams]);
+    adapterRef.current = createConfiguredAdapter(adapterType, baseUrl, useProxy, providedAdapter, adapterFactory);
+  }, [adapterType, baseUrl, useProxy, providedAdapter, adapterFactory, abortAllStreams]);
 
   const getAdapter = useCallback((): BaseAdapter => {
     if (!adapterRef.current) {
-      adapterRef.current = createConfiguredAdapter(adapterType, baseUrl, providedAdapter, adapterFactory);
+      adapterRef.current = createConfiguredAdapter(adapterType, baseUrl, useProxy, providedAdapter, adapterFactory);
     }
     return adapterRef.current;
-  }, [adapterType, baseUrl, providedAdapter, adapterFactory]);
+  }, [adapterType, baseUrl, useProxy, providedAdapter, adapterFactory]);
 
   const updateMessageInChat = useCallback((chatId: string, messageId: string, updates: Partial<Message>) => {
     setChatSessions((prev) => prev.map((chat) => {

@@ -6,11 +6,13 @@ import type { PendingUploadFile } from './types';
 export interface IsolatedHeadlessServiceConfig {
   adapterType?: AdapterType;
   baseUrl?: string;
+  useProxy?: boolean;
 }
 
 export interface IsolatedHeadlessAdapterFactoryParams {
   adapterType: AdapterType;
   baseUrl: string;
+  useProxy: boolean;
 }
 
 export type IsolatedHeadlessAdapterFactory = (
